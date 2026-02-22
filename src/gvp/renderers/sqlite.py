@@ -48,8 +48,14 @@ def render_sqlite(
     for doc in catalog.documents.values():
         conn.execute(
             "INSERT INTO documents VALUES (?, ?, ?, ?, ?, ?)",
-            (doc.name, doc.filename, str(doc.path), doc.inherits,
-             doc.scope_label, doc.id_prefix),
+            (
+                doc.name,
+                doc.filename,
+                str(doc.path),
+                doc.inherits,
+                doc.scope_label,
+                doc.id_prefix,
+            ),
         )
 
     for qid, elem in catalog.elements.items():
@@ -58,9 +64,16 @@ def render_sqlite(
         statement = elem.fields.get("statement") or elem.fields.get("rationale") or ""
         conn.execute(
             "INSERT INTO elements VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (qid, elem.id, elem.document.name, elem.category,
-             elem.name, elem.status, statement.strip(),
-             json.dumps(elem.fields)),
+            (
+                qid,
+                elem.id,
+                elem.document.name,
+                elem.category,
+                elem.name,
+                elem.status,
+                statement.strip(),
+                json.dumps(elem.fields),
+            ),
         )
         for tag in elem.tags:
             conn.execute("INSERT INTO element_tags VALUES (?, ?)", (qid, tag))
