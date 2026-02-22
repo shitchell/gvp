@@ -7,6 +7,61 @@ import re
 from gvp.model import Catalog
 
 
+# Categories that are roots (no mapping required)
+_ROOT_CATEGORIES = {"goal", "value", "constraint"}
+
+# Mapping rules: category -> (required_categories, alternative_categories)
+# Element passes if maps_to targets include >= 1 of EACH required category,
+# OR maps_to targets include >= 1 of ANY alternative category.
+_MAPPING_RULES: dict[str, tuple[set[str], set[str]]] = {
+    "milestone":           ({"goal", "value"}, set()),
+    "principle":           ({"goal", "value"}, set()),
+    "rule":                ({"goal", "value"}, set()),
+    "design_choice":       ({"goal", "value"}, set()),
+    "heuristic":           ({"goal", "value"}, {"principle"}),
+    "implementation_rule": ({"goal", "value"}, {"design_choice"}),
+    "coding_principle":    ({"goal", "value"}, {"principle", "design_choice"}),
+}
+
+
+def _validate_mappings(catalog: Catalog) -> list[str]:
+    """Check category-specific traceability rules."""
+    errors: list[str] = []
+
+    for qid, elem in catalog.elements.items():
+        if elem.category in _ROOT_CATEGORIES:
+            continue
+        if elem.status in ("deprecated", "rejected"):
+            continue
+
+        rule = _MAPPING_RULES.get(elem.category)
+        if rule is None:
+            continue
+
+        required_cats, alt_cats = rule
+
+        # Resolve maps_to targets to their categories
+        target_categories: set[str] = set()
+        for ref in elem.maps_to:
+            target = catalog.elements.get(ref)
+            if target is not None:
+                target_categories.add(target.category)
+
+        # Check alternative path first
+        if alt_cats and (alt_cats & target_categories):
+            continue
+
+        # Check required categories
+        missing = required_cats - target_categories
+        if missing:
+            missing_str = " and ".join(sorted(missing))
+            errors.append(
+                f"{qid}: traceability — must map to at least one {missing_str}"
+            )
+
+    return errors
+
+
 def validate_catalog(catalog: Catalog) -> tuple[list[str], list[str]]:
     """Validate the catalog. Returns (errors, warnings)."""
     errors: list[str] = []
@@ -65,6 +120,9 @@ def validate_catalog(catalog: Catalog) -> tuple[list[str], list[str]]:
             if parent is None:
                 break
             current = parent
+
+    # Check category-specific mapping rules
+    errors.extend(_validate_mappings(catalog))
 
     # Warn on empty documents
     for doc in catalog.documents.values():

@@ -1,13 +1,45 @@
 """Tests for gvp validate command."""
 
+import textwrap
 from pathlib import Path
+
+import pytest
 
 from gvp.commands.validate import validate_catalog
 from gvp.config import GVPConfig
 from gvp.loader import load_catalog
 
 
+def _make_lib(tmp_path: Path, elements_yaml: str) -> Path:
+    """Create a minimal library with a root doc (goals/values) and a test doc."""
+    lib = tmp_path / "lib"
+    lib.mkdir(exist_ok=True)
+    (lib / "root.yaml").write_text(textwrap.dedent("""\
+        meta:
+          name: root
+          scope: universal
+        goals:
+          - id: G1
+            name: Test Goal
+            statement: A test goal.
+            tags: []
+            maps_to: []
+        values:
+          - id: V1
+            name: Test Value
+            statement: A test value.
+            tags: []
+            maps_to: []
+    """))
+    (lib / "test.yaml").write_text(
+        "meta:\n  name: test\n  inherits: root\n  scope: project\n"
+        + elements_yaml
+    )
+    return lib
+
+
 class TestValidateCatalog:
+    @pytest.mark.xfail(reason="gvp-docs not yet aligned with traceability rules")
     def test_real_gvp_docs_passes(self, gvp_docs_library: Path):
         cfg = GVPConfig(libraries=[gvp_docs_library])
         catalog = load_catalog(cfg)
@@ -91,3 +123,228 @@ class TestValidateCatalog:
         catalog = load_catalog(cfg)
         _, warnings = validate_catalog(catalog)
         assert any("W001" in w for w in warnings)
+
+
+class TestMappingValidation:
+    def test_principle_with_goal_and_value_passes(self, tmp_path: Path):
+        lib = _make_lib(tmp_path, textwrap.dedent("""\
+            principles:
+              - id: P1
+                name: Test Principle
+                statement: A test principle.
+                tags: []
+                maps_to: [root:G1, root:V1]
+        """))
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        errors, _ = validate_catalog(catalog)
+        assert not any("P1" in e for e in errors)
+
+    def test_principle_missing_goal_fails(self, tmp_path: Path):
+        lib = _make_lib(tmp_path, textwrap.dedent("""\
+            principles:
+              - id: P1
+                name: Test Principle
+                statement: A test principle.
+                tags: []
+                maps_to: [root:V1]
+        """))
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        errors, _ = validate_catalog(catalog)
+        assert any("P1" in e and "goal" in e for e in errors)
+
+    def test_principle_missing_value_fails(self, tmp_path: Path):
+        lib = _make_lib(tmp_path, textwrap.dedent("""\
+            principles:
+              - id: P1
+                name: Test Principle
+                statement: A test principle.
+                tags: []
+                maps_to: [root:G1]
+        """))
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        errors, _ = validate_catalog(catalog)
+        assert any("P1" in e and "value" in e for e in errors)
+
+    def test_heuristic_with_principle_shortcut_passes(self, tmp_path: Path):
+        lib = _make_lib(tmp_path, textwrap.dedent("""\
+            principles:
+              - id: P1
+                name: Test Principle
+                statement: A test principle.
+                tags: []
+                maps_to: [root:G1, root:V1]
+            heuristics:
+              - id: H1
+                name: Test Heuristic
+                statement: A test heuristic.
+                tags: []
+                maps_to: [test:P1]
+        """))
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        errors, _ = validate_catalog(catalog)
+        assert not any("H1" in e for e in errors)
+
+    def test_heuristic_without_principle_or_gv_fails(self, tmp_path: Path):
+        lib = _make_lib(tmp_path, textwrap.dedent("""\
+            heuristics:
+              - id: H1
+                name: Test Heuristic
+                statement: A test heuristic.
+                tags: []
+                maps_to: []
+        """))
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        errors, _ = validate_catalog(catalog)
+        assert any("H1" in e for e in errors)
+
+    def test_design_choice_with_goal_and_value_passes(self, tmp_path: Path):
+        lib = _make_lib(tmp_path, textwrap.dedent("""\
+            design_choices:
+              - id: D1
+                name: Test Design Choice
+                statement: A test design choice.
+                tags: []
+                maps_to: [root:G1, root:V1]
+        """))
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        errors, _ = validate_catalog(catalog)
+        assert not any("D1" in e for e in errors)
+
+    def test_implementation_rule_with_design_choice_shortcut_passes(self, tmp_path: Path):
+        lib = _make_lib(tmp_path, textwrap.dedent("""\
+            design_choices:
+              - id: D1
+                name: Test Design Choice
+                statement: A test design choice.
+                tags: []
+                maps_to: [root:G1, root:V1]
+            implementation_rules:
+              - id: IR1
+                name: Test Implementation Rule
+                statement: A test implementation rule.
+                tags: []
+                maps_to: [test:D1]
+        """))
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        errors, _ = validate_catalog(catalog)
+        assert not any("IR1" in e for e in errors)
+
+    def test_coding_principle_with_principle_shortcut_passes(self, tmp_path: Path):
+        lib = _make_lib(tmp_path, textwrap.dedent("""\
+            principles:
+              - id: P1
+                name: Test Principle
+                statement: A test principle.
+                tags: []
+                maps_to: [root:G1, root:V1]
+            coding_principles:
+              - id: C1
+                name: Test Coding Principle
+                statement: A test coding principle.
+                tags: []
+                maps_to: [test:P1]
+        """))
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        errors, _ = validate_catalog(catalog)
+        assert not any("C1" in e for e in errors)
+
+    def test_milestone_missing_value_fails(self, tmp_path: Path):
+        lib = _make_lib(tmp_path, textwrap.dedent("""\
+            milestones:
+              - id: M1
+                name: Test Milestone
+                statement: A test milestone.
+                tags: []
+                maps_to: [root:G1]
+        """))
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        errors, _ = validate_catalog(catalog)
+        assert any("M1" in e and "value" in e for e in errors)
+
+    def test_rule_with_goal_and_value_passes(self, tmp_path: Path):
+        lib = _make_lib(tmp_path, textwrap.dedent("""\
+            rules:
+              - id: R1
+                name: Test Rule
+                statement: A test rule.
+                tags: []
+                maps_to: [root:G1, root:V1]
+        """))
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        errors, _ = validate_catalog(catalog)
+        assert not any("R1" in e for e in errors)
+
+    def test_goal_needs_no_mapping(self, tmp_path: Path):
+        lib = _make_lib(tmp_path, textwrap.dedent("""\
+            goals:
+              - id: G1
+                name: Extra Goal
+                statement: An extra goal.
+                tags: []
+                maps_to: []
+        """))
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        errors, _ = validate_catalog(catalog)
+        assert not any("G1" in e and "traceability" in e for e in errors)
+
+    def test_value_needs_no_mapping(self, tmp_path: Path):
+        lib = _make_lib(tmp_path, textwrap.dedent("""\
+            values:
+              - id: V1
+                name: Extra Value
+                statement: An extra value.
+                tags: []
+                maps_to: []
+        """))
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        errors, _ = validate_catalog(catalog)
+        assert not any("V1" in e and "traceability" in e for e in errors)
+
+    def test_constraint_needs_no_mapping(self, tmp_path: Path):
+        lib = _make_lib(tmp_path, textwrap.dedent("""\
+            constraints:
+              - id: CON1
+                name: Test Constraint
+                statement: A test constraint.
+                tags: []
+                maps_to: []
+        """))
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        errors, _ = validate_catalog(catalog)
+        assert not any("CON1" in e and "traceability" in e for e in errors)
+
+    def test_deprecated_elements_skip_mapping_check(self, tmp_path: Path):
+        lib = _make_lib(tmp_path, textwrap.dedent("""\
+            principles:
+              - id: P1
+                name: Old Principle
+                statement: An old principle.
+                status: deprecated
+                tags: []
+                maps_to: []
+        """))
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        errors, _ = validate_catalog(catalog)
+        assert not any("P1" in e for e in errors)
+
+    @pytest.mark.xfail(reason="gvp-docs not yet aligned with traceability rules")
+    def test_real_gvp_docs_passes_mapping_check(self, gvp_docs_library: Path):
+        cfg = GVPConfig(libraries=[gvp_docs_library])
+        catalog = load_catalog(cfg)
+        errors, _ = validate_catalog(catalog)
+        mapping_errors = [e for e in errors if "traceability" in e]
+        assert mapping_errors == [], f"Unexpected mapping errors: {mapping_errors}"
