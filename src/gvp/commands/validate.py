@@ -62,6 +62,37 @@ def _validate_mappings(catalog: Catalog) -> list[str]:
     return errors
 
 
+def _validate_semantic(catalog: Catalog) -> list[str]:
+    """Check semantic warnings (tier 2)."""
+    warnings: list[str] = []
+
+    for qid, elem in catalog.elements.items():
+        if elem.status in ("deprecated", "rejected"):
+            continue
+        if elem.category in _ROOT_CATEGORIES:
+            continue
+
+        # W004: empty maps_to on element that should have mappings
+        if not elem.maps_to:
+            warnings.append(
+                f"W004: {qid} ({elem.category}) has no maps_to references"
+            )
+            continue  # skip W005 if maps_to is empty
+
+        # W005: all maps_to targets are in the same document
+        target_docs = set()
+        for ref in elem.maps_to:
+            target = catalog.elements.get(ref)
+            if target is not None:
+                target_docs.add(target.document.name)
+        if target_docs and target_docs == {elem.document.name}:
+            warnings.append(
+                f"W005: {qid} maps only to elements in its own document"
+            )
+
+    return warnings
+
+
 def validate_catalog(catalog: Catalog) -> tuple[list[str], list[str]]:
     """Validate the catalog. Returns (errors, warnings)."""
     errors: list[str] = []
@@ -123,6 +154,9 @@ def validate_catalog(catalog: Catalog) -> tuple[list[str], list[str]]:
 
     # Check category-specific mapping rules
     errors.extend(_validate_mappings(catalog))
+
+    # Check semantic warnings
+    warnings.extend(_validate_semantic(catalog))
 
     # Warn on empty documents
     for doc in catalog.documents.values():

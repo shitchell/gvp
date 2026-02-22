@@ -348,3 +348,88 @@ class TestMappingValidation:
         errors, _ = validate_catalog(catalog)
         mapping_errors = [e for e in errors if "traceability" in e]
         assert mapping_errors == [], f"Unexpected mapping errors: {mapping_errors}"
+
+
+class TestSemanticWarnings:
+    def test_empty_maps_to_warns(self, tmp_path: Path):
+        lib = _make_lib(tmp_path, textwrap.dedent("""\
+            principles:
+              - id: P1
+                name: Lonely Principle
+                statement: A principle with no mappings.
+                tags: []
+                maps_to: []
+        """))
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        _, warnings = validate_catalog(catalog)
+        assert any("W004" in w and "P1" in w for w in warnings)
+
+    def test_empty_maps_to_ok_for_roots(self, tmp_path: Path):
+        lib = _make_lib(tmp_path, textwrap.dedent("""\
+            values:
+              - id: V1
+                name: Extra Value
+                statement: A value with no mappings.
+                tags: []
+                maps_to: []
+        """))
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        _, warnings = validate_catalog(catalog)
+        assert not any("W004" in w for w in warnings)
+
+    def test_deprecated_skips_w004(self, tmp_path: Path):
+        lib = _make_lib(tmp_path, textwrap.dedent("""\
+            principles:
+              - id: P1
+                name: Old Principle
+                statement: A deprecated principle.
+                status: deprecated
+                tags: []
+                maps_to: []
+        """))
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        _, warnings = validate_catalog(catalog)
+        assert not any("W004" in w for w in warnings)
+
+    def test_insular_mappings_warns(self, tmp_path: Path):
+        lib = _make_lib(tmp_path, textwrap.dedent("""\
+            goals:
+              - id: G1
+                name: Local Goal
+                statement: A local goal.
+                tags: []
+                maps_to: []
+            values:
+              - id: V1
+                name: Local Value
+                statement: A local value.
+                tags: []
+                maps_to: []
+            principles:
+              - id: P1
+                name: Insular Principle
+                statement: Maps only within own document.
+                tags: []
+                maps_to: [test:G1, test:V1]
+        """))
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        _, warnings = validate_catalog(catalog)
+        assert any("W005" in w and "P1" in w for w in warnings)
+
+    def test_cross_scope_mappings_no_w005(self, tmp_path: Path):
+        lib = _make_lib(tmp_path, textwrap.dedent("""\
+            principles:
+              - id: P1
+                name: Cross-scope Principle
+                statement: Maps to root document elements.
+                tags: []
+                maps_to: [root:G1, root:V1]
+        """))
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        _, warnings = validate_catalog(catalog)
+        assert not any("W005" in w for w in warnings)
