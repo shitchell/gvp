@@ -48,7 +48,9 @@ def _apply_defaults(raw_element: dict, defaults: dict) -> dict:
     for key, default_val in defaults.items():
         if key not in result:
             if key == "origin":
-                result[key] = [default_val] if isinstance(default_val, dict) else default_val
+                result[key] = (
+                    [default_val] if isinstance(default_val, dict) else default_val
+                )
             else:
                 result[key] = default_val
     return result
@@ -69,7 +71,9 @@ def _normalize_origin(raw_origin) -> list[dict]:
     if isinstance(raw_origin, dict):
         return [_stringify_dict_values(raw_origin)]
     if isinstance(raw_origin, list):
-        return [_stringify_dict_values(o) if isinstance(o, dict) else o for o in raw_origin]
+        return [
+            _stringify_dict_values(o) if isinstance(o, dict) else o for o in raw_origin
+        ]
     return [raw_origin]
 
 
@@ -84,11 +88,16 @@ def _parse_element(raw: dict, category: str, doc: Document) -> Element:
     updated_by = raw.get("updated_by") or []
     fields = {k: v for k, v in raw.items() if k not in ELEMENT_ATTRS}
     return Element(
-        id=elem_id, category=category, name=name, status=status,
-        tags=tags, maps_to=maps_to,
+        id=elem_id,
+        category=category,
+        name=name,
+        status=status,
+        tags=tags,
+        maps_to=maps_to,
         origin=origin,
         updated_by=updated_by if isinstance(updated_by, list) else [updated_by],
-        fields=fields, document=doc,
+        fields=fields,
+        document=doc,
     )
 
 
@@ -145,8 +154,13 @@ def load_catalog(cfg: GVPConfig) -> Catalog:
             doc = load_document(lib_path)
             if doc.name in catalog.documents:
                 if cfg.strict:
-                    raise ValueError(f"Duplicate document name '{doc.name}': {catalog.documents[doc.name].path} and {doc.path}")
-                print(f"W002: duplicate document name '{doc.name}', keeping {catalog.documents[doc.name].path}", file=sys.stderr)
+                    raise ValueError(
+                        f"Duplicate document name '{doc.name}': {catalog.documents[doc.name].path} and {doc.path}"
+                    )
+                print(
+                    f"W002: duplicate document name '{doc.name}', keeping {catalog.documents[doc.name].path}",
+                    file=sys.stderr,
+                )
                 continue
             catalog.add_document(doc)
             continue
@@ -157,8 +171,13 @@ def load_catalog(cfg: GVPConfig) -> Catalog:
         for doc in docs:
             if doc.name in catalog.documents:
                 if cfg.strict:
-                    raise ValueError(f"Duplicate document name '{doc.name}': {catalog.documents[doc.name].path} and {doc.path}")
-                print(f"W002: duplicate document name '{doc.name}', keeping {catalog.documents[doc.name].path}", file=sys.stderr)
+                    raise ValueError(
+                        f"Duplicate document name '{doc.name}': {catalog.documents[doc.name].path} and {doc.path}"
+                    )
+                print(
+                    f"W002: duplicate document name '{doc.name}', keeping {catalog.documents[doc.name].path}",
+                    file=sys.stderr,
+                )
                 continue
             catalog.add_document(doc)
     return catalog
