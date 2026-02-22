@@ -49,8 +49,7 @@ class TestValidateCatalog:
         lib = tmp_path / "lib"
         lib.mkdir()
         (lib / "tags.yaml").write_text(
-            "domains:\n  code:\n    description: Code\n"
-            "concerns: {}\n"
+            "domains:\n  code:\n    description: Code\n" "concerns: {}\n"
         )
         (lib / "test.yaml").write_text(
             "meta:\n  name: test\n"
@@ -67,8 +66,7 @@ class TestValidateCatalog:
         lib = tmp_path / "lib"
         lib.mkdir()
         (lib / "test.yaml").write_text(
-            "meta:\n  name: test\n  inherits: nonexistent\n"
-            "values: []\n"
+            "meta:\n  name: test\n  inherits: nonexistent\n" "values: []\n"
         )
         cfg = GVPConfig(libraries=[lib])
         catalog = load_catalog(cfg)
