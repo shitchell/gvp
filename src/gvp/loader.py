@@ -25,7 +25,7 @@ CATEGORY_MAP = {
 }
 
 SKIP_FILES = {"tags.yaml", "schema.yaml"}
-ELEMENT_ATTRS = {"id", "name", "status", "tags", "maps_to", "origin", "updated_by"}
+ELEMENT_ATTRS = {"id", "name", "status", "tags", "maps_to", "origin", "updated_by", "reviewed_by"}
 
 
 def _load_tags(library_path: Path) -> dict[str, dict]:
@@ -86,6 +86,7 @@ def _parse_element(raw: dict, category: str, doc: Document) -> Element:
     maps_to = raw.get("maps_to") or []
     origin = _normalize_origin(raw.get("origin"))
     updated_by = raw.get("updated_by") or []
+    reviewed_by = raw.get("reviewed_by") or []
     fields = {k: v for k, v in raw.items() if k not in ELEMENT_ATTRS}
     return Element(
         id=elem_id,
@@ -96,6 +97,7 @@ def _parse_element(raw: dict, category: str, doc: Document) -> Element:
         maps_to=maps_to,
         origin=origin,
         updated_by=updated_by if isinstance(updated_by, list) else [updated_by],
+        reviewed_by=reviewed_by if isinstance(reviewed_by, list) else [reviewed_by],
         fields=fields,
         document=doc,
     )

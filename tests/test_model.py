@@ -51,6 +51,40 @@ class TestElement:
         assert elem.status == "active"
 
 
+class TestElementReviewedBy:
+    def test_reviewed_by_defaults_to_empty(self):
+        doc = Document(
+            name="test", filename="test.yaml",
+            path="/fake/test.yaml", inherits=None,
+            scope_label="test", id_prefix=None,
+            defaults={}, elements=[],
+        )
+        elem = Element(
+            id="P1", category="principle", name="Test",
+            tags=[], maps_to=[], origin=[], updated_by={},
+            fields={"statement": "Test."},
+            document=doc,
+        )
+        assert elem.reviewed_by == []
+
+    def test_reviewed_by_stores_entries(self):
+        doc = Document(
+            name="test", filename="test.yaml",
+            path="/fake/test.yaml", inherits=None,
+            scope_label="test", id_prefix=None,
+            defaults={}, elements=[],
+        )
+        entry = {"date": "2026-02-22", "by": "guy", "note": "Looks good"}
+        elem = Element(
+            id="P1", category="principle", name="Test",
+            tags=[], maps_to=[], origin=[], updated_by={},
+            fields={"statement": "Test."},
+            document=doc, reviewed_by=[entry],
+        )
+        assert len(elem.reviewed_by) == 1
+        assert elem.reviewed_by[0]["by"] == "guy"
+
+
 class TestDocument:
     def test_basic_creation(self):
         doc = Document(
