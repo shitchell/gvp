@@ -15,6 +15,7 @@ class GVPConfig:
     libraries: list[Path] = field(default_factory=list)
     strict: bool = False
     suppress_warnings: list[str] = field(default_factory=list)
+    validation_rules: list[dict] = field(default_factory=list)
 
     def merge(self, other: GVPConfig) -> GVPConfig:
         """Merge another config into this one. Other's libraries come after ours."""
@@ -24,6 +25,7 @@ class GVPConfig:
             suppress_warnings=list(
                 set(self.suppress_warnings + other.suppress_warnings)
             ),
+            validation_rules=self.validation_rules + other.validation_rules,
         )
 
 
@@ -33,10 +35,12 @@ def _parse_config_yaml(path: Path) -> GVPConfig:
         return GVPConfig()
     with open(path) as f:
         data = yaml.safe_load(f) or {}
+    validation = data.get("validation", {})
     return GVPConfig(
         libraries=[Path(p).expanduser() for p in data.get("libraries", [])],
         strict=data.get("strict", False),
         suppress_warnings=data.get("suppress_warnings", []),
+        validation_rules=validation.get("rules", []),
     )
 
 

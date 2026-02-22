@@ -1,5 +1,6 @@
 """Tests for gvp.config."""
 
+import textwrap
 from pathlib import Path
 
 from gvp.config import GVPConfig, discover_config
@@ -84,3 +85,38 @@ class TestDiscoverConfig:
         lib_list = cfg.libraries
         assert lib_list.index(gvp_dir) < lib_list.index(user_libs)
         assert lib_list.index(user_libs) < lib_list.index(system_libs)
+
+
+class TestValidationRulesConfig:
+    def test_empty_config_has_no_rules(self):
+        cfg = GVPConfig()
+        assert cfg.validation_rules == []
+
+    def test_parse_validation_rules(self, tmp_path: Path):
+        config_file = tmp_path / "config.yaml"
+        config_file.write_text(textwrap.dedent("""\
+            validation:
+              rules:
+                - name: "Heuristics need tags"
+                  match:
+                    category: heuristic
+                  require:
+                    min_tags: 1
+        """))
+        from gvp.config import _parse_config_yaml
+        cfg = _parse_config_yaml(config_file)
+        assert len(cfg.validation_rules) == 1
+        assert cfg.validation_rules[0]["name"] == "Heuristics need tags"
+
+    def test_merge_combines_rules(self):
+        base = GVPConfig(validation_rules=[{"name": "rule1"}])
+        overlay = GVPConfig(validation_rules=[{"name": "rule2"}])
+        merged = base.merge(overlay)
+        assert len(merged.validation_rules) == 2
+
+    def test_no_validation_section_ok(self, tmp_path: Path):
+        config_file = tmp_path / "config.yaml"
+        config_file.write_text("libraries: []\n")
+        from gvp.config import _parse_config_yaml
+        cfg = _parse_config_yaml(config_file)
+        assert cfg.validation_rules == []
