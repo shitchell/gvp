@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gvp"
+version = "0.1.0"
+description = "CLI utility for GVP (Goals, Values, and Principles) documents"
+requires-python = ">=3.11"
+dependencies = ["pyyaml>=6.0"]
+
+[project.optional-dependencies]
+diagrams = ["graphviz"]
+dev = ["pytest>=7.0"]
+
+[project.scripts]
+gvp = "gvp.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
