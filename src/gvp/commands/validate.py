@@ -90,6 +90,48 @@ def _validate_semantic(catalog: Catalog) -> list[str]:
     return warnings
 
 
+def _latest_date(entries: list[dict], date_key: str = "date") -> str | None:
+    """Get the most recent date string from a list of dicts."""
+    dates = [e.get(date_key, "") for e in entries if isinstance(e, dict) and e.get(date_key)]
+    return max(dates) if dates else None
+
+
+def _validate_staleness(catalog: Catalog) -> list[str]:
+    """W006: element's reviewed_by is older than an ancestor's updated_by."""
+    warnings: list[str] = []
+
+    for qid, elem in catalog.elements.items():
+        if elem.status in ("deprecated", "rejected"):
+            continue
+
+        # Get ancestors via maps_to graph
+        ancestors = catalog.ancestors(elem)
+        if not ancestors:
+            continue
+
+        # Find latest updated_by date across all ancestors
+        latest_ancestor_update = None
+        stale_ancestor_qid = None
+        for ancestor in ancestors:
+            ancestor_date = _latest_date(ancestor.updated_by)
+            if ancestor_date and (latest_ancestor_update is None or ancestor_date > latest_ancestor_update):
+                latest_ancestor_update = ancestor_date
+                stale_ancestor_qid = str(ancestor)
+
+        if latest_ancestor_update is None:
+            continue  # no ancestors have been updated
+
+        # Compare against element's latest reviewed_by date
+        latest_review = _latest_date(elem.reviewed_by)
+        if latest_review is None or latest_review < latest_ancestor_update:
+            warnings.append(
+                f"W006: {qid} may need review — ancestor {stale_ancestor_qid} "
+                f"was updated on {latest_ancestor_update}"
+            )
+
+    return warnings
+
+
 def _validate_user_rules(
     catalog: Catalog, rules: list[dict]
 ) -> tuple[list[str], list[str]]:
@@ -226,6 +268,9 @@ def validate_catalog(
 
     # Check semantic warnings
     warnings.extend(_validate_semantic(catalog))
+
+    # Check staleness
+    warnings.extend(_validate_staleness(catalog))
 
     # Warn on empty documents
     for doc in catalog.documents.values():

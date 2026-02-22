@@ -163,6 +163,8 @@ def cmd_add(args: argparse.Namespace) -> int:
     cfg = _build_config(args)
     catalog = load_catalog(cfg)
 
+    no_provenance = getattr(args, "no_provenance", False)
+
     from gvp.commands.add import add_element, add_via_editor
 
     fields: dict = {}
@@ -174,7 +176,7 @@ def cmd_add(args: argparse.Namespace) -> int:
         fields["maps_to"] = args.maps_to.split(",")
 
     if args.name and args.statement:
-        new_id = add_element(catalog, args.document, args.category, args.name, fields)
+        new_id = add_element(catalog, args.document, args.category, args.name, fields, no_provenance=no_provenance)
         print(f"Added {args.document}:{new_id}")
     elif args.interactive:
         if not args.name:
@@ -187,7 +189,7 @@ def cmd_add(args: argparse.Namespace) -> int:
         if "maps_to" not in fields:
             maps_input = input("Maps to (comma-separated qualified IDs): ")
             fields["maps_to"] = [m.strip() for m in maps_input.split(",") if m.strip()]
-        new_id = add_element(catalog, args.document, args.category, args.name, fields)
+        new_id = add_element(catalog, args.document, args.category, args.name, fields, no_provenance=no_provenance)
         print(f"Added {args.document}:{new_id}")
     else:
         prefill = {}
@@ -208,8 +210,15 @@ def cmd_edit(args: argparse.Namespace) -> int:
     cfg = _build_config(args)
     catalog = load_catalog(cfg)
 
-    from gvp.commands.edit import edit_element_inline
+    no_provenance = getattr(args, "no_provenance", False)
 
+    if args.interactive:
+        from gvp.commands.edit import edit_element_interactive
+        edit_element_interactive(catalog, args.element, no_provenance=no_provenance)
+        print(f"Updated {args.element}")
+        return 0
+
+    # Check if any field flags provided
     updates: dict = {}
     if args.name:
         updates["name"] = args.name
@@ -218,16 +227,70 @@ def cmd_edit(args: argparse.Namespace) -> int:
     if args.statement:
         updates["statement"] = args.statement
 
-    if not updates:
-        print("No updates provided. Use --name, --status, --statement, etc.")
+    if updates:
+        # CLI mode
+        from gvp.commands.edit import edit_element_inline
+        rationale = args.rationale
+        if not rationale and not no_provenance:
+            rationale = input("Rationale for this change: ")
+        edit_element_inline(catalog, args.element, updates, rationale or "", no_provenance=no_provenance)
+        print(f"Updated {args.element}")
+        return 0
+
+    # Editor mode (no flags, no --interactive)
+    from gvp.commands.edit import edit_via_editor
+    result = edit_via_editor(catalog, args.element, no_provenance=no_provenance)
+    if result:
+        print(f"Updated {args.element}")
+    else:
+        print("No changes made.")
+    return 0
+
+
+def cmd_review(args: argparse.Namespace) -> int:
+    cfg = _build_config(args)
+    catalog = load_catalog(cfg)
+
+    from gvp.commands.review import find_stale_elements, format_review_display, stamp_review
+
+    if args.element:
+        # Single element review
+        elem = catalog.elements.get(args.element)
+        if elem is None:
+            print(f"ERROR: element '{args.element}' not found", file=sys.stderr)
+            return 1
+
+        if args.approve:
+            stamp_review(catalog, args.element)
+            print(f"Reviewed {args.element}")
+            return 0
+
+        # Interactive review
+        display = format_review_display(catalog, elem)
+        print(display)
+        print()
+        note = input("Review note (or empty to confirm): ").strip()
+        stamp_review(catalog, args.element, note=note)
+        print(f"Reviewed {args.element}")
+        print("Tip: use --approve to skip interactive review")
+        return 0
+
+    # List stale elements
+    stale = find_stale_elements(catalog)
+    if not stale:
+        print("No elements need review.")
+        return 0
+
+    if args.approve:
+        print("ERROR: --approve requires a specific element", file=sys.stderr)
         return 1
 
-    rationale = args.rationale
-    if not rationale:
-        rationale = input("Rationale for this change: ")
+    fmt = "{:<25} {:<25} {}"
+    print(fmt.format("ELEMENT", "STALE ANCESTOR", "ANCESTOR UPDATED"))
+    print("-" * 75)
+    for elem, ancestor, ancestor_date in stale:
+        print(fmt.format(str(elem), str(ancestor), ancestor_date))
 
-    edit_element_inline(catalog, args.element, updates, rationale)
-    print(f"Updated {args.element}")
     return 0
 
 
@@ -291,6 +354,16 @@ def main(argv: list[str] | None = None) -> int:
     p_edit.add_argument("--statement", help="new statement")
     p_edit.add_argument("--rationale", help="rationale for the change")
     p_edit.add_argument("--interactive", action="store_true")
+    p_edit.add_argument("--no-provenance", action="store_true", help="skip updated_by metadata")
+
+    # add --no-provenance to add subcommand
+    p_add.add_argument("--no-provenance", action="store_true", help="skip origin metadata")
+
+    # review
+    p_review = subparsers.add_parser("review", help="review elements for staleness")
+    _add_library_arg(p_review)
+    p_review.add_argument("element", nargs="?", help="qualified element ID to review")
+    p_review.add_argument("--approve", action="store_true", help=argparse.SUPPRESS)
 
     args = parser.parse_args(argv)
     if not args.command:
@@ -304,6 +377,7 @@ def main(argv: list[str] | None = None) -> int:
         "render": cmd_render,
         "add": cmd_add,
         "edit": cmd_edit,
+        "review": cmd_review,
     }
     return handlers[args.command](args)
 

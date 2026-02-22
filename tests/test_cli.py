@@ -53,3 +53,11 @@ class TestCLI:
         )
         assert result.returncode == 0
         assert "Transparency" in result.stdout
+
+    def test_review_list(self):
+        result = subprocess.run(
+            ["python", "-m", "gvp", "--config", "/dev/null",
+             "review", "--library", GVP_DOCS],
+            capture_output=True, text=True,
+        )
+        assert result.returncode == 0

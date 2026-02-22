@@ -6,6 +6,7 @@ import os
 import re
 import subprocess
 import tempfile
+from datetime import date
 from pathlib import Path
 
 import yaml
@@ -58,6 +59,7 @@ def add_element(
     category: str,
     name: str,
     fields: dict,
+    no_provenance: bool = False,
 ) -> str:
     doc = catalog.documents.get(document_name)
     if doc is None:
@@ -65,6 +67,10 @@ def add_element(
     existing = [e.id for e in doc.elements if e.category == category]
     new_id = next_id(category, existing, prefix=doc.id_prefix)
     elem_dict = {"id": new_id, "name": name, **fields}
+    if not no_provenance and "origin" not in elem_dict:
+        doc_defaults = doc.defaults or {}
+        if "origin" not in doc_defaults:
+            elem_dict["origin"] = [{"date": date.today().isoformat()}]
     with open(doc.path) as f:
         data = yaml.safe_load(f) or {}
     yaml_key = YAML_KEYS[category]

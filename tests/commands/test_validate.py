@@ -533,6 +533,150 @@ class TestSemanticWarnings:
         assert not any("W005" in w for w in warnings)
 
 
+class TestStalenessWarning:
+    """Tests for W006 staleness warning."""
+
+    def test_stale_element_warns(self, tmp_path: Path):
+        """Element reviewed before ancestor was updated -> W006."""
+        lib = tmp_path / "lib"
+        lib.mkdir()
+        (lib / "root.yaml").write_text(textwrap.dedent("""\
+            meta:
+              name: root
+            values:
+              - id: V1
+                name: Test Value
+                statement: A value.
+                tags: []
+                maps_to: []
+                updated_by:
+                  - date: "2026-02-20"
+                    rationale: "Changed something"
+            goals:
+              - id: G1
+                name: Test Goal
+                statement: A goal.
+                tags: []
+                maps_to: []
+        """))
+        (lib / "test.yaml").write_text(textwrap.dedent("""\
+            meta:
+              name: test
+              inherits: root
+            principles:
+              - id: P1
+                name: Stale Principle
+                statement: Stale.
+                tags: []
+                maps_to: [root:G1, root:V1]
+                reviewed_by:
+                  - date: "2026-02-15"
+                    by: guy
+                    note: "Reviewed"
+        """))
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        _, warnings = validate_catalog(catalog)
+        assert any("W006" in w and "P1" in w for w in warnings)
+
+    def test_fresh_review_no_warning(self, tmp_path: Path):
+        """Element reviewed after ancestor was updated -> no W006."""
+        lib = tmp_path / "lib"
+        lib.mkdir()
+        (lib / "root.yaml").write_text(textwrap.dedent("""\
+            meta:
+              name: root
+            values:
+              - id: V1
+                name: Test Value
+                statement: A value.
+                tags: []
+                maps_to: []
+                updated_by:
+                  - date: "2026-02-15"
+                    rationale: "Changed"
+            goals:
+              - id: G1
+                name: Test Goal
+                statement: A goal.
+                tags: []
+                maps_to: []
+        """))
+        (lib / "test.yaml").write_text(textwrap.dedent("""\
+            meta:
+              name: test
+              inherits: root
+            principles:
+              - id: P1
+                name: Fresh Principle
+                statement: Fresh.
+                tags: []
+                maps_to: [root:G1, root:V1]
+                reviewed_by:
+                  - date: "2026-02-20"
+                    by: guy
+                    note: "Reviewed after change"
+        """))
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        _, warnings = validate_catalog(catalog)
+        assert not any("W006" in w and "P1" in w for w in warnings)
+
+    def test_never_reviewed_ancestor_updated_warns(self, tmp_path: Path):
+        """No reviewed_by + ancestor has updated_by -> W006."""
+        lib = tmp_path / "lib"
+        lib.mkdir()
+        (lib / "root.yaml").write_text(textwrap.dedent("""\
+            meta:
+              name: root
+            values:
+              - id: V1
+                name: Test Value
+                statement: A value.
+                tags: []
+                maps_to: []
+                updated_by:
+                  - date: "2026-02-20"
+                    rationale: "Changed"
+            goals:
+              - id: G1
+                name: Test Goal
+                statement: A goal.
+                tags: []
+                maps_to: []
+        """))
+        (lib / "test.yaml").write_text(textwrap.dedent("""\
+            meta:
+              name: test
+              inherits: root
+            principles:
+              - id: P1
+                name: Never Reviewed
+                statement: Never reviewed.
+                tags: []
+                maps_to: [root:G1, root:V1]
+        """))
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        _, warnings = validate_catalog(catalog)
+        assert any("W006" in w and "P1" in w for w in warnings)
+
+    def test_no_review_no_ancestor_updates_no_warning(self, tmp_path: Path):
+        """No reviewed_by + no ancestor updated_by -> no W006."""
+        lib = _make_lib(tmp_path, textwrap.dedent("""\
+            principles:
+              - id: P1
+                name: Simple
+                statement: Simple.
+                tags: []
+                maps_to: [root:G1, root:V1]
+        """))
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        _, warnings = validate_catalog(catalog)
+        assert not any("W006" in w for w in warnings)
+
+
 class TestUserDefinedRules:
     """Tests for user-defined validation rules from config.yaml."""
 
