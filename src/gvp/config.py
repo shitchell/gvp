@@ -21,7 +21,9 @@ class GVPConfig:
         return GVPConfig(
             libraries=self.libraries + other.libraries,
             strict=self.strict or other.strict,
-            suppress_warnings=list(set(self.suppress_warnings + other.suppress_warnings)),
+            suppress_warnings=list(
+                set(self.suppress_warnings + other.suppress_warnings)
+            ),
         )
 
 
