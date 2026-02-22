@@ -11,10 +11,16 @@ def main(argv: list[str] | None = None) -> int:
         prog="gvp",
         description="CLI utility for GVP (Goals, Values, and Principles) documents",
     )
-    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
-    parser.add_argument("--strict", action="store_true", help="promote warnings to errors")
+    parser.add_argument(
+        "--version", action="version", version=f"%(prog)s {__version__}"
+    )
+    parser.add_argument(
+        "--strict", action="store_true", help="promote warnings to errors"
+    )
     parser.add_argument("--config", type=str, help="override config discovery")
-    parser.add_argument("--verbose", action="store_true", help="show loaded libraries/documents")
+    parser.add_argument(
+        "--verbose", action="store_true", help="show loaded libraries/documents"
+    )
 
     subparsers = parser.add_subparsers(dest="command")
 
