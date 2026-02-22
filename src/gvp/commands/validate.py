@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 
+from gvp.config import GVPConfig
 from gvp.model import Catalog
 
 
@@ -14,13 +15,13 @@ _ROOT_CATEGORIES = {"goal", "value", "constraint"}
 # Element passes if maps_to targets include >= 1 of EACH required category,
 # OR maps_to targets include >= 1 of ANY alternative category.
 _MAPPING_RULES: dict[str, tuple[set[str], set[str]]] = {
-    "milestone":           ({"goal", "value"}, set()),
-    "principle":           ({"goal", "value"}, set()),
-    "rule":                ({"goal", "value"}, set()),
-    "design_choice":       ({"goal", "value"}, set()),
-    "heuristic":           ({"goal", "value"}, {"principle"}),
+    "milestone": ({"goal", "value"}, set()),
+    "principle": ({"goal", "value"}, set()),
+    "rule": ({"goal", "value"}, set()),
+    "design_choice": ({"goal", "value"}, set()),
+    "heuristic": ({"goal", "value"}, {"principle"}),
     "implementation_rule": ({"goal", "value"}, {"design_choice"}),
-    "coding_principle":    ({"goal", "value"}, {"principle", "design_choice"}),
+    "coding_principle": ({"goal", "value"}, {"principle", "design_choice"}),
 }
 
 
@@ -74,9 +75,7 @@ def _validate_semantic(catalog: Catalog) -> list[str]:
 
         # W004: empty maps_to on element that should have mappings
         if not elem.maps_to:
-            warnings.append(
-                f"W004: {qid} ({elem.category}) has no maps_to references"
-            )
+            warnings.append(f"W004: {qid} ({elem.category}) has no maps_to references")
             continue  # skip W005 if maps_to is empty
 
         # W005: all maps_to targets are in the same document
@@ -86,14 +85,84 @@ def _validate_semantic(catalog: Catalog) -> list[str]:
             if target is not None:
                 target_docs.add(target.document.name)
         if target_docs and target_docs == {elem.document.name}:
-            warnings.append(
-                f"W005: {qid} maps only to elements in its own document"
-            )
+            warnings.append(f"W005: {qid} maps only to elements in its own document")
 
     return warnings
 
 
-def validate_catalog(catalog: Catalog) -> tuple[list[str], list[str]]:
+def _validate_user_rules(
+    catalog: Catalog, rules: list[dict]
+) -> tuple[list[str], list[str]]:
+    """Evaluate user-defined validation rules from config.yaml."""
+    errors: list[str] = []
+    warnings: list[str] = []
+
+    for rule_def in rules:
+        name = rule_def.get("name", "unnamed rule")
+        match = rule_def.get("match", {})
+        require = rule_def.get("require", {})
+        level = rule_def.get("level", "error")
+
+        for qid, elem in catalog.elements.items():
+            # Apply match filters
+            if "category" in match and elem.category != match["category"]:
+                continue
+            if "scope" in match and elem.document.scope_label != match["scope"]:
+                continue
+            if "tag" in match and match["tag"] not in elem.tags:
+                continue
+            if "status" in match and elem.status != match["status"]:
+                continue
+
+            # Apply require checks
+            violated = False
+
+            if "min_tags" in require:
+                if len(elem.tags) < require["min_tags"]:
+                    violated = True
+
+            if "has_field" in require:
+                field_name = require["has_field"]
+                if not elem.fields.get(field_name):
+                    violated = True
+
+            if "maps_to_category" in require:
+                needed = require["maps_to_category"]
+                if isinstance(needed, str):
+                    needed = [needed]
+                target_cats = set()
+                for ref in elem.maps_to:
+                    target = catalog.elements.get(ref)
+                    if target is not None:
+                        target_cats.add(target.category)
+                if not (set(needed) & target_cats):
+                    violated = True
+
+            if "maps_to_scope" in require:
+                needed_scopes = require["maps_to_scope"]
+                if isinstance(needed_scopes, str):
+                    needed_scopes = [needed_scopes]
+                target_scopes = set()
+                for ref in elem.maps_to:
+                    target = catalog.elements.get(ref)
+                    if target is not None and target.document.scope_label:
+                        target_scopes.add(target.document.scope_label)
+                if not (set(needed_scopes) & target_scopes):
+                    violated = True
+
+            if violated:
+                msg = f"{qid}: {name}"
+                if level == "warning":
+                    warnings.append(msg)
+                else:
+                    errors.append(msg)
+
+    return errors, warnings
+
+
+def validate_catalog(
+    catalog: Catalog, config: GVPConfig | None = None
+) -> tuple[list[str], list[str]]:
     """Validate the catalog. Returns (errors, warnings)."""
     errors: list[str] = []
     warnings: list[str] = []
@@ -162,5 +231,13 @@ def validate_catalog(catalog: Catalog) -> tuple[list[str], list[str]]:
     for doc in catalog.documents.values():
         if not doc.elements:
             warnings.append(f"W001: empty document '{doc.name}' ({doc.path})")
+
+    # Check user-defined rules
+    if config is not None and config.validation_rules:
+        user_errors, user_warnings = _validate_user_rules(
+            catalog, config.validation_rules
+        )
+        errors.extend(user_errors)
+        warnings.extend(user_warnings)
 
     return errors, warnings

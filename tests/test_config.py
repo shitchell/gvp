@@ -94,7 +94,9 @@ class TestValidationRulesConfig:
 
     def test_parse_validation_rules(self, tmp_path: Path):
         config_file = tmp_path / "config.yaml"
-        config_file.write_text(textwrap.dedent("""\
+        config_file.write_text(
+            textwrap.dedent(
+                """\
             validation:
               rules:
                 - name: "Heuristics need tags"
@@ -102,8 +104,11 @@ class TestValidationRulesConfig:
                     category: heuristic
                   require:
                     min_tags: 1
-        """))
+        """
+            )
+        )
         from gvp.config import _parse_config_yaml
+
         cfg = _parse_config_yaml(config_file)
         assert len(cfg.validation_rules) == 1
         assert cfg.validation_rules[0]["name"] == "Heuristics need tags"
@@ -118,5 +123,6 @@ class TestValidationRulesConfig:
         config_file = tmp_path / "config.yaml"
         config_file.write_text("libraries: []\n")
         from gvp.config import _parse_config_yaml
+
         cfg = _parse_config_yaml(config_file)
         assert cfg.validation_rules == []
