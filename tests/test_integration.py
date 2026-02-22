@@ -24,10 +24,9 @@ class TestFullPipeline:
         assert len(catalog.documents) == 4
         assert len(catalog.elements) > 30
 
-        # Validate (traceability errors expected until gvp-docs is aligned)
+        # Validate
         errors, warnings = validate_catalog(catalog)
-        non_traceability = [e for e in errors if "traceability" not in e]
-        assert non_traceability == [], f"Validation errors: {non_traceability}"
+        assert errors == [], f"Validation errors: {errors}"
 
         # Query
         code_heuristics = query_catalog(

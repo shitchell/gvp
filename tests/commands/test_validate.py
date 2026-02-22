@@ -42,7 +42,6 @@ def _make_lib(tmp_path: Path, elements_yaml: str) -> Path:
 
 
 class TestValidateCatalog:
-    @pytest.mark.xfail(reason="gvp-docs not yet aligned with traceability rules")
     def test_real_gvp_docs_passes(self, gvp_docs_library: Path):
         cfg = GVPConfig(libraries=[gvp_docs_library])
         catalog = load_catalog(cfg)
@@ -416,7 +415,6 @@ class TestMappingValidation:
         errors, _ = validate_catalog(catalog)
         assert not any("P1" in e for e in errors)
 
-    @pytest.mark.xfail(reason="gvp-docs not yet aligned with traceability rules")
     def test_real_gvp_docs_passes_mapping_check(self, gvp_docs_library: Path):
         cfg = GVPConfig(libraries=[gvp_docs_library])
         catalog = load_catalog(cfg)
