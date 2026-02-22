@@ -1,0 +1,40 @@
+"""Tests for CSV renderer."""
+
+import csv
+import io
+from pathlib import Path
+
+from gvp.renderers.csv import render_csv
+from gvp.config import GVPConfig
+from gvp.loader import load_catalog
+
+
+class TestRenderCSV:
+    def test_renders_header(self, gvp_docs_library: Path):
+        cfg = GVPConfig(libraries=[gvp_docs_library])
+        catalog = load_catalog(cfg)
+        output = render_csv(catalog)
+        reader = csv.reader(io.StringIO(output))
+        header = next(reader)
+        assert "id" in header
+        assert "name" in header
+        assert "category" in header
+        assert "document" in header
+
+    def test_renders_all_active_elements(self, gvp_docs_library: Path):
+        cfg = GVPConfig(libraries=[gvp_docs_library])
+        catalog = load_catalog(cfg)
+        output = render_csv(catalog)
+        reader = csv.reader(io.StringIO(output))
+        next(reader)  # skip header
+        rows = list(reader)
+        active = [e for e in catalog.elements.values() if e.status == "active"]
+        assert len(rows) == len(active)
+
+    def test_writes_to_file(self, gvp_docs_library: Path, tmp_path: Path):
+        cfg = GVPConfig(libraries=[gvp_docs_library])
+        catalog = load_catalog(cfg)
+        output_dir = tmp_path / "generated"
+        render_csv(catalog, output_dir=output_dir)
+        csv_files = list(output_dir.glob("*.csv"))
+        assert len(csv_files) == 1
