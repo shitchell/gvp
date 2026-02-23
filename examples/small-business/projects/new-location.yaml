@@ -1,0 +1,29 @@
+meta:
+  name: new-location
+  scope: project
+  inherits: business
+
+goals:
+  - id: G1
+    name: Open second location
+    statement: A fully operational second location serving the same menu to the same standard.
+    maps_to: []
+
+milestones:
+  - id: M1
+    name: Location secured
+    progress: complete
+    maps_to: [new-location:G1, business:V1]
+    description: Lease signed, permits filed.
+
+constraints:
+  - id: CON1
+    name: Budget cap
+    impact: Total buildout must stay under $150k.
+    maps_to: []
+
+design_choices:
+  - id: D1
+    name: Replicate flagship menu
+    rationale: Reduces training time and ensures consistency across locations.
+    maps_to: [new-location:G1, business:V2]

@@ -1,0 +1,35 @@
+meta:
+  name: business
+  scope: business
+
+goals:
+  - id: G1
+    name: Grow Sustainably
+    statement: Expand the business without sacrificing what makes us great.
+    maps_to: []
+
+values:
+  - id: V1
+    name: Customer Experience
+    statement: Every interaction should leave the customer feeling valued.
+    maps_to: []
+  - id: V2
+    name: Consistency
+    statement: The same order should taste the same every time, at every location.
+    maps_to: []
+
+principles:
+  - id: P1
+    name: Mise en Place
+    statement: Prepare everything before service begins. Rushed prep leads to mistakes.
+    maps_to: [business:G1, business:V1, business:V2]
+  - id: P2
+    name: Train Before Trust
+    statement: No one works unsupervised until they've demonstrated competence.
+    maps_to: [business:G1, business:V1, business:V2]
+
+rules:
+  - id: R1
+    name: Health Code Compliance
+    statement: All food safety regulations are followed without exception.
+    maps_to: [business:G1, business:V1, business:V2]
