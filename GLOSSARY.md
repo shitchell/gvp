@@ -18,7 +18,7 @@ Canonical definitions for GVP terminology. For how the framework works, see [REA
 | **Milestone** | A concrete, achievable waypoint on the path to goals. Ordered near-term to long-term. |
 | **Scope** | A human-readable label for a level in the hierarchy (e.g., "universal", "personal", "project"). User-defined granularity. |
 | **Tag** | A classification label applied to elements. Two flavors: domain tags (what area) and concern tags (what quality). |
-| **Provenance** | The tracked history of where an element was first inferred (origin) and how it has been modified (updated_by). |
+| **Provenance** | The tracked history of where an element was first inferred (origin), how it has been modified (updated_by), and when it was last confirmed as still accurate (reviewed_by). |
 | **Traceability** | The property that every element (except goals, values, and constraints) traces its justification to at least one goal and one value. |
 
 ## Technical Terms
