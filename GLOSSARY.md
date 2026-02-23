@@ -35,3 +35,4 @@ Terms specific to the `gvp` CLI tool and YAML document format.
 | **Qualified ID** | A `document:ID` reference that unambiguously identifies an element across scopes (e.g., `personal:P3`). |
 | **maps_to** | The field on an element that encodes its relationships to other elements as a list of qualified IDs. |
 | **meta.defaults** | Default field values in a document's meta block, applied to every element in that file unless explicitly overridden. |
+| **reviewed_by** | A list of review acknowledgment entries on an element, recording when it was last confirmed as still accurate. Used by W006 staleness detection. |

@@ -81,16 +81,57 @@ pip install -e ".[diagrams]"
 
 ```bash
 # Validate a GVP library
-gvp validate --library ~/my-gvp-docs/
+gvp validate --library examples/software-project/
 
 # Query elements by tag
-gvp query --library ~/my-gvp-docs/ --tag code
+gvp query --library examples/software-project/ --tag code
 
 # Trace an element's mapping graph
-gvp trace --library ~/my-gvp-docs/ personal:H5
+gvp trace --library examples/software-project/ personal:H1
 
 # Render to markdown
-gvp render --library ~/my-gvp-docs/ --format markdown --stdout
+gvp render --library examples/software-project/ --format markdown --stdout
+```
+
+## Examples
+
+Two bundled example libraries demonstrate GVP in different domains:
+
+### Software Project
+
+A 4-level chain for a fictional CLI task manager ("taskflow"):
+
+```
+examples/software-project/
+├── tags.yaml              # domain + concern tag registry
+├── universal.yaml         # org-wide values and rules
+├── personal.yaml          # cross-project principles, heuristics
+└── projects/
+    ├── taskflow.yaml      # project goals, milestones, constraints
+    └── taskflow/
+        └── v1.yaml        # implementation design choices, rules
+```
+
+```bash
+gvp validate --library examples/software-project/
+gvp trace --library examples/software-project/ personal:H1
+gvp render --library examples/software-project/ --format markdown --stdout
+```
+
+### Small Business
+
+A 2-level chain for a fictional coffee shop ("Sunrise Coffee"):
+
+```
+examples/small-business/
+├── business.yaml          # core values, principles, rules
+└── projects/
+    └── new-location.yaml  # project goals, milestones, design choices
+```
+
+```bash
+gvp validate --library examples/small-business/
+gvp query --library examples/small-business/ --category principle
 ```
 
 ## Subcommands
@@ -118,8 +159,8 @@ gvp query --library path/ --document personal --format json
 Walk the mapping graph from a given element, showing ancestors or descendants.
 
 ```bash
-gvp trace --library path/ personal:H5
-gvp trace --library path/ personal:H5 --reverse
+gvp trace --library path/ personal:H1
+gvp trace --library path/ personal:H1 --reverse
 ```
 
 ### render
@@ -142,10 +183,22 @@ gvp add heuristic personal --library path/ --interactive
 
 ### edit
 
-Modify an existing element with provenance tracking.
+Modify an existing element. Three input modes: CLI flags, interactive prompts, or editor.
 
 ```bash
-gvp edit personal:P3 --library path/ --status deprecated --rationale "Superseded by P7"
+gvp edit personal:P3 --library path/ --status deprecated --rationale "Superseded"
+gvp edit personal:P3 --library path/ --interactive
+gvp edit personal:P3 --library path/                    # opens in $EDITOR
+gvp edit personal:P3 --library path/ --no-provenance    # skip updated_by
+```
+
+### review
+
+Review elements for staleness after upstream changes.
+
+```bash
+gvp review --library path/                    # list stale elements
+gvp review --library path/ personal:P3        # interactive review
 ```
 
 ## Global Options
@@ -156,6 +209,7 @@ gvp edit personal:P3 --library path/ --status deprecated --rationale "Superseded
 | `--strict` | Promote warnings to errors |
 | `--config PATH` | Override config file path |
 | `--library PATH` | Add a library path (repeatable) |
+| `--no-provenance` | Skip provenance tracking (add/edit only) |
 
 ## Further Reading
 
