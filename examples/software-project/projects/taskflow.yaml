@@ -1,0 +1,34 @@
+meta:
+  name: taskflow
+  scope: project
+  inherits: personal
+
+goals:
+  - id: G1
+    name: Manage tasks from the command line
+    statement: Users can create, list, update, and complete tasks without leaving the terminal.
+    tags: [cli, usability]
+    maps_to: []
+  - id: G2
+    name: Reliable task storage
+    statement: Task data is never lost or corrupted during normal operation.
+    tags: [reliability]
+    maps_to: []
+
+milestones:
+  - id: M1
+    name: MVP shipped
+    progress: complete
+    maps_to: [taskflow:G1, taskflow:G2, personal:V1]
+    description: Basic add/list/complete workflow with file storage.
+    reviewed_by:
+      - date: "2026-02-18"
+        by: developer
+        note: "Confirmed complete after v0.1 release"
+
+constraints:
+  - id: CON1
+    name: Single-user only
+    impact: No need for locking or concurrent access patterns.
+    tags: []
+    maps_to: []

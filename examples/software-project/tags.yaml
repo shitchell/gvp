@@ -1,0 +1,17 @@
+domains:
+  code:
+    description: Software development decisions
+  systems:
+    description: Infrastructure and architecture decisions
+  ux:
+    description: User-facing interface decisions
+  cli:
+    description: Command-line interface design decisions
+
+concerns:
+  maintainability:
+    description: Reducing future cost of change
+  reliability:
+    description: System behaves correctly under expected conditions
+  usability:
+    description: Reducing friction and cognitive load

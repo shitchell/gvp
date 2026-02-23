@@ -1,0 +1,23 @@
+meta:
+  name: taskflow-v1
+  scope: implementation
+  inherits: taskflow
+
+design_choices:
+  - id: D1
+    name: JSON file storage
+    rationale: Simplest approach for single-user CLI. No external dependencies.
+    tags: [code]
+    maps_to: [taskflow:G2, personal:V1]
+  - id: D2
+    name: Click for CLI framework
+    rationale: Well-documented, composable, handles argument parsing cleanly.
+    tags: [code, cli]
+    maps_to: [taskflow:G1, personal:V3]
+
+implementation_rules:
+  - id: IR1
+    name: Atomic file writes
+    statement: Always write to a temp file and rename, never write in place.
+    tags: [reliability, code]
+    maps_to: [taskflow-v1:D1, taskflow:G2, universal:UV1]

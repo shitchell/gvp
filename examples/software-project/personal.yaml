@@ -1,0 +1,57 @@
+meta:
+  name: personal
+  scope: personal
+  inherits: universal
+
+goals:
+  - id: G1
+    name: Ship reliable software
+    statement: Produce software that works correctly and earns user confidence.
+    tags: [reliability]
+    maps_to: []
+
+values:
+  - id: V1
+    name: Simplicity
+    statement: Prefer the simplest approach that meets the requirement.
+    tags: [maintainability]
+    maps_to: []
+  - id: V2
+    name: Transparency
+    statement: Make system state and decisions visible to the user.
+    tags: [usability]
+    maps_to: []
+  - id: V3
+    name: Composability
+    statement: Build small, focused pieces that combine naturally.
+    tags: [maintainability, code]
+    maps_to: []
+
+principles:
+  - id: P1
+    name: Fail Loudly
+    statement: When something goes wrong, surface the error immediately rather than hiding it.
+    tags: [reliability, code]
+    maps_to: [personal:G1, universal:UV1, personal:V2]
+  - id: P2
+    name: Minimize Coupling
+    statement: Components should depend on interfaces, not implementations.
+    tags: [maintainability, code]
+    maps_to: [personal:G1, universal:UV1, personal:V1]
+
+heuristics:
+  - id: H1
+    name: Error Handling Decision
+    statement: "If the caller can recover: return an error. If not: raise an exception. If ambiguous: raise."
+    tags: [code, reliability]
+    maps_to: [personal:P1]
+
+rules:
+  - id: R1
+    name: Tests Before Merge
+    statement: No code merges to main without passing tests.
+    tags: [reliability, code]
+    maps_to: [personal:G1, universal:UV1, personal:V1]
+    updated_by:
+      - date: "2026-02-10"
+        rationale: "Expanded from 'tests required' to explicitly cover merge policy"

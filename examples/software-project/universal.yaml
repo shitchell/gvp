@@ -1,0 +1,21 @@
+meta:
+  name: universal
+  scope: universal
+  id_prefix: U
+
+values:
+  - id: UV1
+    name: User Trust
+    statement: Users should be able to trust the system with their data.
+    tags: [reliability]
+    maps_to: []
+
+rules:
+  - id: UR1
+    name: No Silent Data Loss
+    statement: Never discard user data without explicit confirmation.
+    tags: [reliability]
+    maps_to: [personal:G1, universal:UV1]
+    origin:
+      - date: "2026-01-15"
+        note: "Organizational standard"
