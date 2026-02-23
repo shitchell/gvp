@@ -6,7 +6,8 @@ from pathlib import Path
 import pytest
 
 
-GVP_DOCS = "/home/guy/code/git/github.com/shitchell/gvp-docs"
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+EXAMPLE_LIB = str(_PROJECT_ROOT / "examples" / "software-project")
 
 
 class TestCLI:
@@ -21,7 +22,7 @@ class TestCLI:
     def test_validate(self):
         result = subprocess.run(
             ["python", "-m", "gvp", "--config", "/dev/null",
-             "validate", "--library", GVP_DOCS],
+             "validate", "--library", EXAMPLE_LIB],
             capture_output=True, text=True,
         )
         assert result.returncode == 0
@@ -29,35 +30,35 @@ class TestCLI:
     def test_query_by_tag(self):
         result = subprocess.run(
             ["python", "-m", "gvp", "--config", "/dev/null",
-             "query", "--library", GVP_DOCS, "--tag", "code"],
+             "query", "--library", EXAMPLE_LIB, "--tag", "code"],
             capture_output=True, text=True,
         )
         assert result.returncode == 0
-        assert "P1" in result.stdout or "H" in result.stdout
+        assert "P1" in result.stdout or "H1" in result.stdout
 
     def test_trace(self):
         result = subprocess.run(
             ["python", "-m", "gvp", "--config", "/dev/null",
-             "trace", "--library", GVP_DOCS, "personal:H5"],
+             "trace", "--library", EXAMPLE_LIB, "personal:H1"],
             capture_output=True, text=True,
         )
         assert result.returncode == 0
-        assert "H5" in result.stdout
+        assert "H1" in result.stdout
 
     def test_render_markdown(self):
         result = subprocess.run(
             ["python", "-m", "gvp", "--config", "/dev/null",
-             "render", "--library", GVP_DOCS, "--format", "markdown",
+             "render", "--library", EXAMPLE_LIB, "--format", "markdown",
              "--stdout"],
             capture_output=True, text=True,
         )
         assert result.returncode == 0
-        assert "Transparency" in result.stdout
+        assert "Simplicity" in result.stdout
 
     def test_review_list(self):
         result = subprocess.run(
             ["python", "-m", "gvp", "--config", "/dev/null",
-             "review", "--library", GVP_DOCS],
+             "review", "--library", EXAMPLE_LIB],
             capture_output=True, text=True,
         )
         assert result.returncode == 0

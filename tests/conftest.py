@@ -5,14 +5,15 @@ from pathlib import Path
 import pytest
 
 
-GVP_DOCS_DIR = Path("/home/guy/code/git/github.com/shitchell/gvp-docs")
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+EXAMPLE_LIBRARY = _PROJECT_ROOT / "examples" / "software-project"
 
 
 @pytest.fixture
 def gvp_docs_library() -> Path:
-    """Path to the real gvp-docs library for integration tests."""
-    assert GVP_DOCS_DIR.exists(), f"gvp-docs not found at {GVP_DOCS_DIR}"
-    return GVP_DOCS_DIR
+    """Path to the bundled example library for integration tests."""
+    assert EXAMPLE_LIBRARY.exists(), f"Example library not found at {EXAMPLE_LIBRARY}"
+    return EXAMPLE_LIBRARY
 
 
 @pytest.fixture

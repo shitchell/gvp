@@ -1,4 +1,4 @@
-"""Full integration tests using the real gvp-docs library."""
+"""Full integration tests using the bundled example library."""
 
 import sqlite3
 from pathlib import Path
@@ -22,29 +22,27 @@ class TestFullPipeline:
         cfg = GVPConfig(libraries=[gvp_docs_library])
         catalog = load_catalog(cfg)
         assert len(catalog.documents) == 4
-        assert len(catalog.elements) > 30
+        assert len(catalog.elements) >= 16
 
         # Validate
         errors, warnings = validate_catalog(catalog)
         assert errors == [], f"Validation errors: {errors}"
 
         # Query
-        code_heuristics = query_catalog(
-            catalog, tags=["code"], categories=["heuristic"]
-        )
-        assert len(code_heuristics) > 0
+        code_elements = query_catalog(catalog, tags=["code"])
+        assert len(code_elements) > 0
 
         # Trace
-        h5 = catalog.elements["personal:H5"]
-        tree = trace_element(catalog, h5, reverse=False)
+        h1 = catalog.elements["personal:H1"]
+        tree = trace_element(catalog, h1, reverse=False)
         text = format_trace_tree(tree, fmt="text")
-        assert "personal:H5" in text
+        assert "personal:H1" in text
         json_out = format_trace_tree(tree, fmt="json")
-        assert "personal:H5" in json_out
+        assert "personal:H1" in json_out
 
         # Render markdown
         md = render_markdown(catalog)
-        assert "Transparency" in md
+        assert "Simplicity" in md
 
         # Render CSV
         csv_out = render_csv(catalog)
@@ -61,23 +59,23 @@ class TestFullPipeline:
 
         conn = sqlite3.connect(db_path)
         count = conn.execute("SELECT COUNT(*) FROM elements").fetchone()[0]
-        assert count > 30
+        assert count >= 16
         conn.close()
 
     def test_chain_spans_all_levels(self, gvp_docs_library: Path):
         cfg = GVPConfig(libraries=[gvp_docs_library])
         catalog = load_catalog(cfg)
-        ctl = catalog.documents["ctl-v1"]
-        chain = catalog.resolve_chain(ctl)
+        v1 = catalog.documents["taskflow-v1"]
+        chain = catalog.resolve_chain(v1)
         names = [d.name for d in chain]
-        assert names == ["ctl-v1", "unturned", "personal", "universal"]
+        assert names == ["taskflow-v1", "taskflow", "personal", "universal"]
 
     def test_cross_scope_maps_to_resolves(self, gvp_docs_library: Path):
         cfg = GVPConfig(libraries=[gvp_docs_library])
         catalog = load_catalog(cfg)
-        d1 = catalog.elements["ctl-v1:D1"]
+        d1 = catalog.elements["taskflow-v1:D1"]
         ancestors = catalog.ancestors(d1)
         ancestor_ids = {str(a) for a in ancestors}
-        # D1 maps to unturned:G3 and personal:V3
-        assert "unturned:G3" in ancestor_ids
-        assert "personal:V3" in ancestor_ids
+        # D1 maps to taskflow:G2 and personal:V1
+        assert "taskflow:G2" in ancestor_ids
+        assert "personal:V1" in ancestor_ids

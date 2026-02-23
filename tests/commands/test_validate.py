@@ -42,7 +42,7 @@ def _make_lib(tmp_path: Path, elements_yaml: str) -> Path:
 
 
 class TestValidateCatalog:
-    def test_real_gvp_docs_passes(self, gvp_docs_library: Path):
+    def test_example_library_passes(self, gvp_docs_library: Path):
         cfg = GVPConfig(libraries=[gvp_docs_library])
         catalog = load_catalog(cfg)
         errors, warnings = validate_catalog(catalog)
@@ -415,7 +415,7 @@ class TestMappingValidation:
         errors, _ = validate_catalog(catalog)
         assert not any("P1" in e for e in errors)
 
-    def test_real_gvp_docs_passes_mapping_check(self, gvp_docs_library: Path):
+    def test_example_library_passes_mapping_check(self, gvp_docs_library: Path):
         cfg = GVPConfig(libraries=[gvp_docs_library])
         catalog = load_catalog(cfg)
         errors, _ = validate_catalog(catalog)

@@ -88,29 +88,29 @@ class TestLoadLibrary:
 
 
 class TestLoadCatalog:
-    def test_loads_real_gvp_docs(self, gvp_docs_library: Path):
+    def test_loads_example_library(self, gvp_docs_library: Path):
         cfg = GVPConfig(libraries=[gvp_docs_library])
         catalog = load_catalog(cfg)
         assert "personal" in catalog.documents
         assert "universal" in catalog.documents
-        assert "unturned" in catalog.documents
-        assert "ctl-v1" in catalog.documents
+        assert "taskflow" in catalog.documents
+        assert "taskflow-v1" in catalog.documents
 
     def test_qualified_ids_indexed(self, gvp_docs_library: Path):
         cfg = GVPConfig(libraries=[gvp_docs_library])
         catalog = load_catalog(cfg)
         assert "personal:V1" in catalog.elements
         assert "personal:P1" in catalog.elements
-        assert "unturned:G1" in catalog.elements
-        assert "ctl-v1:D1" in catalog.elements
+        assert "taskflow:G1" in catalog.elements
+        assert "taskflow-v1:D1" in catalog.elements
 
     def test_chain_resolution(self, gvp_docs_library: Path):
         cfg = GVPConfig(libraries=[gvp_docs_library])
         catalog = load_catalog(cfg)
-        ctl = catalog.documents["ctl-v1"]
-        chain = catalog.resolve_chain(ctl)
+        v1 = catalog.documents["taskflow-v1"]
+        chain = catalog.resolve_chain(v1)
         names = [d.name for d in chain]
-        assert names == ["ctl-v1", "unturned", "personal", "universal"]
+        assert names == ["taskflow-v1", "taskflow", "personal", "universal"]
 
     def test_tags_loaded(self, gvp_docs_library: Path):
         cfg = GVPConfig(libraries=[gvp_docs_library])

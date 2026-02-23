@@ -13,14 +13,14 @@ class TestRenderMarkdown:
         catalog = load_catalog(cfg)
         output = render_markdown(catalog)
         assert "personal" in output
-        assert "unturned" in output
+        assert "taskflow" in output
 
     def test_renders_elements_with_ids(self, gvp_docs_library: Path):
         cfg = GVPConfig(libraries=[gvp_docs_library])
         catalog = load_catalog(cfg)
         output = render_markdown(catalog)
         assert "V1" in output
-        assert "Transparency" in output
+        assert "Simplicity" in output
 
     def test_renders_to_file(self, gvp_docs_library: Path, tmp_path: Path):
         cfg = GVPConfig(libraries=[gvp_docs_library])
