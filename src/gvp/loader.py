@@ -25,7 +25,16 @@ CATEGORY_MAP = {
 }
 
 SKIP_FILES = {"tags.yaml", "schema.yaml"}
-ELEMENT_ATTRS = {"id", "name", "status", "tags", "maps_to", "origin", "updated_by", "reviewed_by"}
+ELEMENT_ATTRS = {
+    "id",
+    "name",
+    "status",
+    "tags",
+    "maps_to",
+    "origin",
+    "updated_by",
+    "reviewed_by",
+}
 
 
 def _load_tags(library_path: Path) -> dict[str, dict]:
@@ -77,6 +86,17 @@ def _normalize_origin(raw_origin) -> list[dict]:
     return [raw_origin]
 
 
+def _normalize_inherits(raw) -> list[str]:
+    """Normalize inherits to a list of strings."""
+    if raw is None:
+        return []
+    if isinstance(raw, str):
+        return [raw]
+    if isinstance(raw, list):
+        return [str(item) for item in raw]
+    return [str(raw)]
+
+
 def _parse_element(raw: dict, category: str, doc: Document) -> Element:
     raw = _apply_defaults(raw, doc.defaults)
     elem_id = raw.get("id", "")
@@ -111,7 +131,7 @@ def load_document(path: Path) -> Document:
         name=meta.get("name", path.stem),
         filename=path.name,
         path=path,
-        inherits=meta.get("inherits"),
+        inherits=_normalize_inherits(meta.get("inherits")),
         scope_label=meta.get("scope"),
         id_prefix=meta.get("id_prefix"),
         defaults=meta.get("defaults") or {},
@@ -141,8 +161,7 @@ def load_library(library_path: Path) -> tuple[list[Document], dict[str, dict]]:
         path_to_name[str(rel)] = doc.name
     # Resolve path-based inherits references to document names
     for doc in documents:
-        if doc.inherits and doc.inherits in path_to_name:
-            doc.inherits = path_to_name[doc.inherits]
+        doc.inherits = [path_to_name.get(parent, parent) for parent in doc.inherits]
     return documents, tags
 
 

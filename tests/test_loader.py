@@ -60,6 +60,26 @@ class TestLoadLibrary:
         elem = docs[0].elements[0]
         assert elem.origin == [{"project": "myproject", "date": "2026-02-22"}]
 
+    def test_loads_multi_parent_inherits(self, tmp_path: Path):
+        lib = tmp_path / "lib"
+        lib.mkdir()
+        (lib / "root.yaml").write_text(
+            "meta:\n  name: root\nvalues:\n"
+            "  - id: V1\n    name: V\n    statement: V.\n    tags: []\n    maps_to: []\n"
+        )
+        (lib / "team.yaml").write_text(
+            "meta:\n  name: team\n  inherits: root\nvalues: []\n"
+        )
+        (lib / "python.yaml").write_text(
+            "meta:\n  name: python\n  inherits: root\nvalues: []\n"
+        )
+        (lib / "project.yaml").write_text(
+            "meta:\n  name: project\n  inherits:\n    - team\n    - python\nvalues: []\n"
+        )
+        docs, _ = load_library(lib)
+        project_doc = next(d for d in docs if d.name == "project")
+        assert project_doc.inherits == ["team", "python"]
+
     def test_element_explicit_origin_overrides_default(self, tmp_path: Path):
         lib = tmp_path / "lib"
         lib.mkdir()
@@ -104,13 +124,13 @@ class TestLoadCatalog:
         assert "taskflow:G1" in catalog.elements
         assert "taskflow-v1:D1" in catalog.elements
 
-    def test_chain_resolution(self, gvp_docs_library: Path):
+    def test_ancestor_resolution(self, gvp_docs_library: Path):
         cfg = GVPConfig(libraries=[gvp_docs_library])
         catalog = load_catalog(cfg)
         v1 = catalog.documents["taskflow-v1"]
-        chain = catalog.resolve_chain(v1)
+        chain = catalog.resolve_ancestors(v1)
         names = [d.name for d in chain]
-        assert names == ["taskflow-v1", "taskflow", "personal", "universal"]
+        assert names == ["taskflow", "personal", "universal"]
 
     def test_tags_loaded(self, gvp_docs_library: Path):
         cfg = GVPConfig(libraries=[gvp_docs_library])
