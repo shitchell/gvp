@@ -33,7 +33,7 @@ def render_dot(
 ) -> str:
     lines = [
         "digraph gvp {",
-        '  rankdir=BT;',
+        "  rankdir=BT;",
         '  node [shape=box, style="rounded,filled", fontname="sans-serif"];',
         '  edge [color="#666666"];',
         "",
@@ -76,9 +76,7 @@ def render_dot(
             and elem.category in tier_cats
         ]
         if tier_nodes:
-            lines.append(
-                "  {rank=same; " + "; ".join(tier_nodes) + ";}"
-            )
+            lines.append("  {rank=same; " + "; ".join(tier_nodes) + ";}")
     lines.append("")
 
     for qid, elem in catalog.elements.items():

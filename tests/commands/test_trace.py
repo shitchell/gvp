@@ -44,6 +44,7 @@ class TestFormatTraceTree:
 
     def test_json_output(self, gvp_docs_library: Path):
         import json
+
         cfg = GVPConfig(libraries=[gvp_docs_library])
         catalog = load_catalog(cfg)
         h1 = catalog.elements["personal:H1"]

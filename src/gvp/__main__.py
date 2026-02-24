@@ -17,6 +17,7 @@ def _build_config(args: argparse.Namespace) -> GVPConfig:
         cfg = GVPConfig()
     elif args.config:
         from gvp.config import _parse_config_yaml
+
         cfg = _parse_config_yaml(Path(args.config))
     else:
         cfg = discover_config()
@@ -32,7 +33,9 @@ def _build_config(args: argparse.Namespace) -> GVPConfig:
 
 def _add_library_arg(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
-        "--library", action="append", default=[],
+        "--library",
+        action="append",
+        default=[],
         help="additional library path (repeatable)",
     )
 
@@ -42,6 +45,7 @@ def cmd_validate(args: argparse.Namespace) -> int:
     catalog = load_catalog(cfg)
 
     from gvp.commands.validate import validate_catalog
+
     errors, warnings = validate_catalog(catalog)
 
     for w in warnings:
@@ -54,7 +58,9 @@ def cmd_validate(args: argparse.Namespace) -> int:
         print(f"ERROR: {e}", file=sys.stderr)
 
     if not errors:
-        print("OK — no syntax errors found, use `gvp render` to review semantic coherence")
+        print(
+            "OK — no syntax errors found, use `gvp render` to review semantic coherence"
+        )
     return 1 if errors else 0
 
 
@@ -63,6 +69,7 @@ def cmd_query(args: argparse.Namespace) -> int:
     catalog = load_catalog(cfg)
 
     from gvp.commands.query import query_catalog
+
     results = query_catalog(
         catalog,
         tags=args.tag or None,
@@ -108,6 +115,7 @@ def cmd_trace(args: argparse.Namespace) -> int:
             return 0
         if args.format == "json":
             import json as _json
+
             trees = []
             for desc in descendants:
                 tree = trace_element(catalog, desc, reverse=False)
@@ -141,11 +149,14 @@ def cmd_render(args: argparse.Namespace) -> int:
         formats = all_formats
     unknown = formats - all_formats
     if unknown:
-        print(f"ERROR: unknown format(s): {', '.join(sorted(unknown))}", file=sys.stderr)
+        print(
+            f"ERROR: unknown format(s): {', '.join(sorted(unknown))}", file=sys.stderr
+        )
         return 1
 
     if "markdown" in formats:
         from gvp.renderers.markdown import render_markdown
+
         result = render_markdown(
             catalog,
             output_dir=output_dir if not to_stdout else None,
@@ -156,6 +167,7 @@ def cmd_render(args: argparse.Namespace) -> int:
 
     if "csv" in formats:
         from gvp.renderers.csv import render_csv
+
         result = render_csv(
             catalog,
             output_dir=output_dir if not to_stdout else None,
@@ -166,6 +178,7 @@ def cmd_render(args: argparse.Namespace) -> int:
 
     if "sqlite" in formats:
         from gvp.renderers.sqlite import render_sqlite
+
         db_path = output_dir / "gvp.db"
         render_sqlite(catalog, db_path, include_deprecated=include_deprecated)
         if to_stdout:
@@ -175,6 +188,7 @@ def cmd_render(args: argparse.Namespace) -> int:
     need_dot = formats & {"dot", "png"}
     if need_dot:
         from gvp.renderers.dot import render_dot
+
         dot_source = render_dot(
             catalog,
             output_dir=output_dir if ("dot" in formats and not to_stdout) else None,
@@ -185,13 +199,16 @@ def cmd_render(args: argparse.Namespace) -> int:
 
         if "png" in formats:
             from gvp.renderers.dot import render_png
+
             render_png(
                 dot_source,
                 output_dir=output_dir if not to_stdout else None,
             )
             if to_stdout:
-                print("(PNG binary output not suitable for stdout; use -o to write to file)",
-                      file=sys.stderr)
+                print(
+                    "(PNG binary output not suitable for stdout; use -o to write to file)",
+                    file=sys.stderr,
+                )
 
     if not to_stdout:
         print(f"Output written to {output_dir}/")
@@ -216,7 +233,14 @@ def cmd_add(args: argparse.Namespace) -> int:
         fields["maps_to"] = args.maps_to.split(",")
 
     if args.name and args.statement:
-        new_id = add_element(catalog, args.document, args.category, args.name, fields, no_provenance=no_provenance)
+        new_id = add_element(
+            catalog,
+            args.document,
+            args.category,
+            args.name,
+            fields,
+            no_provenance=no_provenance,
+        )
         print(f"Added {args.document}:{new_id}")
     elif args.interactive:
         if not args.name:
@@ -229,7 +253,14 @@ def cmd_add(args: argparse.Namespace) -> int:
         if "maps_to" not in fields:
             maps_input = input("Maps to (comma-separated qualified IDs): ")
             fields["maps_to"] = [m.strip() for m in maps_input.split(",") if m.strip()]
-        new_id = add_element(catalog, args.document, args.category, args.name, fields, no_provenance=no_provenance)
+        new_id = add_element(
+            catalog,
+            args.document,
+            args.category,
+            args.name,
+            fields,
+            no_provenance=no_provenance,
+        )
         print(f"Added {args.document}:{new_id}")
     else:
         prefill = {}
@@ -254,6 +285,7 @@ def cmd_edit(args: argparse.Namespace) -> int:
 
     if args.interactive:
         from gvp.commands.edit import edit_element_interactive
+
         edit_element_interactive(catalog, args.element, no_provenance=no_provenance)
         print(f"Updated {args.element}")
         return 0
@@ -270,15 +302,19 @@ def cmd_edit(args: argparse.Namespace) -> int:
     if updates:
         # CLI mode
         from gvp.commands.edit import edit_element_inline
+
         rationale = args.rationale
         if not rationale and not no_provenance:
             rationale = input("Rationale for this change: ")
-        edit_element_inline(catalog, args.element, updates, rationale or "", no_provenance=no_provenance)
+        edit_element_inline(
+            catalog, args.element, updates, rationale or "", no_provenance=no_provenance
+        )
         print(f"Updated {args.element}")
         return 0
 
     # Editor mode (no flags, no --interactive)
     from gvp.commands.edit import edit_via_editor
+
     result = edit_via_editor(catalog, args.element, no_provenance=no_provenance)
     if result:
         print(f"Updated {args.element}")
@@ -291,7 +327,11 @@ def cmd_review(args: argparse.Namespace) -> int:
     cfg = _build_config(args)
     catalog = load_catalog(cfg)
 
-    from gvp.commands.review import find_stale_elements, format_review_display, stamp_review
+    from gvp.commands.review import (
+        find_stale_elements,
+        format_review_display,
+        stamp_review,
+    )
 
     if args.element:
         # Single element review
@@ -339,10 +379,16 @@ def main(argv: list[str] | None = None) -> int:
         prog="gvp",
         description="CLI utility for GVP (Goals, Values, and Principles) documents",
     )
-    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
-    parser.add_argument("--strict", action="store_true", help="promote warnings to errors")
+    parser.add_argument(
+        "--version", action="version", version=f"%(prog)s {__version__}"
+    )
+    parser.add_argument(
+        "--strict", action="store_true", help="promote warnings to errors"
+    )
     parser.add_argument("--config", type=str, default=None, help="override config path")
-    parser.add_argument("--verbose", action="store_true", help="show loaded libraries/documents")
+    parser.add_argument(
+        "--verbose", action="store_true", help="show loaded libraries/documents"
+    )
 
     subparsers = parser.add_subparsers(dest="command")
 
@@ -363,9 +409,14 @@ def main(argv: list[str] | None = None) -> int:
     p_trace = subparsers.add_parser("trace", help="trace element mappings")
     _add_library_arg(p_trace)
     p_trace.add_argument("element", help="qualified element ID (e.g., personal:H5)")
-    p_trace.add_argument("--reverse", action="store_true", help="show descendants instead of ancestors")
-    p_trace.add_argument("--maps-to", action="store_true",
-                         help="find all elements that map to the given element and print each trace")
+    p_trace.add_argument(
+        "--reverse", action="store_true", help="show descendants instead of ancestors"
+    )
+    p_trace.add_argument(
+        "--maps-to",
+        action="store_true",
+        help="find all elements that map to the given element and print each trace",
+    )
     p_trace.add_argument("--format", choices=["text", "json"], default="text")
 
     # render
@@ -373,12 +424,16 @@ def main(argv: list[str] | None = None) -> int:
     _add_library_arg(p_render)
     all_formats = ["markdown", "csv", "sqlite", "dot", "png"]
     p_render.add_argument(
-        "--format", nargs="+", default=["all"],
+        "--format",
+        nargs="+",
+        default=["all"],
         metavar="FMT",
         help=f"output format(s): {', '.join(all_formats)}, all (default: all)",
     )
     p_render.add_argument("-o", "--output", help="output directory")
-    p_render.add_argument("--stdout", action="store_true", help="print to stdout instead of files")
+    p_render.add_argument(
+        "--stdout", action="store_true", help="print to stdout instead of files"
+    )
     p_render.add_argument("--include-deprecated", action="store_true")
 
     # add
@@ -389,7 +444,9 @@ def main(argv: list[str] | None = None) -> int:
     p_add.add_argument("--name", help="element name")
     p_add.add_argument("--statement", help="element statement")
     p_add.add_argument("--tags", help="comma-separated tags")
-    p_add.add_argument("--maps-to", dest="maps_to", help="comma-separated qualified IDs")
+    p_add.add_argument(
+        "--maps-to", dest="maps_to", help="comma-separated qualified IDs"
+    )
     p_add.add_argument("--interactive", action="store_true")
 
     # edit
@@ -401,10 +458,14 @@ def main(argv: list[str] | None = None) -> int:
     p_edit.add_argument("--statement", help="new statement")
     p_edit.add_argument("--rationale", help="rationale for the change")
     p_edit.add_argument("--interactive", action="store_true")
-    p_edit.add_argument("--no-provenance", action="store_true", help="skip updated_by metadata")
+    p_edit.add_argument(
+        "--no-provenance", action="store_true", help="skip updated_by metadata"
+    )
 
     # add --no-provenance to add subcommand
-    p_add.add_argument("--no-provenance", action="store_true", help="skip origin metadata")
+    p_add.add_argument(
+        "--no-provenance", action="store_true", help="skip origin metadata"
+    )
 
     # review
     p_review = subparsers.add_parser("review", help="review elements for staleness")
