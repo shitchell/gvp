@@ -100,7 +100,9 @@ def _validate_semantic(catalog: Catalog) -> list[str]:
 
 def _latest_date(entries: list[dict], date_key: str = "date") -> str | None:
     """Get the most recent date string from a list of dicts."""
-    dates = [e.get(date_key, "") for e in entries if isinstance(e, dict) and e.get(date_key)]
+    dates = [
+        e.get(date_key, "") for e in entries if isinstance(e, dict) and e.get(date_key)
+    ]
     return max(dates) if dates else None
 
 
@@ -122,7 +124,9 @@ def _validate_staleness(catalog: Catalog) -> list[str]:
         stale_ancestor_qid = None
         for ancestor in ancestors:
             ancestor_date = _latest_date(ancestor.updated_by)
-            if ancestor_date and (latest_ancestor_update is None or ancestor_date > latest_ancestor_update):
+            if ancestor_date and (
+                latest_ancestor_update is None or ancestor_date > latest_ancestor_update
+            ):
                 latest_ancestor_update = ancestor_date
                 stale_ancestor_qid = str(ancestor)
 
