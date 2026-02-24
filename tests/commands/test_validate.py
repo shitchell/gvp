@@ -117,6 +117,31 @@ class TestValidateCatalog:
         errors, _ = validate_catalog(catalog)
         assert any("circular" in e.lower() for e in errors)
 
+    def test_circular_inherits_multi_parent(self, tmp_path: Path):
+        lib = tmp_path / "lib"
+        lib.mkdir()
+        (lib / "a.yaml").write_text(
+            "meta:\n  name: a\n  inherits:\n    - b\n    - c\nvalues: []\n"
+        )
+        (lib / "b.yaml").write_text("meta:\n  name: b\nvalues: []\n")
+        (lib / "c.yaml").write_text("meta:\n  name: c\n  inherits: a\nvalues: []\n")
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        errors, _ = validate_catalog(catalog)
+        assert any("circular" in e.lower() for e in errors)
+
+    def test_broken_inherits_in_list(self, tmp_path: Path):
+        lib = tmp_path / "lib"
+        lib.mkdir()
+        (lib / "root.yaml").write_text("meta:\n  name: root\nvalues: []\n")
+        (lib / "test.yaml").write_text(
+            "meta:\n  name: test\n  inherits:\n    - root\n    - ghost\nvalues: []\n"
+        )
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        errors, _ = validate_catalog(catalog)
+        assert any("ghost" in e for e in errors)
+
     def test_empty_document_warning(self, tmp_path: Path):
         lib = tmp_path / "lib"
         lib.mkdir()
@@ -513,6 +538,67 @@ class TestSemanticWarnings:
         _, warnings = validate_catalog(catalog)
         assert any("W005" in w and "P1" in w for w in warnings)
 
+    def test_w005_multi_parent_cross_scope_ok(self, tmp_path: Path):
+        """Element maps to one parent but not the other — no W005."""
+        lib = tmp_path / "lib"
+        lib.mkdir()
+        (lib / "root.yaml").write_text(
+            textwrap.dedent(
+                """\
+            meta:
+              name: root
+            goals:
+              - id: G1
+                name: G
+                statement: G.
+                tags: []
+                maps_to: []
+            values:
+              - id: V1
+                name: V
+                statement: V.
+                tags: []
+                maps_to: []
+        """
+            )
+        )
+        (lib / "team.yaml").write_text(
+            textwrap.dedent(
+                """\
+            meta:
+              name: team
+              inherits: root
+            principles:
+              - id: P1
+                name: Team P
+                statement: Team.
+                tags: []
+                maps_to: [root:G1, root:V1]
+        """
+            )
+        )
+        (lib / "project.yaml").write_text(
+            textwrap.dedent(
+                """\
+            meta:
+              name: project
+              inherits:
+                - root
+                - team
+            heuristics:
+              - id: H1
+                name: Project H
+                statement: If A then B.
+                tags: []
+                maps_to: [team:P1]
+        """
+            )
+        )
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        _, warnings = validate_catalog(catalog)
+        assert not any("W005" in w and "H1" in w for w in warnings)
+
     def test_cross_scope_mappings_no_w005(self, tmp_path: Path):
         lib = _make_lib(
             tmp_path,
@@ -540,7 +626,9 @@ class TestStalenessWarning:
         """Element reviewed before ancestor was updated -> W006."""
         lib = tmp_path / "lib"
         lib.mkdir()
-        (lib / "root.yaml").write_text(textwrap.dedent("""\
+        (lib / "root.yaml").write_text(
+            textwrap.dedent(
+                """\
             meta:
               name: root
             values:
@@ -558,8 +646,12 @@ class TestStalenessWarning:
                 statement: A goal.
                 tags: []
                 maps_to: []
-        """))
-        (lib / "test.yaml").write_text(textwrap.dedent("""\
+        """
+            )
+        )
+        (lib / "test.yaml").write_text(
+            textwrap.dedent(
+                """\
             meta:
               name: test
               inherits: root
@@ -573,7 +665,9 @@ class TestStalenessWarning:
                   - date: "2026-02-15"
                     by: guy
                     note: "Reviewed"
-        """))
+        """
+            )
+        )
         cfg = GVPConfig(libraries=[lib])
         catalog = load_catalog(cfg)
         _, warnings = validate_catalog(catalog)
@@ -583,7 +677,9 @@ class TestStalenessWarning:
         """Element reviewed after ancestor was updated -> no W006."""
         lib = tmp_path / "lib"
         lib.mkdir()
-        (lib / "root.yaml").write_text(textwrap.dedent("""\
+        (lib / "root.yaml").write_text(
+            textwrap.dedent(
+                """\
             meta:
               name: root
             values:
@@ -601,8 +697,12 @@ class TestStalenessWarning:
                 statement: A goal.
                 tags: []
                 maps_to: []
-        """))
-        (lib / "test.yaml").write_text(textwrap.dedent("""\
+        """
+            )
+        )
+        (lib / "test.yaml").write_text(
+            textwrap.dedent(
+                """\
             meta:
               name: test
               inherits: root
@@ -616,7 +716,9 @@ class TestStalenessWarning:
                   - date: "2026-02-20"
                     by: guy
                     note: "Reviewed after change"
-        """))
+        """
+            )
+        )
         cfg = GVPConfig(libraries=[lib])
         catalog = load_catalog(cfg)
         _, warnings = validate_catalog(catalog)
@@ -626,7 +728,9 @@ class TestStalenessWarning:
         """No reviewed_by + ancestor has updated_by -> W006."""
         lib = tmp_path / "lib"
         lib.mkdir()
-        (lib / "root.yaml").write_text(textwrap.dedent("""\
+        (lib / "root.yaml").write_text(
+            textwrap.dedent(
+                """\
             meta:
               name: root
             values:
@@ -644,8 +748,12 @@ class TestStalenessWarning:
                 statement: A goal.
                 tags: []
                 maps_to: []
-        """))
-        (lib / "test.yaml").write_text(textwrap.dedent("""\
+        """
+            )
+        )
+        (lib / "test.yaml").write_text(
+            textwrap.dedent(
+                """\
             meta:
               name: test
               inherits: root
@@ -655,7 +763,9 @@ class TestStalenessWarning:
                 statement: Never reviewed.
                 tags: []
                 maps_to: [root:G1, root:V1]
-        """))
+        """
+            )
+        )
         cfg = GVPConfig(libraries=[lib])
         catalog = load_catalog(cfg)
         _, warnings = validate_catalog(catalog)
@@ -663,14 +773,19 @@ class TestStalenessWarning:
 
     def test_no_review_no_ancestor_updates_no_warning(self, tmp_path: Path):
         """No reviewed_by + no ancestor updated_by -> no W006."""
-        lib = _make_lib(tmp_path, textwrap.dedent("""\
+        lib = _make_lib(
+            tmp_path,
+            textwrap.dedent(
+                """\
             principles:
               - id: P1
                 name: Simple
                 statement: Simple.
                 tags: []
                 maps_to: [root:G1, root:V1]
-        """))
+        """
+            ),
+        )
         cfg = GVPConfig(libraries=[lib])
         catalog = load_catalog(cfg)
         _, warnings = validate_catalog(catalog)

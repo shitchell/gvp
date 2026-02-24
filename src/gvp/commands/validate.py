@@ -83,7 +83,7 @@ def _validate_semantic(catalog: Catalog) -> list[str]:
         # Only applies when the element's document has an inherits chain.
         doc = elem.document
         if doc.inherits:
-            chain_docs = {d.name for d in catalog.resolve_chain(doc)} - {doc.name}
+            chain_docs = {d.name for d in catalog.resolve_ancestors(doc)}
             target_docs = set()
             for ref in elem.maps_to:
                 target = catalog.elements.get(ref)
@@ -258,22 +258,17 @@ def validate_catalog(
 
     # Check inherits chains
     for doc in catalog.documents.values():
-        if doc.inherits and doc.inherits not in catalog.documents:
-            errors.append(f"{doc.name}: broken inherits reference '{doc.inherits}'")
+        for parent_name in doc.inherits:
+            if parent_name not in catalog.documents:
+                errors.append(f"{doc.name}: broken inherits reference '{parent_name}'")
 
     # Check for circular inheritance
     for doc in catalog.documents.values():
-        visited: set[str] = set()
-        current = doc
-        while current.inherits:
-            if current.name in visited:
+        if doc.inherits:
+            try:
+                catalog.resolve_ancestors(doc)
+            except ValueError:
                 errors.append(f"{doc.name}: circular inheritance detected")
-                break
-            visited.add(current.name)
-            parent = catalog.documents.get(current.inherits)
-            if parent is None:
-                break
-            current = parent
 
     # Check category-specific mapping rules
     errors.extend(_validate_mappings(catalog))
