@@ -62,13 +62,13 @@ class TestFullPipeline:
         assert count >= 16
         conn.close()
 
-    def test_chain_spans_all_levels(self, gvp_docs_library: Path):
+    def test_ancestors_span_all_levels(self, gvp_docs_library: Path):
         cfg = GVPConfig(libraries=[gvp_docs_library])
         catalog = load_catalog(cfg)
         v1 = catalog.documents["taskflow-v1"]
-        chain = catalog.resolve_chain(v1)
-        names = [d.name for d in chain]
-        assert names == ["taskflow-v1", "taskflow", "personal", "universal"]
+        ancestors = catalog.resolve_ancestors(v1)
+        names = [d.name for d in ancestors]
+        assert names == ["taskflow", "personal", "universal"]
 
     def test_cross_scope_maps_to_resolves(self, gvp_docs_library: Path):
         cfg = GVPConfig(libraries=[gvp_docs_library])
