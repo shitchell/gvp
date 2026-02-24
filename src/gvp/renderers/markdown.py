@@ -42,12 +42,12 @@ def _render_document(doc: Document, include_deprecated: bool = False) -> str:
     if doc.scope_label:
         lines.append(f"\n**Scope:** {doc.scope_label}")
     if doc.inherits:
-        lines.append(f"\n**Inherits:** {doc.inherits}")
+        lines.append(f"\n**Inherits:** {', '.join(doc.inherits)}")
     for category, label in CATEGORY_ORDER:
         elems = [
-            e for e in doc.elements
-            if e.category == category
-            and (include_deprecated or e.status == "active")
+            e
+            for e in doc.elements
+            if e.category == category and (include_deprecated or e.status == "active")
         ]
         if not elems:
             continue

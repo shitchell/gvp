@@ -11,7 +11,12 @@ from gvp.model import Catalog
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS documents (
     name TEXT PRIMARY KEY, filename TEXT, path TEXT,
-    inherits TEXT, scope_label TEXT, id_prefix TEXT
+    scope_label TEXT, id_prefix TEXT
+);
+CREATE TABLE IF NOT EXISTS document_inherits (
+    document TEXT REFERENCES documents(name),
+    parent TEXT, position INTEGER,
+    PRIMARY KEY (document, parent)
 );
 CREATE TABLE IF NOT EXISTS elements (
     qualified_id TEXT PRIMARY KEY, id TEXT,
@@ -47,16 +52,20 @@ def render_sqlite(
 
     for doc in catalog.documents.values():
         conn.execute(
-            "INSERT INTO documents VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT INTO documents VALUES (?, ?, ?, ?, ?)",
             (
                 doc.name,
                 doc.filename,
                 str(doc.path),
-                doc.inherits,
                 doc.scope_label,
                 doc.id_prefix,
             ),
         )
+        for pos, parent in enumerate(doc.inherits):
+            conn.execute(
+                "INSERT INTO document_inherits VALUES (?, ?, ?)",
+                (doc.name, parent, pos),
+            )
 
     for qid, elem in catalog.elements.items():
         if not include_deprecated and elem.status != "active":

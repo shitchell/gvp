@@ -62,3 +62,16 @@ class TestRenderMarkdown:
         catalog = load_catalog(cfg)
         output = render_markdown(catalog, include_deprecated=True)
         assert "Old" in output
+
+    def test_renders_multi_inherits(self, tmp_path: Path):
+        lib = tmp_path / "lib"
+        lib.mkdir()
+        (lib / "root.yaml").write_text("meta:\n  name: root\nvalues: []\n")
+        (lib / "team.yaml").write_text("meta:\n  name: team\nvalues: []\n")
+        (lib / "project.yaml").write_text(
+            "meta:\n  name: project\n  inherits:\n    - root\n    - team\nvalues: []\n"
+        )
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        output = render_markdown(catalog)
+        assert "**Inherits:** root, team" in output

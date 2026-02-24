@@ -46,6 +46,26 @@ class TestRenderSQLite:
         assert rows[0] > 0
         conn.close()
 
+    def test_document_inherits_table(self, tmp_path: Path):
+        lib = tmp_path / "lib"
+        lib.mkdir()
+        (lib / "root.yaml").write_text("meta:\n  name: root\nvalues: []\n")
+        (lib / "team.yaml").write_text("meta:\n  name: team\nvalues: []\n")
+        (lib / "project.yaml").write_text(
+            "meta:\n  name: project\n  inherits:\n    - root\n    - team\nvalues: []\n"
+        )
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        db_path = tmp_path / "test.db"
+        render_sqlite(catalog, db_path)
+        conn = sqlite3.connect(db_path)
+        rows = conn.execute(
+            "SELECT parent, position FROM document_inherits "
+            "WHERE document = 'project' ORDER BY position"
+        ).fetchall()
+        assert rows == [("root", 0), ("team", 1)]
+        conn.close()
+
     def test_queryable(self, gvp_docs_library: Path, tmp_path: Path):
         cfg = GVPConfig(libraries=[gvp_docs_library])
         catalog = load_catalog(cfg)
