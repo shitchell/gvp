@@ -2,37 +2,47 @@
 
 A framework and CLI tool for decision traceability. GVP (Goals, Values, and Principles) helps you capture the reasoning behind decisions so that every choice — from architecture to process — can trace back to what you're trying to achieve and why it matters.
 
+## Why
+
+- **Alignment during AI-assisted work.** When AI helps with planning and development, it needs to know how you make decisions and why. GVP gives it (and you) that context explicitly.
+- **Easier planning.** How you make decisions and why is already documented. New plans start from shared ground instead of re-deriving principles each time.
+- **Review over time.** Goals shift, values evolve, circumstances change. GVP surfaces when downstream decisions may need revisiting because the reasoning above them has changed.
+- **Internal consistency.** When everything traces to goals and values, contradictions and misalignment become visible — across projects, across scopes, across time.
+
 ## How It Works
 
-GVP organizes decision-making into a layered system. Each layer has a specific role and relates to the others through a many-to-many graph.
+GVP organizes decision-making into a layered system of **elements** connected by a many-to-many mapping graph. Each element traces its justification back to the goals and values that motivate it.
 
-### Categories
+### Elements
 
-| Category | Scope | Specificity | Description | How to identify |
-|----------|-------|-------------|-------------|-----------------|
-| **Goal** | Project | Low | Ideal states you're working toward. Would remain true if you rewrote everything tomorrow. | Is it a destination, not a method? |
-| **Value** | Universal/Personal | Low | Semantic descriptors that shape trade-offs. The thumb on the scale when two valid approaches exist. | Does it describe a quality you want, not a specific action? |
-| **Principle** | Universal/Personal | Medium | Less fuzzy than a value, more flexible than a rule. States a preference that requires judgment to apply. | Is it a bias or preference that requires judgment? |
-| **Heuristic** | Universal/Personal | High | Well-defined if/then decision trees. Where a principle says "prefer X," a heuristic says "if A, then B; else C." | Can you write it as an if/then tree? |
-| **Rule** | Universal/Personal/Project | High | Hard stops. Binary, no exceptions. A principle that graduated to "never cross this line." | Is it a bright line that's never crossed? |
-| **Design Choice** | Implementation | High | Tools and architectural decisions picked for a specific implementation. Change when the implementation changes. | Would it change if you switched frameworks? |
-| **Implementation Rule** | Implementation | High | Hard stops contingent on design choices. If the design choice changes, the rule may not apply. | Would it change if you switched frameworks? |
-| **Coding Principle** | Implementation | Medium-High | Guidelines for writing code in a specific implementation. Change with the tech stack. | Would it change if you switched frameworks? |
-| **Milestone** | Project | High | Concrete, achievable waypoints on the path to goals. Ordered near-term to long-term. | Is it a concrete, achievable state on the roadmap? |
-| **Constraint** | Project | High | Facts about the system or environment you don't control. Descriptive, not prescriptive. | Is it a fact about the system you don't control? |
+Elements are the building blocks. Each has a category that describes its role:
+
+| Category | Description | How to identify |
+|----------|-------------|-----------------|
+| **Goal** | A target state you're working toward. Quantifiable, even if broadly. | Is it a destination, not a method? |
+| **Value** | A subjective quality you favor. Shapes trade-offs when two valid approaches exist. | Does it describe a quality you care about, not a specific action? |
+| **Principle** | An actionable bias. States a preference that requires judgment to apply. | Is it a bias or preference that tells you what to *do*? |
+| **Heuristic** | A decision procedure. Where a principle says "prefer X," a heuristic says "if A, then B; else C." | Can you write it as an if/then tree? |
+| **Rule** | A hard stop. Binary, no exceptions. A principle that graduated to "never cross this line." | Is it a bright line that's never crossed? |
+| **Design Choice** | Tools you've picked and high-level architectural decisions. Change when the implementation changes. | Would it change if you switched frameworks? |
+| **Milestone** | A concrete, achievable waypoint on the path to goals. | Is it a concrete state on the roadmap? |
+| **Constraint** | A fact about the system or environment you don't control. Descriptive, not prescriptive. | Is it a fact you don't control? |
+
+These are the core categories. You can extend them with domain-specific variants — the [software-project example](examples/software-project/) shows how to add categories like Implementation Rule and Coding Principle for code-specific scopes. See [docs/philosophy.md](docs/philosophy.md) for a discussion of the fuzzy boundaries between categories (especially goals, values, and principles).
 
 ### Relationships
 
 - **Goals** are the destination. Everything else exists to get there.
 - **Values** are the compass. They shape every decision but don't prescribe specific actions.
 - **Principles** state preferences. **Heuristics** encode the procedure for applying them. **Rules** are principles with zero tolerance for exceptions.
-- **Design Choices** are the tools you've picked. **Implementation Rules** and **Coding Principles** are the guidelines for using those tools.
 - **Constraints** are external facts that shape your choices but aren't themselves decisions.
 - The relationships are a **graph**, not a tree — many-to-many.
 
+Goals and values are tightly coupled and sometimes hard to distinguish (see [docs/philosophy.md](docs/philosophy.md)). While neither is required to map to anything, mapping them to each other is encouraged — it surfaces alignment gaps and strengthens review.
+
 ### Scope and Inheritance
 
-GVP documents form an inheritance chain. Priority flows from root to leaf: **parent wins on conflict, child extends**. The nesting depth is user-defined. The conventional structure is:
+GVP documents form an inheritance chain. Priority flows from root to leaf: **parent wins on conflict, child extends**. You need at least one scope, and the depth is up to you. The conventional structure is:
 
 ```
 universal.yaml                         (organization-wide, highest priority)
@@ -41,16 +51,16 @@ universal.yaml                         (organization-wide, highest priority)
             └─ ...                      (arbitrary further nesting)
 ```
 
-For personal use, `universal.yaml` can remain empty. What constitutes a "project" vs. deeper nesting is up to you — the framework doesn't enforce granularity, only the inheritance chain.
+For personal use, `universal.yaml` can remain empty — or you can skip it entirely and start from `personal.yaml`. What constitutes a "project" vs. deeper nesting is up to you. The framework doesn't enforce granularity, only the inheritance chain.
 
 ### Tags
 
-Elements are classified by tags rather than separated into domain-specific files. Tags come in two flavors:
+Elements can be classified with tags. Tags are defined in a `tags.yaml` registry to prevent drift. How you organize your tags is up to you — one useful pattern is separating them into:
 
-- **Domain tags** (`code`, `systems`, `cli`, `ux`, ...): what area the element applies to
-- **Concern tags** (`maintainability`, `transparency`, `pragmatism`, ...): what quality the element addresses
+- **Domain tags** (`code`, `systems`, `finance`, ...): what area the element applies to
+- **Concern tags** (`maintainability`, `reliability`, `usability`, ...): what quality the element addresses
 
-Tags are defined in a `tags.yaml` registry to prevent drift.
+But this is a convention, not a requirement. The tagging system is agnostic — use whatever groupings make sense for your context.
 
 ### Traceability
 
@@ -58,15 +68,15 @@ Every element (except goals, values, and constraints) must trace its justificati
 
 | Category | Must map to... |
 |----------|---------------|
-| Milestone | >= 1 goal + >= 1 value |
-| Principle | >= 1 goal + >= 1 value |
-| Rule | >= 1 goal + >= 1 value |
-| Design Choice | >= 1 goal + >= 1 value |
-| Heuristic | (>= 1 goal + >= 1 value) OR >= 1 principle |
-| Implementation Rule | (>= 1 goal + >= 1 value) OR >= 1 design choice |
-| Coding Principle | (>= 1 goal + >= 1 value) OR >= 1 principle or design choice |
+| Milestone | 1+ goal and 1+ value |
+| Principle | 1+ goal and 1+ value |
+| Rule | 1+ goal and 1+ value |
+| Design Choice | 1+ goal and 1+ value |
+| Heuristic | (1+ goal and 1+ value) or 1+ principle |
+| Implementation Rule | (1+ goal and 1+ value) or 1+ design choice |
+| Coding Principle | (1+ goal and 1+ value) or 1+ principle or design choice |
 
-Goals, values, and constraints are roots — they don't need to map to anything. Constraints are external facts; goals and values are foundational.
+Goals, values, and constraints are roots — they don't need to map to anything. But as noted above, mapping goals and values to each other is a good practice for surfacing alignment.
 
 ## Installation
 
@@ -76,6 +86,8 @@ pip install -e .
 # For graphviz/DOT rendering:
 pip install -e ".[diagrams]"
 ```
+
+> **Note:** PyPI publication is planned. For now, install from source.
 
 ## Quick Start
 
@@ -95,44 +107,12 @@ gvp render --library examples/software-project/ --format markdown --stdout
 
 ## Examples
 
-Two bundled example libraries demonstrate GVP in different domains:
+Bundled example libraries demonstrate GVP in different domains:
 
-### Software Project
+- **[Software Project](examples/software-project/)** — a 4-level chain for a fictional CLI task manager, demonstrating domain-specific categories and cross-scope traceability
+- **[Small Business](examples/small-business/)** — a 2-level chain for a fictional coffee shop, showing GVP works beyond software
 
-A 4-level chain for a fictional CLI task manager ("taskflow"):
-
-```
-examples/software-project/
-├── tags.yaml              # domain + concern tag registry
-├── universal.yaml         # org-wide values and rules
-├── personal.yaml          # cross-project principles, heuristics
-└── projects/
-    ├── taskflow.yaml      # project goals, milestones, constraints
-    └── taskflow/
-        └── v1.yaml        # implementation design choices, rules
-```
-
-```bash
-gvp validate --library examples/software-project/
-gvp trace --library examples/software-project/ personal:H1
-gvp render --library examples/software-project/ --format markdown --stdout
-```
-
-### Small Business
-
-A 2-level chain for a fictional coffee shop ("Sunrise Coffee"):
-
-```
-examples/small-business/
-├── business.yaml          # core values, principles, rules
-└── projects/
-    └── new-location.yaml  # project goals, milestones, design choices
-```
-
-```bash
-gvp validate --library examples/small-business/
-gvp query --library examples/small-business/ --category principle
-```
+Each example directory has its own README with detailed walkthroughs and commands.
 
 ## Subcommands
 
@@ -211,7 +191,15 @@ gvp review --library path/ personal:P3        # interactive review
 | `--library PATH` | Add a library path (repeatable) |
 | `--no-provenance` | Skip provenance tracking (add/edit only) |
 
+## Future Work
+
+- **PyPI publication** for `pip install gvp`
+- **Graphical tool or web interface** for visual exploration and editing
+- **Expanded examples** — a comprehensive organizational setup with multiple domains (finance, sales, engineering) converging on unified goals/values; a personal self-improvement example with intentionally conflicting values to demonstrate honest self-examination
+- **Diagrams** generated for example directories
+
 ## Further Reading
 
 - [GLOSSARY.md](GLOSSARY.md) — canonical term definitions
+- [docs/philosophy.md](docs/philosophy.md) — on the fuzzy boundaries between goals, values, and principles
 - [docs/plans/](docs/plans/) — design documents and implementation plans
