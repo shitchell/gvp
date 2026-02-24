@@ -1,0 +1,30 @@
+meta:
+  name: v0
+  scope: implementation
+  inherits: gvp
+  defaults:
+    origin:
+      date: "2026-02-24"
+      note: "Inferred from planning sessions"
+
+design_choices:
+  - id: D1
+    name: Python 3.11+ with PyYAML and argparse
+    rationale: >
+      Claude proposed Python during initial planning, and it was not
+      identified as a choice until mid-plan. Switching would have required
+      reworking the existing plan for marginal benefit. Python is widely
+      available, readable, runs everywhere without compilation, and is fast
+      enough for a CLI that processes YAML files. PyYAML is the standard YAML
+      library. argparse avoids external dependencies for argument parsing.
+    tags: [tooling]
+    maps_to: [gvp:G2, gvp:G7, gvp:V4, gvp:V5]
+
+  - id: D2
+    name: YAML as source of truth format
+    rationale: >
+      YAML is human-readable, supports comments, handles nested structures,
+      and is widely supported by tools and languages. It is more readable
+      than JSON and more structured than markdown.
+    tags: [tooling, framework]
+    maps_to: [gvp:G7, gvp:P3, gvp:V4]
