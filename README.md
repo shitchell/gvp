@@ -42,16 +42,28 @@ Goals and values are tightly coupled and sometimes hard to distinguish (see [doc
 
 ### Scope and Inheritance
 
-GVP documents form an inheritance chain. Priority flows from root to leaf: **parent wins on conflict, child extends**. You need at least one scope, and the depth is up to you. The conventional structure is:
+GVP documents form an inheritance graph. A document can inherit from one or more parents via `meta.inherits`. You need at least one scope, and the depth is up to you. The conventional structure is:
 
 ```
-universal.yaml                         (organization-wide, highest priority)
-  └─ personal.yaml                     (individual, cross-project)
-       └─ projects/<project>.yaml      (project-level: goals, constraints)
-            └─ ...                      (arbitrary further nesting)
+universal.yaml                         (organization-wide)
+  ├─ personal.yaml                     (individual, cross-project)
+  │    └─ projects/<project>.yaml      (project-level: goals, constraints)
+  │         └─ ...                      (arbitrary further nesting)
+  └─ python-projects.yaml             (language-specific conventions)
+       └─ projects/<project>.yaml      (can inherit from both personal + python)
 ```
 
-For personal use, `universal.yaml` can remain empty — or you can skip it entirely and start from `personal.yaml`. What constitutes a "project" vs. deeper nesting is up to you. The framework doesn't enforce granularity, only the inheritance chain.
+A document can inherit from multiple parents:
+
+```yaml
+meta:
+  name: my-project
+  inherits:
+    - personal
+    - python-projects
+```
+
+For personal use, `universal.yaml` can remain empty — or you can skip it entirely and start from `personal.yaml`. What constitutes a "project" vs. deeper nesting is up to you. The framework doesn't enforce granularity, only that the inheritance graph is acyclic.
 
 ### Tags
 

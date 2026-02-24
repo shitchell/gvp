@@ -30,7 +30,7 @@ Terms specific to the `gvp` CLI tool and YAML document format.
 | **Element** | A single GVP entry of any category, stored as a YAML mapping with an ID, name, and category-specific fields. |
 | **Document** | A YAML file containing a `meta` block and one or more elements. |
 | **Library** | A directory containing GVP documents, optionally with a `tags.yaml` and `schema.yaml`. |
-| **Chain** | The resolved inheritance path from a document to its root, determined by `meta.inherits` references. |
+| **Ancestry** | The resolved set of ancestor documents reachable from a document's `meta.inherits` references, traversed breadth-first. Forms a DAG when documents inherit from multiple parents. |
 | **Catalog** | The fully loaded, resolved graph of all documents across all libraries. The runtime object built by the loader. |
 | **Qualified ID** | A `document:ID` reference that unambiguously identifies an element across scopes (e.g., `personal:P3`). |
 | **maps_to** | The field on an element that encodes its relationships to other elements as a list of qualified IDs. |
