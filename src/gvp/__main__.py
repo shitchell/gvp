@@ -54,7 +54,7 @@ def cmd_validate(args: argparse.Namespace) -> int:
         print(f"ERROR: {e}", file=sys.stderr)
 
     if not errors:
-        print("OK — no errors found")
+        print("OK — no syntax errors found, use `gvp render` to review semantic coherence")
     return 1 if errors else 0
 
 
@@ -100,6 +100,27 @@ def cmd_trace(args: argparse.Namespace) -> int:
         return 1
 
     from gvp.commands.trace import trace_element, format_trace_tree
+
+    if args.maps_to:
+        descendants = sorted(catalog.descendants(elem), key=str)
+        if not descendants:
+            print(f"No elements map to '{args.element}'.", file=sys.stderr)
+            return 0
+        if args.format == "json":
+            import json as _json
+            trees = []
+            for desc in descendants:
+                tree = trace_element(catalog, desc, reverse=False)
+                trees.append(_json.loads(format_trace_tree(tree, fmt="json")))
+            print(_json.dumps(trees, indent=2))
+        else:
+            parts = []
+            for desc in descendants:
+                tree = trace_element(catalog, desc, reverse=False)
+                parts.append(format_trace_tree(tree, fmt="text"))
+            print(f"\n\n".join(parts))
+        return 0
+
     tree = trace_element(catalog, elem, reverse=args.reverse)
     output = format_trace_tree(tree, fmt=args.format)
     print(output)
@@ -110,51 +131,70 @@ def cmd_render(args: argparse.Namespace) -> int:
     cfg = _build_config(args)
     catalog = load_catalog(cfg)
 
-    output_dir = Path(args.output) if args.output else None
+    output_dir = Path(args.output) if args.output else Path("generated")
     include_deprecated = args.include_deprecated
-    fmt = args.format
     to_stdout = args.stdout
 
-    if fmt in (None, "all", "markdown"):
+    all_formats = {"markdown", "csv", "sqlite", "dot", "png"}
+    formats = set(args.format)
+    if "all" in formats:
+        formats = all_formats
+    unknown = formats - all_formats
+    if unknown:
+        print(f"ERROR: unknown format(s): {', '.join(sorted(unknown))}", file=sys.stderr)
+        return 1
+
+    if "markdown" in formats:
         from gvp.renderers.markdown import render_markdown
         result = render_markdown(
             catalog,
             output_dir=output_dir if not to_stdout else None,
             include_deprecated=include_deprecated,
         )
-        if to_stdout and fmt in (None, "all", "markdown"):
+        if to_stdout:
             print(result)
 
-    if fmt in (None, "all", "csv"):
+    if "csv" in formats:
         from gvp.renderers.csv import render_csv
         result = render_csv(
             catalog,
             output_dir=output_dir if not to_stdout else None,
             include_deprecated=include_deprecated,
         )
-        if to_stdout and fmt == "csv":
+        if to_stdout:
             print(result)
 
-    if fmt in (None, "all", "sqlite"):
+    if "sqlite" in formats:
         from gvp.renderers.sqlite import render_sqlite
-        db_path = (output_dir or Path("generated")) / "gvp.db"
+        db_path = output_dir / "gvp.db"
         render_sqlite(catalog, db_path, include_deprecated=include_deprecated)
-        if to_stdout and fmt == "sqlite":
+        if to_stdout:
             print(f"SQLite database written to {db_path}")
 
-    if fmt in (None, "all", "dot"):
+    # dot and png share the same DOT source — generate it once
+    need_dot = formats & {"dot", "png"}
+    if need_dot:
         from gvp.renderers.dot import render_dot
-        result = render_dot(
+        dot_source = render_dot(
             catalog,
-            output_dir=output_dir if not to_stdout else None,
+            output_dir=output_dir if ("dot" in formats and not to_stdout) else None,
             include_deprecated=include_deprecated,
         )
-        if to_stdout and fmt == "dot":
-            print(result)
+        if to_stdout and "dot" in formats:
+            print(dot_source)
+
+        if "png" in formats:
+            from gvp.renderers.dot import render_png
+            render_png(
+                dot_source,
+                output_dir=output_dir if not to_stdout else None,
+            )
+            if to_stdout:
+                print("(PNG binary output not suitable for stdout; use -o to write to file)",
+                      file=sys.stderr)
 
     if not to_stdout:
-        target = output_dir or Path("generated")
-        print(f"Output written to {target}/")
+        print(f"Output written to {output_dir}/")
 
     return 0
 
@@ -324,12 +364,19 @@ def main(argv: list[str] | None = None) -> int:
     _add_library_arg(p_trace)
     p_trace.add_argument("element", help="qualified element ID (e.g., personal:H5)")
     p_trace.add_argument("--reverse", action="store_true", help="show descendants instead of ancestors")
+    p_trace.add_argument("--maps-to", action="store_true",
+                         help="find all elements that map to the given element and print each trace")
     p_trace.add_argument("--format", choices=["text", "json"], default="text")
 
     # render
     p_render = subparsers.add_parser("render", help="generate output")
     _add_library_arg(p_render)
-    p_render.add_argument("--format", choices=["markdown", "csv", "sqlite", "dot", "all"], default="all")
+    all_formats = ["markdown", "csv", "sqlite", "dot", "png"]
+    p_render.add_argument(
+        "--format", nargs="+", default=["all"],
+        metavar="FMT",
+        help=f"output format(s): {', '.join(all_formats)}, all (default: all)",
+    )
     p_render.add_argument("-o", "--output", help="output directory")
     p_render.add_argument("--stdout", action="store_true", help="print to stdout instead of files")
     p_render.add_argument("--include-deprecated", action="store_true")

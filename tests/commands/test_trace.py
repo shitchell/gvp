@@ -52,3 +52,26 @@ class TestFormatTraceTree:
         parsed = json.loads(output)
         assert "element" in parsed
         assert "children" in parsed
+
+
+class TestMapsToCLI:
+    def test_maps_to_text(self, gvp_docs_library: Path):
+        cfg = GVPConfig(libraries=[gvp_docs_library])
+        catalog = load_catalog(cfg)
+        g1 = catalog.elements["personal:G1"]
+        descendants = sorted(catalog.descendants(g1), key=str)
+        assert len(descendants) > 0
+        for desc in descendants:
+            tree = trace_element(catalog, desc, reverse=False)
+            text = format_trace_tree(tree, fmt="text")
+            assert str(desc) in text
+
+    def test_maps_to_includes_root_in_traces(self, gvp_docs_library: Path):
+        cfg = GVPConfig(libraries=[gvp_docs_library])
+        catalog = load_catalog(cfg)
+        g1 = catalog.elements["personal:G1"]
+        descendants = sorted(catalog.descendants(g1), key=str)
+        for desc in descendants:
+            tree = trace_element(catalog, desc, reverse=False)
+            text = format_trace_tree(tree, fmt="text")
+            assert "personal:G1" in text

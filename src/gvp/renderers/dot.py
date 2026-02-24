@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import shutil
+import subprocess
 from pathlib import Path
 
 from gvp.model import Catalog
@@ -57,6 +59,28 @@ def render_dot(
         lines.append("  }")
         lines.append("")
 
+    # Enforce vertical ordering by grouping categories into rank tiers.
+    # With rankdir=BT, rank=same keeps each tier on one horizontal band.
+    tier_order = [
+        ("goal",),
+        ("value",),
+        ("principle", "rule"),
+        ("heuristic",),
+        ("design_choice",),
+    ]
+    for tier_cats in tier_order:
+        tier_nodes = [
+            _node_id(qid)
+            for qid, elem in catalog.elements.items()
+            if (include_deprecated or elem.status == "active")
+            and elem.category in tier_cats
+        ]
+        if tier_nodes:
+            lines.append(
+                "  {rank=same; " + "; ".join(tier_nodes) + ";}"
+            )
+    lines.append("")
+
     for qid, elem in catalog.elements.items():
         if not include_deprecated and elem.status != "active":
             continue
@@ -75,3 +99,36 @@ def render_dot(
         (output_dir / "gvp.dot").write_text(result)
 
     return result
+
+
+def render_png(
+    dot_source: str,
+    output_dir: Path | None = None,
+) -> bytes:
+    """Render DOT source to PNG bytes via graphviz ``dot`` command.
+
+    Returns the raw PNG data. If *output_dir* is given, also writes
+    ``gvp.png`` into that directory.
+    """
+    dot_bin = shutil.which("dot")
+    if dot_bin is None:
+        raise RuntimeError(
+            "graphviz 'dot' command not found. "
+            "Install graphviz (e.g. apt install graphviz) to use PNG output."
+        )
+
+    proc = subprocess.run(
+        [dot_bin, "-Tpng"],
+        input=dot_source.encode(),
+        capture_output=True,
+    )
+    if proc.returncode != 0:
+        raise RuntimeError(f"dot failed: {proc.stderr.decode()}")
+
+    png_data = proc.stdout
+
+    if output_dir:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        (output_dir / "gvp.png").write_bytes(png_data)
+
+    return png_data
