@@ -19,7 +19,7 @@ _MAPPING_RULES: dict[str, tuple[set[str], set[str]]] = {
     "principle": ({"goal", "value"}, set()),
     "rule": ({"goal", "value"}, set()),
     "design_choice": ({"goal", "value"}, set()),
-    "heuristic": ({"goal", "value"}, {"principle"}),
+    "heuristic": ({"goal", "value"}, {"principle", "rule"}),
     "implementation_rule": ({"goal", "value"}, {"design_choice"}),
     "coding_principle": ({"goal", "value"}, {"principle", "design_choice"}),
 }
@@ -78,14 +78,22 @@ def _validate_semantic(catalog: Catalog) -> list[str]:
             warnings.append(f"W004: {qid} ({elem.category}) has no maps_to references")
             continue  # skip W005 if maps_to is empty
 
-        # W005: all maps_to targets are in the same document
-        target_docs = set()
-        for ref in elem.maps_to:
-            target = catalog.elements.get(ref)
-            if target is not None:
-                target_docs.add(target.document.name)
-        if target_docs and target_docs == {elem.document.name}:
-            warnings.append(f"W005: {qid} maps only to elements in its own document")
+        # W005: element in an inheriting document maps only to its own
+        # document (i.e. never traces back to an inherited ancestor document).
+        # Only applies when the element's document has an inherits chain.
+        doc = elem.document
+        if doc.inherits:
+            chain_docs = {d.name for d in catalog.resolve_chain(doc)} - {doc.name}
+            target_docs = set()
+            for ref in elem.maps_to:
+                target = catalog.elements.get(ref)
+                if target is not None:
+                    target_docs.add(target.document.name)
+            if target_docs and not (target_docs & chain_docs):
+                warnings.append(
+                    f"W005: {qid} maps only to elements in its own document "
+                    f"(does not trace back to inherited document)"
+                )
 
     return warnings
 
