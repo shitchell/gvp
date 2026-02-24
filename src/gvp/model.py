@@ -44,7 +44,7 @@ class Document:
     name: str
     filename: str
     path: str | Path
-    inherits: str | None
+    inherits: list[str]
     scope_label: str | None
     id_prefix: str | None
     defaults: dict
@@ -65,22 +65,33 @@ class Catalog:
             qualified = f"{doc.name}:{elem.id}"
             self.elements[qualified] = elem
 
-    def resolve_chain(self, doc: Document) -> list[Document]:
-        chain = [doc]
-        visited = {doc.name}
-        current = doc
-        while current.inherits:
-            parent = self.documents.get(current.inherits)
+    def resolve_ancestors(self, doc: Document) -> list[Document]:
+        """BFS from doc's parents. Returns ancestors in breadth-first order.
+
+        Raises ValueError if circular inheritance is detected.
+        Missing parent documents (not loaded in catalog) are silently skipped;
+        the validation layer enforces that all parents exist.
+        """
+        result: list[Document] = []
+        visited: set[str] = {doc.name}
+        queue = list(doc.inherits)
+        while queue:
+            name = queue.pop(0)
+            if name == doc.name:
+                if result:
+                    path = " -> ".join(d.name for d in result) + f" -> {doc.name}"
+                else:
+                    path = f"{doc.name} (self-reference)"
+                raise ValueError(f"Circular inheritance: {doc.name} -> {path}")
+            if name in visited:
+                continue
+            parent = self.documents.get(name)
             if parent is None:
-                break
-            if parent.name in visited:
-                raise ValueError(
-                    f"Circular inheritance: {' -> '.join(d.name for d in chain)} -> {parent.name}"
-                )
-            visited.add(parent.name)
-            chain.append(parent)
-            current = parent
-        return chain
+                continue
+            visited.add(name)
+            result.append(parent)
+            queue.extend(parent.inherits)
+        return result
 
     def ancestors(self, element: Element) -> set[Element]:
         result: set[Element] = set()
@@ -98,8 +109,7 @@ class Catalog:
         qualified = str(element)
         result: set[Element] = set()
         queue = [
-            e for e in self.elements.values()
-            if qualified in e.maps_to and e != element
+            e for e in self.elements.values() if qualified in e.maps_to and e != element
         ]
         while queue:
             e = queue.pop(0)
@@ -108,7 +118,8 @@ class Catalog:
             result.add(e)
             e_qid = str(e)
             queue.extend(
-                other for other in self.elements.values()
+                other
+                for other in self.elements.values()
                 if e_qid in other.maps_to and other not in result
             )
         return result
