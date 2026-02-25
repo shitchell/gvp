@@ -4,6 +4,10 @@ The `gvp validate` command checks a loaded catalog for structural errors and sem
 
 ## Traceability Rules
 
+Traceability rules are defined per-category in the category schema (see
+[schema.md](schema.md#category-definitions)). The rules below describe the
+built-in defaults.
+
 Every element must trace back to at least one **goal** and one **value** -- either directly through its `maps_to` references, or transitively through elements it maps to. Three categories are exempt from this requirement because they *are* the roots of the traceability graph:
 
 - **Goals** -- no mapping required
@@ -71,6 +75,8 @@ Warnings are printed to stderr but do not cause a non-zero exit code under norma
 | W005 | **Self-document-only mapping** -- an element in a document that has `inherits` maps only to elements in its own document, never tracing back to an inherited ancestor. This suggests the element may be disconnected from the parent GVP it extends. Only checked when the element's document has an `inherits` chain. |
 | W006 | **Stale element** -- an ancestor element (reachable through `maps_to`) has an `updated_by` date that is newer than this element's most recent `reviewed_by` date. This means an upstream element changed and the downstream element has not been reviewed since. Use `gvp review` to inspect and acknowledge. |
 | W007 | **Duplicate tag definition** -- the same tag name is defined in `meta.definitions.tags` in multiple documents within a library. The first loaded document's definition is kept; subsequent definitions for the same tag name are flagged. |
+| W008 | **Duplicate category definition** -- the same category name is defined in `meta.definitions.categories` in multiple documents. The first definition is kept. |
+| W009 | **Unknown YAML section** -- a top-level YAML key in a document does not match any known category `yaml_key`. This may indicate a typo or a category that hasn't been defined. |
 
 ### Suppressing Warnings
 

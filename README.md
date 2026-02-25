@@ -28,6 +28,10 @@ Elements are the building blocks. Each has a category that describes its role:
 | **Milestone** | A concrete, achievable waypoint on the path to goals. | Is it a concrete state on the roadmap? |
 | **Constraint** | A fact about the system or environment you don't control. Descriptive, not prescriptive. | Is it a fact you don't control? |
 
+These are the built-in categories. You can override their properties or define
+entirely new categories via `meta.definitions.categories` in any GVP document.
+See the [Schema Reference](docs/reference/schema.md#category-definitions).
+
 Tags can further classify elements by domain (e.g., `code`, `systems`, `finance`) or concern (e.g., `reliability`, `usability`). See [Tags](#tags) below.
 
 ### Relationships

@@ -45,7 +45,7 @@ top level of the file.
 | `inherits` | string or list | No | Parent document name(s). Forms a DAG -- cycles are rejected. See [Inheritance](#inheritance) below. |
 | `defaults` | mapping | No | Default field values applied to every element unless explicitly overridden. See [Defaults](#defaults) below. |
 | `id_prefix` | string | No | Prefix for auto-generated element IDs (used by `gvp add`). |
-| `definitions` | mapping | No | Definitions for library-level constructs. Currently supports `definitions.tags` for tag definitions. See [Tag Definitions](#tag-definitions). |
+| `definitions` | mapping | No | Definitions for library-level constructs. Supports `definitions.tags` for tag definitions and `definitions.categories` for custom category definitions. See [Tag Definitions](#tag-definitions) and [Category Definitions](#category-definitions). |
 
 ### Inheritance
 
@@ -132,6 +132,10 @@ conventions used in the `software-project` example. The framework supports them
 natively (they are in the category map), but they are not required and may not
 be relevant outside software development contexts.
 
+These categories are the built-in defaults. The framework loads them from a
+built-in schema and they can be overridden or extended via
+`meta.definitions.categories`. See [Category Definitions](#category-definitions).
+
 
 ## Element Fields
 
@@ -198,21 +202,24 @@ Validation rules (only checked when `considered` is present):
 
 ### Additional Fields
 
-Any YAML keys not in the common fields list are preserved as extra fields on the
-element. This allows user-defined extensions without schema changes. For
-example, a team could add a `priority` or `effort` field to their elements:
+Any YAML keys not in the common fields list are preserved as extra attributes on
+the element's Pydantic model. This allows user-defined extensions without schema
+changes. For example, a team could add an `effort` or `owner` field to their
+elements:
 
 ```yaml
 goals:
   - id: G1
     name: Ship on time
     statement: Deliver by Q2.
-    priority: high
     effort: large
+    owner: alice
 ```
 
-The `priority` and `effort` fields are stored in the element's `fields` dict
-and passed through to renderers.
+Extra fields are stored as additional model attributes and passed through to
+renderers. Category-specific fields (like `considered` on design choices) can
+be formally defined via `field_schemas` in the category definition -- see
+[Category Definitions](#category-definitions).
 
 
 ## Provenance Fields
@@ -384,6 +391,124 @@ Tags accumulate across all documents in a library. When multiple documents
 define the same tag name, the first loaded document's definition is kept and
 subsequent definitions for the same tag name trigger a W007 warning (see
 [Validation Reference](validation.md#warnings)).
+
+
+## Category Definitions
+
+Categories can be customized or extended via `meta.definitions.categories` in any GVP document. The framework ships with built-in categories (see [Element Categories](#element-categories) above); user definitions can override properties of existing categories or add entirely new ones.
+
+### Structure
+
+```yaml
+meta:
+  definitions:
+    categories:
+      # Override an existing category's color
+      heuristic:
+        color: "#FF0000"
+
+      # Add a completely new category
+      experiment:
+        yaml_key: experiments
+        id_prefix: EX
+        primary_field: hypothesis
+        mapping_rules:
+          - [goal, value]
+        field_schemas:
+          hypothesis:
+            type: string
+            required: true
+```
+
+### Category Definition Fields
+
+| Field | Type | Required (new) | Description |
+|-------|------|----------------|-------------|
+| `yaml_key` | string | Yes | The YAML key used in documents (e.g., `experiments`). Must be unique across all categories. |
+| `id_prefix` | string | Yes | Prefix for auto-generated IDs (e.g., `EX` for `EX1`, `EX2`). Must be unique. |
+| `primary_field` | string | No | The main content field name. Defaults to `statement`. |
+| `display_label` | string | No | Human-readable label for rendered output. Defaults to titlecased `yaml_key`. |
+| `color` | string | No | Hex color for graph rendering. Defaults to `#CCCCCC`. |
+| `is_root` | boolean | No | If true, this category is exempt from traceability rules. Defaults to false. |
+| `mapping_rules` | list[list[string]] | Required if not root | Traceability rules. Each inner list is a group of categories that must ALL be present (AND). Groups are alternatives (OR). |
+| `tier` | integer | No | Vertical tier for DOT graph rendering. Lower numbers appear at bottom. |
+| `field_schemas` | mapping | No | Schema definitions for category-specific fields. See [Field Schemas](#field-schemas). |
+
+For existing categories, only the fields you specify are overridden; others retain their built-in values.
+
+### Field Schemas
+
+The `field_schemas` mapping defines typed fields for a category. Each field has:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `type` | string | One of: `string`, `number`, `boolean`, `list`, `dict`. |
+| `required` | boolean | Whether the field must be present. Defaults to false. |
+
+For `dict` type fields, you can define nested model validation:
+
+```yaml
+field_schemas:
+  considered:
+    type: dict
+    required: false
+    values:
+      type: model
+      fields:
+        rationale:
+          type: string
+          required: true
+        description:
+          type: string
+          required: false
+```
+
+### The `_all` Keyword
+
+Use `_all` to add field schemas to every category:
+
+```yaml
+meta:
+  definitions:
+    categories:
+      _all:
+        field_schemas:
+          custom_field:
+            type: string
+            required: false
+```
+
+### Mapping Rules Syntax
+
+Mapping rules use a list-of-lists format where:
+- Each inner list is a **group** -- all categories in the group must be present (AND)
+- Multiple groups are **alternatives** (OR)
+
+Examples:
+```yaml
+# Must map to goal AND value
+mapping_rules:
+  - [goal, value]
+
+# Must map to (goal AND value) OR principle OR rule
+mapping_rules:
+  - [goal, value]
+  - [principle]
+  - [rule]
+```
+
+### Validation
+
+New category definitions are validated:
+- `yaml_key` and `id_prefix` are required for new categories
+- Non-root categories must have `mapping_rules`
+- `id_prefix` must be unique across all categories
+- `yaml_key` must be unique across all categories
+- All categories referenced in `mapping_rules` must exist
+
+### Accumulation
+
+Category definitions accumulate across documents in a library (first-wins). If the same category name is defined in multiple documents, a W008 warning is emitted and the first definition is kept.
 
 
 ## Technical Glossary

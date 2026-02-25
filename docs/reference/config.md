@@ -14,7 +14,7 @@ Starting from the current working directory and moving up toward the
 filesystem root, GVP checks each directory for:
 
 - **`.gvp/` directory** -- if found, the directory itself is added as a
-  library path. If it contains a `libraries/` subdirectory, that is also
+  library path. If it contains a `library/` subdirectory, that is also
   added. If it contains `config.yaml`, the file is parsed.
 - **`.gvp.yaml` file** -- if found, the file's parent directory is added
   as a library path (the file is treated as a standalone GVP document).
@@ -25,14 +25,14 @@ All matches are collected (closest to CWD first, root last).
 
 If this directory exists, GVP checks for:
 
-- `~/.config/gvp/libraries/` -- added as a library path if present.
+- `~/.config/gvp/library/` -- added as a library path if present.
 - `~/.config/gvp/config.yaml` -- parsed if present.
 
 ### 3. System config (`/etc/gvp/`)
 
 Same structure as user config:
 
-- `/etc/gvp/libraries/` -- added as a library path if present.
+- `/etc/gvp/library/` -- added as a library path if present.
 - `/etc/gvp/config.yaml` -- parsed if present.
 
 ## `config.yaml` Format
