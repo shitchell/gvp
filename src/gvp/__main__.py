@@ -46,7 +46,7 @@ def cmd_validate(args: argparse.Namespace) -> int:
 
     from gvp.commands.validate import validate_catalog
 
-    errors, warnings = validate_catalog(catalog)
+    errors, warnings = validate_catalog(catalog, config=cfg)
 
     for w in warnings:
         if w.split(":")[0] not in cfg.suppress_warnings:
