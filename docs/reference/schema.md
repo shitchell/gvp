@@ -2,7 +2,7 @@
 
 This document is the complete field-level reference for GVP YAML files. For a
 conceptual overview of the framework, see the [README](../../README.md). For
-term definitions, see the [Glossary](../GLOSSARY.md).
+term definitions, see the [Glossary](../../GLOSSARY.md).
 
 
 ## Document Structure
