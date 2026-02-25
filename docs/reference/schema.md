@@ -45,6 +45,7 @@ top level of the file.
 | `inherits` | string or list | No | Parent document name(s). Forms a DAG -- cycles are rejected. See [Inheritance](#inheritance) below. |
 | `defaults` | mapping | No | Default field values applied to every element unless explicitly overridden. See [Defaults](#defaults) below. |
 | `id_prefix` | string | No | Prefix for auto-generated element IDs (used by `gvp add`). |
+| `definitions` | mapping | No | Definitions for library-level constructs. Currently supports `definitions.tags` for tag definitions. See [Tag Definitions](#tag-definitions). |
 
 ### Inheritance
 
@@ -142,7 +143,7 @@ These fields are recognized on every element regardless of category.
 |-------|------|----------|-------------|
 | `id` | string | Yes | Unique within the document per category. Convention: prefix + number (e.g., `G1`, `P3`, `D2`). |
 | `name` | string | Yes | Human-readable name for the element. |
-| `tags` | list[string] | No | Classification tags. Must be defined in `tags.yaml`. |
+| `tags` | list[string] | No | Classification tags. Must be defined via `meta.definitions.tags` in any document. |
 | `maps_to` | list[string] | No | List of qualified IDs (`document:ID`) this element traces to. See [Qualified IDs](#qualified-ids). |
 | `status` | string | No | One of `active` (default), `deprecated`, or `rejected`. |
 | `origin` | list[mapping] | No | Provenance -- where and when the element was first captured. See [Provenance Fields](#provenance-fields). |
@@ -269,48 +270,89 @@ document -- once assigned, an ID is permanently consumed even if the element is
 deprecated or rejected.
 
 
-## tags.yaml Format
+## Tag Definitions
 
-Tags are defined in a `tags.yaml` file within a library directory. The file
-contains two sections -- `domains` and `concerns` -- each mapping tag names to
-their descriptions.
+Tags are defined in the `meta.definitions.tags` block of any GVP document. The
+block contains two subsections -- `domains` and `concerns` -- each mapping tag
+names to their descriptions.
 
-```yaml
-domains:
-  framework:
-    description: Core GVP framework design -- schema, element types, traceability model
-  tooling:
-    description: The gvp CLI utility and its implementation
-
-concerns:
-  alignment:
-    description: Ensuring decisions trace back to goals and values consistently
-  usability:
-    description: Accessible to non-technical users and AI assistants alike
-  integrity:
-    description: Data correctness, provenance, and trustworthiness of the GVP store
-```
-
-The `domains` / `concerns` grouping is a user convention for organizing tags.
-Both sections are loaded identically -- each tag receives a `type` field
-(`"domain"` or `"concern"`) derived from the section it appears in. Tags from
-different libraries are merged; the first definition wins.
-
-A domain-specific project might define entirely different tags:
+### Structure
 
 ```yaml
-domains:
-  code:
-    description: Software development decisions
-  systems:
-    description: Infrastructure and architecture decisions
-
-concerns:
-  maintainability:
-    description: Reducing future cost of change
-  reliability:
-    description: System behaves correctly under expected conditions
+meta:
+  name: my-document
+  definitions:
+    tags:
+      domains:
+        tag-name:
+          description: What this domain tag represents
+      concerns:
+        tag-name:
+          description: What this concern tag represents
 ```
+
+Each tag receives a `type` field (`"domain"` or `"concern"`) derived from the
+subsection it appears in. The `domains` / `concerns` grouping is a user
+convention for organizing tags -- both subsections are loaded identically.
+
+### Inline Example
+
+Tags can be defined in a document that also contains elements:
+
+```yaml
+meta:
+  name: my-project
+  inherits: personal
+  definitions:
+    tags:
+      domains:
+        code:
+          description: Software development decisions
+        systems:
+          description: Infrastructure and architecture decisions
+      concerns:
+        maintainability:
+          description: Reducing future cost of change
+        reliability:
+          description: System behaves correctly under expected conditions
+
+goals:
+  - id: G1
+    name: Ship on time
+    tags: [code]
+    statement: ...
+```
+
+### Dedicated File Example
+
+A document can define only tags and no elements. This is useful when you want a
+single file that serves as the tag registry for a library:
+
+```yaml
+meta:
+  name: tags
+  definitions:
+    tags:
+      domains:
+        framework:
+          description: Core GVP framework design -- schema, element types, traceability model
+        tooling:
+          description: The gvp CLI utility and its implementation
+      concerns:
+        alignment:
+          description: Ensuring decisions trace back to goals and values consistently
+        usability:
+          description: Accessible to non-technical users and AI assistants alike
+        integrity:
+          description: Data correctness, provenance, and trustworthiness of the GVP store
+```
+
+### Accumulation Semantics
+
+Tags accumulate across all documents in a library. When multiple documents
+define the same tag name, the first loaded document's definition is kept and
+subsequent definitions for the same tag name trigger a W007 warning (see
+[Validation Reference](validation.md#warnings)).
 
 
 ## Technical Glossary

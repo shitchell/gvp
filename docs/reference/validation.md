@@ -51,7 +51,7 @@ Errors cause `gvp validate` to exit with code 1. Each error is printed to stderr
 | Check | Description |
 |-------|-------------|
 | Broken `maps_to` reference | A qualified ID in an element's `maps_to` list does not match any loaded element in the catalog. |
-| Undefined tag | A tag on an element is not defined in any loaded `tags.yaml` file. |
+| Undefined tag | A tag on an element is not defined via `meta.definitions.tags` in any loaded document. |
 | ID sequence gap | Element IDs within a category in a single document have gaps. For example, if a document contains P1 and P3 but no P2, that is a gap. IDs are expected to be sequential starting from 1. |
 | Broken `inherits` reference | A document's `meta.inherits` names a document that was not found in any loaded library. |
 | Circular inheritance | The inheritance graph contains a cycle (e.g., document A inherits B, and B inherits A). |
@@ -70,6 +70,7 @@ Warnings are printed to stderr but do not cause a non-zero exit code under norma
 | W004 | **Empty `maps_to`** -- a non-root element has no `maps_to` references at all. This is a weaker signal than a traceability violation: the element has no mappings rather than incorrect ones. |
 | W005 | **Self-document-only mapping** -- an element in a document that has `inherits` maps only to elements in its own document, never tracing back to an inherited ancestor. This suggests the element may be disconnected from the parent GVP it extends. Only checked when the element's document has an `inherits` chain. |
 | W006 | **Stale element** -- an ancestor element (reachable through `maps_to`) has an `updated_by` date that is newer than this element's most recent `reviewed_by` date. This means an upstream element changed and the downstream element has not been reviewed since. Use `gvp review` to inspect and acknowledge. |
+| W007 | **Duplicate tag definition** -- the same tag name is defined in `meta.definitions.tags` in multiple documents within a library. The first loaded document's definition is kept; subsequent definitions for the same tag name are flagged. |
 
 ### Suppressing Warnings
 

@@ -15,12 +15,12 @@ Canonical definitions for GVP terminology. For how the framework works, see [REA
 | **Constraint** | A fact about the system or environment you don't control. Descriptive, not prescriptive. |
 | **Milestone** | A concrete, achievable waypoint on the path to goals. Ordered near-term to long-term. |
 | **Scope** | A human-readable label for a level in the hierarchy (e.g., "universal", "personal", "project"). User-defined granularity. |
-| **Tag** | A classification label applied to elements, defined in a `tags.yaml` registry. How tags are organized (e.g., by domain vs. concern) is a user convention, not a structural requirement. |
+| **Tag** | A classification label applied to elements, defined in a document's `meta.definitions.tags` block. How tags are organized (e.g., by domain vs. concern) is a user convention, not a structural requirement. |
 | **Provenance** | The tracked history of where an element was first inferred (origin), how it has been modified (updated_by), and when it was last confirmed as still accurate (reviewed_by). |
 | **Traceability** | The property that every element (except goals, values, and constraints) traces its justification to at least one goal and one value. |
 | **Element** | A single GVP entry of any category, stored as a YAML mapping with an ID, name, and category-specific fields. |
 | **Document** | A YAML file containing a `meta` block and one or more elements. |
-| **Library** | A directory containing GVP documents, optionally with a `tags.yaml` and `schema.yaml`. |
+| **Library** | A directory containing GVP documents, optionally with dedicated definition files for tags and schema. |
 | **Catalog** | The fully loaded, resolved graph of all documents across all libraries. The runtime object built by the loader. |
 | **Ancestry** | The resolved set of ancestor documents reachable from a document's `meta.inherits` references, traversed breadth-first. Forms a DAG when documents inherit from multiple parents. |
 

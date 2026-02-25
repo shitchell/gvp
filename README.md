@@ -73,7 +73,7 @@ For personal use, `universal.yaml` can remain empty — or you can skip it entir
 
 ### Tags
 
-Elements can be classified with tags. Tags are defined in a `tags.yaml` registry to prevent drift. How you organize your tags is up to you — one useful pattern is separating them into:
+Elements can be classified with tags. Tags are defined in a document's `meta.definitions.tags` block — either inline alongside elements, or in a dedicated file. How you organize your tags is up to you — one useful pattern is separating them into:
 
 - **Domain tags** (`code`, `systems`, `finance`, ...): what area the element applies to
 - **Concern tags** (`maintainability`, `reliability`, `usability`, ...): what quality the element addresses

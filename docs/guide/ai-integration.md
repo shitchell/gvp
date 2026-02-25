@@ -13,7 +13,7 @@ A GVP store lives in a `.gvp/` directory at or near the project root. To find it
 
 Once you find `.gvp/`, read all YAML files inside it to build a picture of the project's element graph:
 
-1. **Read `tags.yaml`** if present. This defines the tag vocabulary -- what tags are available and what they mean.
+1. **Read tag definitions.** Tags may be defined in any document's `meta.definitions.tags` block -- either inline alongside elements, or in a dedicated tags file. Read all documents to discover the full tag vocabulary.
 
 2. **Read each YAML document.** Each file contains a `meta` block and element lists (goals, values, principles, rules, heuristics, design choices, etc.).
 
