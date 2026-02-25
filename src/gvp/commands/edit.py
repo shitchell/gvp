@@ -10,7 +10,6 @@ from pathlib import Path
 import yaml
 
 from gvp.model import Catalog
-from gvp.commands.add import YAML_KEYS
 
 
 def edit_element_inline(
@@ -28,7 +27,7 @@ def edit_element_inline(
     with open(doc.path) as f:
         data = yaml.safe_load(f) or {}
 
-    yaml_key = YAML_KEYS[elem.category]
+    yaml_key = catalog.category_registry.categories[elem.category].yaml_key
     items = data.get(yaml_key, [])
     target = None
     for item in items:

@@ -7,7 +7,6 @@ from datetime import date
 
 import yaml
 
-from gvp.commands.add import YAML_KEYS
 from gvp.commands.validate import _latest_date
 from gvp.model import Catalog, Element
 
@@ -80,7 +79,7 @@ def stamp_review(catalog: Catalog, qualified_id: str, note: str = "", by: str | 
     with open(doc.path) as f:
         data = yaml.safe_load(f) or {}
 
-    yaml_key = YAML_KEYS[elem.category]
+    yaml_key = catalog.category_registry.categories[elem.category].yaml_key
     items = data.get(yaml_key, [])
     target = None
     for item in items:

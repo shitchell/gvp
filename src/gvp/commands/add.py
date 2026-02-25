@@ -13,35 +13,10 @@ import yaml
 
 from gvp.model import Catalog
 
-ID_PREFIXES = {
-    "value": "V",
-    "principle": "P",
-    "heuristic": "H",
-    "rule": "R",
-    "goal": "G",
-    "milestone": "M",
-    "design_choice": "D",
-    "constraint": "CON",
-    "implementation_rule": "IR",
-    "coding_principle": "C",
-}
 
-YAML_KEYS = {
-    "value": "values",
-    "principle": "principles",
-    "heuristic": "heuristics",
-    "rule": "rules",
-    "goal": "goals",
-    "milestone": "milestones",
-    "design_choice": "design_choices",
-    "constraint": "constraints",
-    "implementation_rule": "implementation_rules",
-    "coding_principle": "coding_principles",
-}
-
-
-def next_id(category: str, existing_ids: list[str], prefix: str | None = None) -> str:
-    id_prefix = ID_PREFIXES[category]
+def next_id(category: str, existing_ids: list[str], registry, prefix: str | None = None) -> str:
+    cat_def = registry.categories[category]
+    id_prefix = cat_def.id_prefix
     if prefix:
         id_prefix = prefix + id_prefix
     max_num = 0
@@ -65,7 +40,7 @@ def add_element(
     if doc is None:
         raise ValueError(f"Document '{document_name}' not found in catalog")
     existing = [e.id for e in doc.elements if e.category == category]
-    new_id = next_id(category, existing, prefix=doc.id_prefix)
+    new_id = next_id(category, existing, catalog.category_registry, prefix=doc.id_prefix)
     elem_dict = {"id": new_id, "name": name, **fields}
     if not no_provenance and "origin" not in elem_dict:
         doc_defaults = doc.defaults or {}
@@ -73,7 +48,7 @@ def add_element(
             elem_dict["origin"] = [{"date": date.today().isoformat()}]
     with open(doc.path) as f:
         data = yaml.safe_load(f) or {}
-    yaml_key = YAML_KEYS[category]
+    yaml_key = catalog.category_registry.categories[category].yaml_key
     if yaml_key not in data:
         data[yaml_key] = []
     data[yaml_key].append(elem_dict)
@@ -109,7 +84,7 @@ def add_via_editor(
     category: str,
     prefill: dict | None = None,
 ) -> str | None:
-    template = _build_template(category, prefill or {})
+    template = _build_template(category, prefill or {}, registry=catalog.category_registry)
     with tempfile.NamedTemporaryFile(
         mode="w", suffix=".yaml", prefix="gvp-add-", delete=False
     ) as f:
@@ -133,15 +108,20 @@ def add_via_editor(
         Path(tmp_path).unlink(missing_ok=True)
 
 
-def _build_template(category: str, prefill: dict) -> str:
+def _build_template(category: str, prefill: dict, registry=None) -> str:
     lines = [f"# New {category}", f"# Fill in the fields below and save.", ""]
-    fields = {"name": "", "statement": "", "tags": [], "maps_to": []}
-    if category == "milestone":
-        fields = {"name": "", "progress": "planned", "maps_to": [], "description": ""}
-    elif category == "design_choice":
-        fields = {"name": "", "rationale": "", "maps_to": [], "tags": []}
-    elif category == "constraint":
-        fields = {"name": "", "impact": "", "tags": []}
+    fields = {"name": ""}
+    if registry and category in registry.categories:
+        cat_def = registry.categories[category]
+        for fname, fschema in cat_def.field_schemas.items():
+            if fname == "priority":
+                continue
+            if fschema.get("required", False):
+                fields[fname] = ""
+    else:
+        fields["statement"] = ""
+    fields["tags"] = []
+    fields["maps_to"] = []
     fields.update(prefill)
     return lines[0] + "\n" + lines[1] + "\n" + lines[2] + "\n" + yaml.dump(
         fields, default_flow_style=False, sort_keys=False

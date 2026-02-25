@@ -8,29 +8,33 @@ import yaml
 from gvp.commands.add import add_element, next_id
 from gvp.config import GVPConfig
 from gvp.loader import load_catalog
+from gvp.schema import load_builtin_defaults
 
 
 class TestNextId:
+    def setup_method(self):
+        self.registry = load_builtin_defaults()
+
     def test_first_element(self):
-        assert next_id("value", [], prefix=None) == "V1"
+        assert next_id("value", [], self.registry, prefix=None) == "V1"
 
     def test_sequential(self):
         existing = ["V1", "V2", "V3"]
-        assert next_id("value", existing, prefix=None) == "V4"
+        assert next_id("value", existing, self.registry, prefix=None) == "V4"
 
     def test_with_prefix(self):
-        assert next_id("value", [], prefix="U") == "UV1"
+        assert next_id("value", [], self.registry, prefix="U") == "UV1"
 
     def test_all_categories(self):
-        assert next_id("principle", [], prefix=None) == "P1"
-        assert next_id("heuristic", [], prefix=None) == "H1"
-        assert next_id("rule", [], prefix=None) == "R1"
-        assert next_id("goal", [], prefix=None) == "G1"
-        assert next_id("milestone", [], prefix=None) == "M1"
-        assert next_id("design_choice", [], prefix=None) == "D1"
-        assert next_id("constraint", [], prefix=None) == "CON1"
-        assert next_id("implementation_rule", [], prefix=None) == "IR1"
-        assert next_id("coding_principle", [], prefix=None) == "C1"
+        assert next_id("principle", [], self.registry, prefix=None) == "P1"
+        assert next_id("heuristic", [], self.registry, prefix=None) == "H1"
+        assert next_id("rule", [], self.registry, prefix=None) == "R1"
+        assert next_id("goal", [], self.registry, prefix=None) == "G1"
+        assert next_id("milestone", [], self.registry, prefix=None) == "M1"
+        assert next_id("design_choice", [], self.registry, prefix=None) == "D1"
+        assert next_id("constraint", [], self.registry, prefix=None) == "CON1"
+        assert next_id("implementation_rule", [], self.registry, prefix=None) == "IR1"
+        assert next_id("coding_principle", [], self.registry, prefix=None) == "C1"
 
 
 class TestAddElement:
