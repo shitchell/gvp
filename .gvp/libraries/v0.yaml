@@ -19,6 +19,33 @@ design_choices:
       library. argparse avoids external dependencies for argument parsing.
     tags: [tooling]
     maps_to: [gvp:G2, gvp:G7, gvp:V4, gvp:V5]
+    considered:
+      go:
+        description: >
+          Guy generally prefers compiled languages for AI-assisted development
+          (easier toolchain). Would have been his first choice if starting fresh.
+        rationale: >
+          Marginal benefit didn't justify reworking the mid-plan.
+      node:
+        description: >
+          Many projects at work use it, so it would have broad familiarity.
+        rationale: >
+          Not as strong for CLI tools.
+      rust:
+        description: >
+          Considered but not seriously evaluated for this project.
+        rationale: >
+          No compelling advantage over Python for a YAML-processing CLI.
+      ruby:
+        description: >
+          Considered but not seriously evaluated for this project.
+        rationale: >
+          No compelling advantage over Python for a YAML-processing CLI.
+      perl:
+        description: >
+          Considered but not seriously evaluated for this project.
+        rationale: >
+          No compelling advantage over Python for a YAML-processing CLI.
 
   - id: D2
     name: YAML as source of truth format
