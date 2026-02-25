@@ -25,8 +25,8 @@ class TestElement:
             tags=["maintainability"],
             maps_to=["personal:V2"],
             origin=[],
-            updated_by={},
-            fields={"statement": "Related logic lives together."},
+            updated_by=[],
+            statement="Related logic lives together.",
             document=doc,
         )
         assert str(elem) == "personal:P3"
@@ -50,8 +50,8 @@ class TestElement:
             tags=["maintainability"],
             maps_to=["personal:V2"],
             origin=[],
-            updated_by={},
-            fields={"statement": "Related logic lives together."},
+            updated_by=[],
+            statement="Related logic lives together.",
             document=doc,
         )
         assert repr(elem) == "personal.yaml:personal:P3"
@@ -74,8 +74,7 @@ class TestElement:
             tags=[],
             maps_to=[],
             origin=[],
-            updated_by={},
-            fields={},
+            updated_by=[],
             document=doc,
         )
         assert elem.status == "active"
@@ -100,8 +99,8 @@ class TestElementReviewedBy:
             tags=[],
             maps_to=[],
             origin=[],
-            updated_by={},
-            fields={"statement": "Test."},
+            updated_by=[],
+            statement="Test.",
             document=doc,
         )
         assert elem.reviewed_by == []
@@ -125,8 +124,8 @@ class TestElementReviewedBy:
             tags=[],
             maps_to=[],
             origin=[],
-            updated_by={},
-            fields={"statement": "Test."},
+            updated_by=[],
+            statement="Test.",
             document=doc,
             reviewed_by=[entry],
         )
@@ -176,8 +175,7 @@ class TestCatalog:
             tags=[],
             maps_to=[],
             origin=[],
-            updated_by={},
-            fields={},
+            updated_by=[],
             document=doc,
         )
         doc.elements.append(elem)
@@ -357,8 +355,7 @@ class TestCatalog:
             tags=[],
             maps_to=[],
             origin=[],
-            updated_by={},
-            fields={},
+            updated_by=[],
             document=doc,
         )
         p1 = Element(
@@ -368,8 +365,7 @@ class TestCatalog:
             tags=[],
             maps_to=["test:V1"],
             origin=[],
-            updated_by={},
-            fields={},
+            updated_by=[],
             document=doc,
         )
         h1 = Element(
@@ -379,8 +375,7 @@ class TestCatalog:
             tags=[],
             maps_to=["test:P1"],
             origin=[],
-            updated_by={},
-            fields={},
+            updated_by=[],
             document=doc,
         )
         doc.elements.extend([v1, p1, h1])
@@ -409,8 +404,7 @@ class TestCatalog:
             tags=[],
             maps_to=[],
             origin=[],
-            updated_by={},
-            fields={},
+            updated_by=[],
             document=doc,
         )
         p1 = Element(
@@ -420,8 +414,7 @@ class TestCatalog:
             tags=[],
             maps_to=["test:V1"],
             origin=[],
-            updated_by={},
-            fields={},
+            updated_by=[],
             document=doc,
         )
         doc.elements.extend([v1, p1])
@@ -440,7 +433,7 @@ class TestElementPriority:
         )
         elem = Element(
             id="V1", category="value", name="Test", tags=[], maps_to=[],
-            origin=[], updated_by={}, fields={}, document=doc,
+            origin=[], updated_by=[], document=doc,
         )
         assert elem.priority is None
 
@@ -451,7 +444,7 @@ class TestElementPriority:
         )
         elem = Element(
             id="V1", category="value", name="Test", tags=[], maps_to=[],
-            origin=[], updated_by={}, fields={}, document=doc, priority=3,
+            origin=[], updated_by=[], document=doc, priority=3,
         )
         assert elem.priority == 3
 
@@ -462,6 +455,6 @@ class TestElementPriority:
         )
         elem = Element(
             id="V1", category="value", name="Test", tags=[], maps_to=[],
-            origin=[], updated_by={}, fields={}, document=doc, priority=1.5,
+            origin=[], updated_by=[], document=doc, priority=1.5,
         )
         assert elem.priority == 1.5

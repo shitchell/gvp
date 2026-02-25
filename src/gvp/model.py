@@ -9,37 +9,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from gvp.schema import CategoryRegistry
 
-
-@dataclass
-class Element:
-    """A single GVP element."""
-
-    id: str
-    category: str
-    name: str
-    tags: list[str]
-    maps_to: list[str]
-    origin: list[dict]
-    updated_by: list[dict]
-    fields: dict
-    document: Document
-    status: str = "active"
-    reviewed_by: list[dict] = field(default_factory=list)
-    priority: float | int | None = None
-
-    def __str__(self) -> str:
-        return f"{self.document.name}:{self.id}"
-
-    def __repr__(self) -> str:
-        return f"{self.document.filename}:{self.document.name}:{self.id}"
-
-    def __hash__(self) -> int:
-        return hash((self.document.name, self.id))
-
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, Element):
-            return NotImplemented
-        return self.document.name == other.document.name and self.id == other.id
+from gvp.schema import BaseElement as Element  # noqa: E402
 
 
 @dataclass

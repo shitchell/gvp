@@ -98,7 +98,7 @@ def _parse_element(raw: dict, category: str, doc: Document) -> Element:
     updated_by = raw.get("updated_by") or []
     reviewed_by = raw.get("reviewed_by") or []
     priority = raw.get("priority")
-    fields = {k: v for k, v in raw.items() if k not in BASE_ELEMENT_ATTRS}
+    extra_fields = {k: v for k, v in raw.items() if k not in BASE_ELEMENT_ATTRS}
     return Element(
         id=elem_id,
         category=category,
@@ -109,9 +109,9 @@ def _parse_element(raw: dict, category: str, doc: Document) -> Element:
         origin=origin,
         updated_by=updated_by if isinstance(updated_by, list) else [updated_by],
         reviewed_by=reviewed_by if isinstance(reviewed_by, list) else [reviewed_by],
-        fields=fields,
         document=doc,
         priority=priority,
+        **extra_fields,
     )
 
 

@@ -1142,9 +1142,11 @@ class TestPriorityValidation:
             "    tags: []\n    maps_to: []\n    priority: high\n"
         )
         cfg = GVPConfig(libraries=[lib])
-        catalog = load_catalog(cfg)
-        errors, _ = validate_catalog(catalog)
-        assert any("priority" in e and "number" in e for e in errors)
+        # Pydantic now enforces numeric priority at construction time
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError, match="priority"):
+            load_catalog(cfg)
 
     def test_no_priority_no_error(self, tmp_path: Path):
         lib = tmp_path / "lib"

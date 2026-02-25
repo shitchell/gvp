@@ -247,7 +247,7 @@ def _build_field_type(schema: dict) -> tuple[type, Any]:
 class BaseElement(BaseModel):
     """Base GVP element with structural fields."""
 
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+    model_config = ConfigDict(arbitrary_types_allowed=True, extra="allow")
 
     id: str
     name: str
@@ -260,6 +260,31 @@ class BaseElement(BaseModel):
     updated_by: list[dict] = []
     reviewed_by: list[dict] = []
     document: Any = None  # back-reference to Document
+
+    @property
+    def fields(self) -> dict:
+        """Backward-compat: return extra (category-specific) fields as a dict."""
+        return self.model_extra or {}
+
+    def __hash__(self) -> int:
+        doc_name = self.document.name if self.document else ""
+        return hash((doc_name, self.id))
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, BaseElement):
+            return NotImplemented
+        doc_name = self.document.name if self.document else ""
+        other_doc_name = other.document.name if other.document else ""
+        return doc_name == other_doc_name and self.id == other.id
+
+    def __str__(self) -> str:
+        doc_name = self.document.name if self.document else ""
+        return f"{doc_name}:{self.id}"
+
+    def __repr__(self) -> str:
+        if self.document:
+            return f"{self.document.filename}:{self.document.name}:{self.id}"
+        return f":{self.id}"
 
 
 def build_element_models(
