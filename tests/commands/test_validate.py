@@ -798,6 +798,71 @@ class TestStalenessWarning:
         assert not any("W006" in w for w in warnings)
 
 
+class TestDuplicateTagWarning:
+    """Tests for W007 duplicate tag definition warning."""
+
+    def test_duplicate_tag_across_documents_warns(self, tmp_path: Path):
+        """Same tag defined in two documents within one library -> W007."""
+        lib = tmp_path / "lib"
+        lib.mkdir()
+        (lib / "a.yaml").write_text(
+            "meta:\n"
+            "  name: a\n"
+            "  definitions:\n"
+            "    tags:\n"
+            "      domains:\n"
+            "        code:\n"
+            "          description: From a\n"
+            "\n"
+            "values:\n"
+            "  - id: V1\n"
+            "    name: V\n"
+            "    statement: V.\n"
+            "    tags: [code]\n"
+            "    maps_to: []\n"
+        )
+        (lib / "b.yaml").write_text(
+            "meta:\n"
+            "  name: b\n"
+            "  definitions:\n"
+            "    tags:\n"
+            "      domains:\n"
+            "        code:\n"
+            "          description: From b\n"
+        )
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        _, warnings = validate_catalog(catalog)
+        assert any("W007" in w and "code" in w for w in warnings)
+
+    def test_no_duplicate_no_warning(self, tmp_path: Path):
+        """Different tags in different documents -> no W007."""
+        lib = tmp_path / "lib"
+        lib.mkdir()
+        (lib / "a.yaml").write_text(
+            "meta:\n"
+            "  name: a\n"
+            "  definitions:\n"
+            "    tags:\n"
+            "      domains:\n"
+            "        code:\n"
+            "          description: Code\n"
+        )
+        (lib / "b.yaml").write_text(
+            "meta:\n"
+            "  name: b\n"
+            "  definitions:\n"
+            "    tags:\n"
+            "      domains:\n"
+            "        systems:\n"
+            "          description: Systems\n"
+        )
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        _, warnings = validate_catalog(catalog)
+        assert not any("W007" in w for w in warnings)
+
+
 class TestUserDefinedRules:
     """Tests for user-defined validation rules from config.yaml."""
 

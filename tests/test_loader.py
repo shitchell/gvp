@@ -9,26 +9,26 @@ from gvp.model import Catalog
 
 class TestLoadLibrary:
     def test_loads_document_with_meta(self, tmp_library: Path):
-        docs, tags = load_library(tmp_library)
+        docs, tags, _ = load_library(tmp_library)
         names = {d.name for d in docs}
         assert "test" in names
 
     def test_loads_elements(self, tmp_library: Path):
-        docs, tags = load_library(tmp_library)
+        docs, tags, _ = load_library(tmp_library)
         doc = next(d for d in docs if d.name == "test")
         assert len(doc.elements) == 2
         ids = {e.id for e in doc.elements}
         assert ids == {"V1", "P1"}
 
     def test_loads_tags(self, tmp_library: Path):
-        docs, tags = load_library(tmp_library)
+        docs, tags, _ = load_library(tmp_library)
         assert "code" in tags
         assert "maintainability" in tags
 
     def test_skips_schema_yaml(self, tmp_library: Path):
         schema = tmp_library / "schema.yaml"
         schema.write_text("meta:\n  name: schema\n")
-        docs, _ = load_library(tmp_library)
+        docs, _, _ = load_library(tmp_library)
         names = {d.name for d in docs}
         assert "schema" not in names
 
@@ -51,7 +51,7 @@ class TestLoadLibrary:
             "    tags: []\n"
             "    maps_to: []\n"
         )
-        docs, _ = load_library(lib)
+        docs, _, _ = load_library(lib)
         elem = docs[0].elements[0]
         assert elem.origin == [{"project": "myproject", "date": "2026-02-22"}]
 
@@ -71,7 +71,7 @@ class TestLoadLibrary:
         (lib / "project.yaml").write_text(
             "meta:\n  name: project\n  inherits:\n    - team\n    - python\nvalues: []\n"
         )
-        docs, _ = load_library(lib)
+        docs, _, _ = load_library(lib)
         project_doc = next(d for d in docs if d.name == "project")
         assert project_doc.inherits == ["team", "python"]
 
@@ -97,7 +97,7 @@ class TestLoadLibrary:
             "      - project: explicit\n"
             "        date: 2026-02-22\n"
         )
-        docs, _ = load_library(lib)
+        docs, _, _ = load_library(lib)
         elem = docs[0].elements[0]
         assert elem.origin[0]["project"] == "explicit"
 
@@ -169,7 +169,7 @@ class TestInlineTagDefinitions:
             "    tags: [code]\n"
             "    maps_to: []\n"
         )
-        docs, tags = load_library(lib)
+        docs, tags, _ = load_library(lib)
         assert "code" in tags
         assert tags["code"]["type"] == "domain"
         assert "reliability" in tags
@@ -197,7 +197,7 @@ class TestInlineTagDefinitions:
             "        systems:\n"
             "          description: From doc b\n"
         )
-        docs, tags = load_library(lib)
+        docs, tags, _ = load_library(lib)
         assert "code" in tags
         assert "systems" in tags
 
@@ -224,7 +224,7 @@ class TestInlineTagDefinitions:
             "        code:\n"
             "          description: From b\n"
         )
-        docs, tags = load_library(lib)
+        docs, tags, _ = load_library(lib)
         assert tags["code"]["description"] == "From a"
 
     def test_dedicated_tags_file_with_meta_block(self, tmp_path: Path):
@@ -250,7 +250,7 @@ class TestInlineTagDefinitions:
             "    tags: [code]\n"
             "    maps_to: []\n"
         )
-        docs, tags = load_library(lib)
+        docs, tags, _ = load_library(lib)
         assert "code" in tags
         # tags.yaml is now a document (with no elements)
         names = {d.name for d in docs}
@@ -294,6 +294,6 @@ class TestInlineTagDefinitions:
             "    tags: []\n"
             "    maps_to: []\n"
         )
-        docs, tags = load_library(lib)
+        docs, tags, _ = load_library(lib)
         assert docs[0].tag_definitions == {}
         assert tags == {}

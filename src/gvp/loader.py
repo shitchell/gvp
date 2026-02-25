@@ -146,8 +146,9 @@ def load_document(path: Path) -> Document:
     return doc
 
 
-def load_library(library_path: Path) -> tuple[list[Document], dict[str, dict]]:
+def load_library(library_path: Path) -> tuple[list[Document], dict[str, dict], dict[str, str]]:
     tags: dict[str, dict] = {}
+    tag_sources: dict[str, str] = {}
     documents: list[Document] = []
     # Track relative paths (without .yaml) to document names for inherits resolution
     path_to_name: dict[str, str] = {}
@@ -162,10 +163,11 @@ def load_library(library_path: Path) -> tuple[list[Document], dict[str, dict]]:
         for tag_name, tag_def in doc.tag_definitions.items():
             if tag_name not in tags:
                 tags[tag_name] = tag_def
+                tag_sources[tag_name] = doc.name
     # Resolve path-based inherits references to document names
     for doc in documents:
         doc.inherits = [path_to_name.get(parent, parent) for parent in doc.inherits]
-    return documents, tags
+    return documents, tags, tag_sources
 
 
 def load_catalog(cfg: GVPConfig) -> Catalog:
@@ -191,10 +193,11 @@ def load_catalog(cfg: GVPConfig) -> Catalog:
                 if tag_name not in catalog.tags:
                     catalog.tags[tag_name] = tag_def
             continue
-        docs, tags = load_library(lib_path)
+        docs, tags, tag_sources = load_library(lib_path)
         for tag_name, tag_def in tags.items():
             if tag_name not in catalog.tags:
                 catalog.tags[tag_name] = tag_def
+                catalog.tag_sources[tag_name] = tag_sources.get(tag_name, "")
         for doc in docs:
             if doc.name in catalog.documents:
                 if cfg.strict:

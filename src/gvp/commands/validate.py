@@ -284,6 +284,16 @@ def validate_catalog(
         if not doc.elements:
             warnings.append(f"W001: empty document '{doc.name}' ({doc.path})")
 
+    # W007: duplicate tag definitions within a library
+    for doc in catalog.documents.values():
+        for tag_name in doc.tag_definitions:
+            source = catalog.tag_sources.get(tag_name)
+            if source and source != doc.name:
+                warnings.append(
+                    f"W007: duplicate tag definition '{tag_name}' in {doc.name}, "
+                    f"already defined in {source}"
+                )
+
     # Check user-defined rules
     if config is not None and config.validation_rules:
         user_errors, user_warnings = _validate_user_rules(

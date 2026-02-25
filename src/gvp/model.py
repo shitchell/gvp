@@ -59,6 +59,7 @@ class Catalog:
         self.documents: dict[str, Document] = {}
         self.elements: dict[str, Element] = {}
         self.tags: dict[str, dict] = {}
+        self.tag_sources: dict[str, str] = {}
 
     def add_document(self, doc: Document) -> None:
         self.documents[doc.name] = doc
