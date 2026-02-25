@@ -57,3 +57,26 @@ class TestRenderCSV:
         row = next(reader)
         priority_idx = header.index("priority")
         assert row[priority_idx] == "2"
+
+    def test_considered_column(self, tmp_path: Path):
+        lib = tmp_path / "lib"
+        lib.mkdir()
+        (lib / "test.yaml").write_text(
+            "meta:\n  name: test\n"
+            "design_choices:\n"
+            "  - id: D1\n    name: Use Python\n"
+            "    rationale: It works.\n"
+            "    tags: []\n    maps_to: []\n"
+            "    considered:\n"
+            "      go:\n"
+            "        rationale: Too complex.\n"
+        )
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        output = render_csv(catalog)
+        reader = csv.reader(io.StringIO(output))
+        header = next(reader)
+        assert "considered" in header
+        row = next(reader)
+        considered_idx = header.index("considered")
+        assert "go" in row[considered_idx]

@@ -99,3 +99,30 @@ class TestRenderSQLite:
         ).fetchone()
         assert row[0] == 2.0
         conn.close()
+
+    def test_considered_alternatives_table(self, tmp_path: Path):
+        lib = tmp_path / "lib"
+        lib.mkdir()
+        (lib / "test.yaml").write_text(
+            "meta:\n  name: test\n"
+            "design_choices:\n"
+            "  - id: D1\n    name: Use Python\n"
+            "    rationale: It works.\n"
+            "    tags: []\n    maps_to: []\n"
+            "    considered:\n"
+            "      go:\n"
+            "        description: Fast compiled.\n"
+            "        rationale: Marginal benefit.\n"
+        )
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        db_path = tmp_path / "test.db"
+        render_sqlite(catalog, db_path)
+        conn = sqlite3.connect(db_path)
+        rows = conn.execute(
+            "SELECT alternative, field, value FROM considered_alternatives "
+            "WHERE qualified_id = 'test:D1' ORDER BY alternative, field"
+        ).fetchall()
+        assert ("go", "description", "Fast compiled.") in rows
+        assert ("go", "rationale", "Marginal benefit.") in rows
+        conn.close()

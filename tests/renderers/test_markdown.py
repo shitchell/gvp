@@ -89,3 +89,27 @@ class TestRenderMarkdown:
         catalog = load_catalog(cfg)
         output = render_markdown(catalog)
         assert "**Priority:** 1" in output
+
+    def test_renders_considered_alternatives(self, tmp_path: Path):
+        lib = tmp_path / "lib"
+        lib.mkdir()
+        (lib / "test.yaml").write_text(
+            "meta:\n  name: test\n"
+            "design_choices:\n"
+            "  - id: D1\n    name: Use Python\n"
+            "    rationale: It works.\n"
+            "    tags: []\n    maps_to: []\n"
+            "    considered:\n"
+            "      go:\n"
+            "        description: Fast compiled language.\n"
+            "        rationale: Marginal benefit didn't justify switch.\n"
+            "      node:\n"
+            "        rationale: Not as strong for CLI tools.\n"
+        )
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        output = render_markdown(catalog)
+        assert "**Considered alternatives:**" in output
+        assert "**Go**" in output
+        assert "**Node**" in output
+        assert "Marginal benefit" in output

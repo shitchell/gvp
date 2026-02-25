@@ -35,6 +35,13 @@ CREATE TABLE IF NOT EXISTS mappings (
 CREATE TABLE IF NOT EXISTS tags (
     name TEXT PRIMARY KEY, type TEXT, description TEXT
 );
+CREATE TABLE IF NOT EXISTS considered_alternatives (
+    qualified_id TEXT REFERENCES elements(qualified_id),
+    alternative TEXT,
+    field TEXT,
+    value TEXT,
+    PRIMARY KEY (qualified_id, alternative, field)
+);
 """
 
 
@@ -89,6 +96,16 @@ def render_sqlite(
             conn.execute("INSERT INTO element_tags VALUES (?, ?)", (qid, tag))
         for ref in elem.maps_to:
             conn.execute("INSERT INTO mappings VALUES (?, ?)", (qid, ref))
+        considered = elem.fields.get("considered")
+        if isinstance(considered, dict):
+            for alt_name, alt_def in considered.items():
+                if not isinstance(alt_def, dict):
+                    continue
+                for field_name, field_val in alt_def.items():
+                    conn.execute(
+                        "INSERT INTO considered_alternatives VALUES (?, ?, ?, ?)",
+                        (qid, alt_name, field_name, str(field_val)),
+                    )
 
     for tag_name, tag_def in catalog.tags.items():
         conn.execute(

@@ -36,6 +36,24 @@ def _render_element(elem: Element) -> str:
             break
     if "progress" in elem.fields:
         lines.append(f"\n**Progress:** {elem.fields['progress']}")
+    considered = elem.fields.get("considered")
+    if isinstance(considered, dict) and considered:
+        lines.append("\n**Considered alternatives:**")
+        for alt_name, alt_def in considered.items():
+            if not isinstance(alt_def, dict):
+                continue
+            display_name = alt_name.replace("_", " ").title()
+            desc = alt_def.get("description", "")
+            rationale = alt_def.get("rationale", "")
+            parts = []
+            if desc:
+                parts.append(desc.strip())
+            if rationale:
+                parts.append(f"*Rejected: {rationale.strip()}*")
+            line = f"- **{display_name}**"
+            if parts:
+                line += " — " + " ".join(parts)
+            lines.append(line)
     return "\n".join(lines)
 
 
