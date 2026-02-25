@@ -1101,3 +1101,61 @@ class TestUserDefinedRules:
         errors, _ = validate_catalog(catalog, cfg)
         # P1 has a statement, so should pass
         assert not any("Code elements" in e for e in errors)
+
+
+class TestPriorityValidation:
+    def test_numeric_priority_passes(self, tmp_path: Path):
+        lib = tmp_path / "lib"
+        lib.mkdir()
+        (lib / "test.yaml").write_text(
+            "meta:\n  name: test\n"
+            "values:\n"
+            "  - id: V1\n    name: V\n    statement: V.\n"
+            "    tags: []\n    maps_to: []\n    priority: 3\n"
+        )
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        errors, _ = validate_catalog(catalog)
+        assert not any("priority" in e for e in errors)
+
+    def test_float_priority_passes(self, tmp_path: Path):
+        lib = tmp_path / "lib"
+        lib.mkdir()
+        (lib / "test.yaml").write_text(
+            "meta:\n  name: test\n"
+            "values:\n"
+            "  - id: V1\n    name: V\n    statement: V.\n"
+            "    tags: []\n    maps_to: []\n    priority: 1.5\n"
+        )
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        errors, _ = validate_catalog(catalog)
+        assert not any("priority" in e for e in errors)
+
+    def test_string_priority_errors(self, tmp_path: Path):
+        lib = tmp_path / "lib"
+        lib.mkdir()
+        (lib / "test.yaml").write_text(
+            "meta:\n  name: test\n"
+            "values:\n"
+            "  - id: V1\n    name: V\n    statement: V.\n"
+            "    tags: []\n    maps_to: []\n    priority: high\n"
+        )
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        errors, _ = validate_catalog(catalog)
+        assert any("priority" in e and "number" in e for e in errors)
+
+    def test_no_priority_no_error(self, tmp_path: Path):
+        lib = tmp_path / "lib"
+        lib.mkdir()
+        (lib / "test.yaml").write_text(
+            "meta:\n  name: test\n"
+            "values:\n"
+            "  - id: V1\n    name: V\n    statement: V.\n"
+            "    tags: []\n    maps_to: []\n"
+        )
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        errors, _ = validate_catalog(catalog)
+        assert not any("priority" in e for e in errors)

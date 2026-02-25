@@ -233,6 +233,13 @@ def validate_catalog(
             if tag not in catalog.tags:
                 errors.append(f"{qid}: undefined tag '{tag}'")
 
+    # Check priority type
+    for qid, elem in catalog.elements.items():
+        if elem.priority is not None and not isinstance(elem.priority, (int, float)):
+            errors.append(
+                f"{qid}: priority must be a number, got {type(elem.priority).__name__}"
+            )
+
     # Check ID sequences (no gaps per category per document)
     for doc in catalog.documents.values():
         by_category: dict[str, list[str]] = {}
