@@ -8,19 +8,6 @@ from pathlib import Path
 
 from gvp.model import Catalog
 
-CATEGORY_COLORS = {
-    "value": "#4A90D9",
-    "principle": "#7B68EE",
-    "heuristic": "#50C878",
-    "rule": "#DC143C",
-    "goal": "#FFD700",
-    "milestone": "#FFA500",
-    "design_choice": "#20B2AA",
-    "constraint": "#A9A9A9",
-    "implementation_rule": "#CD5C5C",
-    "coding_principle": "#9370DB",
-}
-
 
 def _node_id(qualified_id: str) -> str:
     return qualified_id.replace(":", "__").replace("-", "_")
@@ -45,11 +32,13 @@ def render_dot(
         lines.append('    style="dashed";')
         lines.append(f'    color="#999999";')
 
+        registry = catalog.category_registry
         for elem in doc.elements:
             if not include_deprecated and elem.status != "active":
                 continue
             nid = _node_id(str(elem))
-            color = CATEGORY_COLORS.get(elem.category, "#CCCCCC")
+            cat_def = registry.categories.get(elem.category) if registry else None
+            color = cat_def.color if cat_def else "#CCCCCC"
             label = f"{elem.id}\\n{elem.name}"
             lines.append(
                 f'    {nid} [label="{label}", fillcolor="{color}", '
@@ -61,22 +50,22 @@ def render_dot(
 
     # Enforce vertical ordering by grouping categories into rank tiers.
     # With rankdir=BT, rank=same keeps each tier on one horizontal band.
-    tier_order = [
-        ("goal",),
-        ("value",),
-        ("principle", "rule"),
-        ("heuristic",),
-        ("design_choice",),
-    ]
-    for tier_cats in tier_order:
-        tier_nodes = [
-            _node_id(qid)
-            for qid, elem in catalog.elements.items()
-            if (include_deprecated or elem.status == "active")
-            and elem.category in tier_cats
-        ]
-        if tier_nodes:
-            lines.append("  {rank=same; " + "; ".join(tier_nodes) + ";}")
+    registry = catalog.category_registry
+    if registry:
+        tiers: dict[int, list[str]] = {}
+        for cat_name, cat_def in registry.categories.items():
+            if cat_def.tier is not None:
+                tiers.setdefault(cat_def.tier, []).append(cat_name)
+        for tier_num in sorted(tiers):
+            tier_cats = tuple(tiers[tier_num])
+            tier_nodes = [
+                _node_id(qid)
+                for qid, elem in catalog.elements.items()
+                if (include_deprecated or elem.status == "active")
+                and elem.category in tier_cats
+            ]
+            if tier_nodes:
+                lines.append("  {rank=same; " + "; ".join(tier_nodes) + ";}")
     lines.append("")
 
     for qid, elem in catalog.elements.items():

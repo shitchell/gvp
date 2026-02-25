@@ -5,22 +5,10 @@ from __future__ import annotations
 from pathlib import Path
 
 from gvp.model import Catalog, Document, Element
-
-CATEGORY_ORDER = [
-    ("value", "Values"),
-    ("principle", "Principles"),
-    ("heuristic", "Heuristics"),
-    ("rule", "Rules"),
-    ("goal", "Goals"),
-    ("milestone", "Milestones"),
-    ("design_choice", "Design Choices"),
-    ("constraint", "Constraints"),
-    ("implementation_rule", "Implementation Rules"),
-    ("coding_principle", "Coding Principles"),
-]
+from gvp.schema import CategoryDef
 
 
-def _render_element(elem: Element) -> str:
+def _render_element(elem: Element, cat_def: CategoryDef | None = None) -> str:
     lines = [f"### {elem.id}: {elem.name}"]
     if elem.status != "active":
         lines.append(f"\n**Status:** {elem.status}")
@@ -30,13 +18,28 @@ def _render_element(elem: Element) -> str:
         lines.append(f"\n**Maps to:** {', '.join(elem.maps_to)}")
     if elem.priority is not None:
         lines.append(f"\n**Priority:** {elem.priority}")
-    for key in ("statement", "rationale", "impact", "description"):
-        if key in elem.fields:
-            lines.append(f"\n{elem.fields[key].strip()}")
-            break
-    if "progress" in elem.fields:
-        lines.append(f"\n**Progress:** {elem.fields['progress']}")
-    considered = elem.fields.get("considered")
+
+    # Primary field from schema
+    if cat_def:
+        pf = cat_def.primary_field
+        val = getattr(elem, pf, None) or elem.fields.get(pf)
+        if val and isinstance(val, str):
+            lines.append(f"\n{val.strip()}")
+    else:
+        # Fallback: try common fields
+        for key in ("statement", "rationale", "impact", "description"):
+            val = elem.fields.get(key)
+            if val:
+                lines.append(f"\n{val.strip()}")
+                break
+
+    # Progress (milestones)
+    progress = getattr(elem, "progress", None) or elem.fields.get("progress")
+    if progress:
+        lines.append(f"\n**Progress:** {progress}")
+
+    # Considered alternatives (design_choices)
+    considered = getattr(elem, "considered", None) or elem.fields.get("considered")
     if isinstance(considered, dict) and considered:
         lines.append("\n**Considered alternatives:**")
         for alt_name, alt_def in considered.items():
@@ -57,23 +60,33 @@ def _render_element(elem: Element) -> str:
     return "\n".join(lines)
 
 
-def _render_document(doc: Document, include_deprecated: bool = False) -> str:
+def _render_document(
+    doc: Document, catalog: Catalog, include_deprecated: bool = False
+) -> str:
     lines = [f"# {doc.name}"]
     if doc.scope_label:
         lines.append(f"\n**Scope:** {doc.scope_label}")
     if doc.inherits:
         lines.append(f"\n**Inherits:** {', '.join(doc.inherits)}")
-    for category, label in CATEGORY_ORDER:
+
+    registry = catalog.category_registry
+    if registry:
+        categories = list(registry.categories.items())
+    else:
+        categories = []
+
+    for cat_name, cat_def in categories:
         elems = [
             e
             for e in doc.elements
-            if e.category == category and (include_deprecated or e.status == "active")
+            if e.category == cat_name
+            and (include_deprecated or e.status == "active")
         ]
         if not elems:
             continue
-        lines.append(f"\n## {label}\n")
+        lines.append(f"\n## {cat_def.resolved_display_label()}\n")
         for elem in elems:
-            lines.append(_render_element(elem))
+            lines.append(_render_element(elem, cat_def))
             lines.append("")
     return "\n".join(lines)
 
@@ -85,7 +98,7 @@ def render_markdown(
 ) -> str:
     sections: list[str] = []
     for doc in catalog.documents.values():
-        md = _render_document(doc, include_deprecated=include_deprecated)
+        md = _render_document(doc, catalog, include_deprecated=include_deprecated)
         sections.append(md)
         if output_dir:
             output_dir.mkdir(parents=True, exist_ok=True)

@@ -27,7 +27,12 @@ def render_csv(
     for qid, elem in sorted(catalog.elements.items()):
         if not include_deprecated and elem.status != "active":
             continue
-        statement = elem.fields.get("statement") or elem.fields.get("rationale") or ""
+        cat_def = catalog.category_registry.categories.get(elem.category) if catalog.category_registry else None
+        if cat_def:
+            pf = cat_def.primary_field
+            statement = getattr(elem, pf, None) or elem.fields.get(pf, "") or ""
+        else:
+            statement = elem.fields.get("statement") or elem.fields.get("rationale") or ""
         priority = elem.priority if elem.priority is not None else ""
         considered = elem.fields.get("considered")
         considered_json = json.dumps(considered) if considered else ""
