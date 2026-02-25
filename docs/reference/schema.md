@@ -146,6 +146,7 @@ These fields are recognized on every element regardless of category.
 | `tags` | list[string] | No | Classification tags. Must be defined via `meta.definitions.tags` in any document. |
 | `maps_to` | list[string] | No | List of qualified IDs (`document:ID`) this element traces to. See [Qualified IDs](#qualified-ids). |
 | `status` | string | No | One of `active` (default), `deprecated`, or `rejected`. |
+| `priority` | number | No | Numeric priority. Validated as int or float when present. |
 | `origin` | list[mapping] | No | Provenance -- where and when the element was first captured. See [Provenance Fields](#provenance-fields). |
 | `updated_by` | list[mapping] | No | Change history entries. See [Provenance Fields](#provenance-fields). |
 | `reviewed_by` | list[mapping] | No | Review acknowledgment entries. See [Provenance Fields](#provenance-fields). |
@@ -164,6 +165,36 @@ Each category has a primary content field:
 - **description** -- Used by milestones. Describes what the milestone represents.
 
 Milestones also support a `progress` field for tracking completion status.
+
+### considered (Design Choices)
+
+The `considered` field is an optional map on `design_choice` elements that records
+alternatives that were evaluated and rejected. Each key is the alternative name, and
+each value is a dict that must include `rationale` (the rejection rationale).
+
+```yaml
+design_choices:
+  - id: D1
+    name: Use Python
+    rationale: ...
+    considered:
+      go:
+        description: Fast compiled language.
+        rationale: Marginal benefit didn't justify switching.
+      node:
+        rationale: Not as strong for CLI tools.
+```
+
+| Inner Field | Type | Required | Description |
+|-------------|------|----------|-------------|
+| `rationale` | string | Yes | Why this alternative was rejected. |
+| `description` | string | No | Brief description of the alternative. |
+| *(any other)* | any | No | Additional context fields are preserved. |
+
+Validation rules (only checked when `considered` is present):
+- `considered` must be a dict (error if string, list, etc.)
+- Each value must be a dict (error if bare string)
+- Each inner dict must have a `rationale` key (error: "rejection rationale missing")
 
 ### Additional Fields
 
