@@ -8,56 +8,43 @@ from gvp.config import GVPConfig
 from gvp.model import Catalog
 
 
-# Categories that are roots (no mapping required)
-_ROOT_CATEGORIES = {"goal", "value", "constraint"}
-
-# Mapping rules: category -> (required_categories, alternative_categories)
-# Element passes if maps_to targets include >= 1 of EACH required category,
-# OR maps_to targets include >= 1 of ANY alternative category.
-_MAPPING_RULES: dict[str, tuple[set[str], set[str]]] = {
-    "milestone": ({"goal", "value"}, set()),
-    "principle": ({"goal", "value"}, set()),
-    "rule": ({"goal", "value"}, set()),
-    "design_choice": ({"goal", "value"}, set()),
-    "heuristic": ({"goal", "value"}, {"principle", "rule"}),
-    "implementation_rule": ({"goal", "value"}, {"design_choice"}),
-    "coding_principle": ({"goal", "value"}, {"principle", "design_choice"}),
-}
-
-
 def _validate_mappings(catalog: Catalog) -> list[str]:
-    """Check category-specific traceability rules."""
+    """Check category-specific traceability rules using the category registry."""
     errors: list[str] = []
+    registry = catalog.category_registry
+    if registry is None:
+        return errors
+    root_cats = registry.root_categories()
 
     for qid, elem in catalog.elements.items():
-        if elem.category in _ROOT_CATEGORIES:
+        if elem.category in root_cats:
             continue
         if elem.status in ("deprecated", "rejected"):
             continue
 
-        rule = _MAPPING_RULES.get(elem.category)
-        if rule is None:
+        cat_def = registry.categories.get(elem.category)
+        if cat_def is None or not cat_def.mapping_rules:
             continue
 
-        required_cats, alt_cats = rule
-
-        # Resolve maps_to targets to their categories
         target_categories: set[str] = set()
         for ref in elem.maps_to:
             target = catalog.elements.get(ref)
             if target is not None:
                 target_categories.add(target.category)
 
-        # Check alternative path first
-        if alt_cats and (alt_cats & target_categories):
-            continue
+        # Check: any group fully satisfied?
+        satisfied = False
+        for group in cat_def.mapping_rules:
+            if all(c in target_categories for c in group):
+                satisfied = True
+                break
 
-        # Check required categories
-        missing = required_cats - target_categories
-        if missing:
-            missing_str = " and ".join(sorted(missing))
+        if not satisfied:
+            rule_desc = " OR ".join(
+                " AND ".join(g) for g in cat_def.mapping_rules
+            )
             errors.append(
-                f"{qid}: traceability — must map to at least one {missing_str}"
+                f"{qid}: traceability — must map to ({rule_desc})"
             )
 
     return errors
@@ -66,11 +53,13 @@ def _validate_mappings(catalog: Catalog) -> list[str]:
 def _validate_semantic(catalog: Catalog) -> list[str]:
     """Check semantic warnings (tier 2)."""
     warnings: list[str] = []
+    registry = catalog.category_registry
+    root_cats = registry.root_categories() if registry else {"goal", "value", "constraint"}
 
     for qid, elem in catalog.elements.items():
         if elem.status in ("deprecated", "rejected"):
             continue
-        if elem.category in _ROOT_CATEGORIES:
+        if elem.category in root_cats:
             continue
 
         # W004: empty maps_to on element that should have mappings
@@ -262,13 +251,6 @@ def validate_catalog(
             if tag not in catalog.tags:
                 errors.append(f"{qid}: undefined tag '{tag}'")
 
-    # Check priority type
-    for qid, elem in catalog.elements.items():
-        if elem.priority is not None and not isinstance(elem.priority, (int, float)):
-            errors.append(
-                f"{qid}: priority must be a number, got {type(elem.priority).__name__}"
-            )
-
     # Check ID sequences (no gaps per category per document)
     for doc in catalog.documents.values():
         by_category: dict[str, list[str]] = {}
@@ -311,6 +293,9 @@ def validate_catalog(
 
     # Check considered field schema on design_choices
     errors.extend(_validate_considered(catalog))
+
+    # Include load-time warnings from the catalog
+    warnings.extend(catalog.load_warnings)
 
     # Check semantic warnings
     warnings.extend(_validate_semantic(catalog))
