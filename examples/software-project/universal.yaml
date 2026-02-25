@@ -114,6 +114,15 @@ heuristics:
     tags: [business, code, alignment]
     maps_to: [universal:UG1, universal:UV2, universal:UV3]
 
+  - id: UH2
+    name: Categorization time check
+    statement: >
+      If you are spending more time deciding what category something belongs in
+      than documenting the thing itself, pick the closest category and move on.
+      Tags can capture the nuance.
+    tags: [alignment, usability]
+    maps_to: [universal:UV3, universal:UG2]
+
 rules:
   - id: UR1
     name: No silent data loss
