@@ -430,3 +430,38 @@ class TestCatalog:
         descendants = cat.descendants(v1)
         assert p1 in descendants
         assert v1 not in descendants
+
+
+class TestElementPriority:
+    def test_priority_defaults_to_none(self):
+        doc = Document(
+            name="test", filename="test.yaml", path="/fake/test.yaml",
+            inherits=[], scope_label=None, id_prefix=None, defaults={}, elements=[],
+        )
+        elem = Element(
+            id="V1", category="value", name="Test", tags=[], maps_to=[],
+            origin=[], updated_by={}, fields={}, document=doc,
+        )
+        assert elem.priority is None
+
+    def test_priority_stores_value(self):
+        doc = Document(
+            name="test", filename="test.yaml", path="/fake/test.yaml",
+            inherits=[], scope_label=None, id_prefix=None, defaults={}, elements=[],
+        )
+        elem = Element(
+            id="V1", category="value", name="Test", tags=[], maps_to=[],
+            origin=[], updated_by={}, fields={}, document=doc, priority=3,
+        )
+        assert elem.priority == 3
+
+    def test_priority_stores_float(self):
+        doc = Document(
+            name="test", filename="test.yaml", path="/fake/test.yaml",
+            inherits=[], scope_label=None, id_prefix=None, defaults={}, elements=[],
+        )
+        elem = Element(
+            id="V1", category="value", name="Test", tags=[], maps_to=[],
+            origin=[], updated_by={}, fields={}, document=doc, priority=1.5,
+        )
+        assert elem.priority == 1.5

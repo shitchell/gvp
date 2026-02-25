@@ -34,6 +34,7 @@ ELEMENT_ATTRS = {
     "origin",
     "updated_by",
     "reviewed_by",
+    "priority",
 }
 
 
@@ -105,6 +106,7 @@ def _parse_element(raw: dict, category: str, doc: Document) -> Element:
     origin = _normalize_origin(raw.get("origin"))
     updated_by = raw.get("updated_by") or []
     reviewed_by = raw.get("reviewed_by") or []
+    priority = raw.get("priority")
     fields = {k: v for k, v in raw.items() if k not in ELEMENT_ATTRS}
     return Element(
         id=elem_id,
@@ -118,6 +120,7 @@ def _parse_element(raw: dict, category: str, doc: Document) -> Element:
         reviewed_by=reviewed_by if isinstance(reviewed_by, list) else [reviewed_by],
         fields=fields,
         document=doc,
+        priority=priority,
     )
 
 

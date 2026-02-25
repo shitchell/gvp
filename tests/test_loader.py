@@ -297,3 +297,44 @@ class TestInlineTagDefinitions:
         docs, tags, _ = load_library(lib)
         assert docs[0].tag_definitions == {}
         assert tags == {}
+
+
+class TestPriorityLoading:
+    def test_loads_priority_from_yaml(self, tmp_path: Path):
+        lib = tmp_path / "lib"
+        lib.mkdir()
+        (lib / "test.yaml").write_text(
+            "meta:\n  name: test\n"
+            "values:\n"
+            "  - id: V1\n    name: Test\n    statement: Test.\n"
+            "    tags: []\n    maps_to: []\n    priority: 3\n"
+        )
+        docs, _, _ = load_library(lib)
+        elem = docs[0].elements[0]
+        assert elem.priority == 3
+
+    def test_priority_not_in_fields(self, tmp_path: Path):
+        lib = tmp_path / "lib"
+        lib.mkdir()
+        (lib / "test.yaml").write_text(
+            "meta:\n  name: test\n"
+            "values:\n"
+            "  - id: V1\n    name: Test\n    statement: Test.\n"
+            "    tags: []\n    maps_to: []\n    priority: 2\n"
+        )
+        docs, _, _ = load_library(lib)
+        elem = docs[0].elements[0]
+        assert "priority" not in elem.fields
+
+    def test_missing_priority_is_none(self, tmp_path: Path):
+        lib = tmp_path / "lib"
+        lib.mkdir()
+        (lib / "test.yaml").write_text(
+            "meta:\n  name: test\n"
+            "values:\n"
+            "  - id: V1\n    name: Test\n    statement: Test.\n"
+            "    tags: []\n    maps_to: []\n"
+        )
+        docs, _, _ = load_library(lib)
+        elem = docs[0].elements[0]
+        assert elem.priority is None

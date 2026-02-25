@@ -21,6 +21,7 @@ class Element:
     document: Document
     status: str = "active"
     reviewed_by: list[dict] = field(default_factory=list)
+    priority: float | int | None = None
 
     def __str__(self) -> str:
         return f"{self.document.name}:{self.id}"
