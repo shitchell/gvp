@@ -80,4 +80,4 @@ But the payoff compounds over time. Documented reasoning enables better planning
 - **Greater self-knowledge.** The act of documenting why you make decisions surfaces patterns you might not have noticed — values you hold but never named, biases you didn't realize were shaping your choices.
 - **A reusable corpus.** Over time, your GVP libraries accumulate documented goals, values, and principles that diminish the need for long, deep analysis. New projects start with a quick review — does the same stuff still apply? — rather than building from scratch. Libraries can be separated by category or domain and mixed and matched as fitting for different projects.
 
-See [Developing a GVP Library](developing-a-library.md) for practical guidance on building libraries efficiently, including workflows for AI-assisted GVP development.
+See [Developing a GVP Library](guide/developing-a-library.md) for practical guidance on building libraries efficiently, including workflows for AI-assisted GVP development.

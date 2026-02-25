@@ -2,7 +2,7 @@
 
 Practical guidance for building and maintaining a GVP library. This covers the mindset, patterns, and trade-offs that come up during library development.
 
-For the philosophical foundations behind these practices — why introspection matters, why the framework serves alignment rather than comfort — see [Philosophy](philosophy.md).
+For the philosophical foundations behind these practices — why introspection matters, why the framework serves alignment rather than comfort — see [Philosophy](../philosophy.md).
 
 ## Start Verbose, Tighten Later
 
@@ -18,27 +18,7 @@ In practice, not every design choice will have a corresponding heuristic — not
 
 ## Building GVPs with AI Assistance
 
-If you're helping someone build their first GVP library, be patient with introspection. Fuzzy gut feelings are valid starting points. The goal is to capture them, not to demand precision on day one.
-
-One effective workflow for AI-assisted GVP development:
-
-1. **Engage in a planning session.** Discuss the project, its goals, trade-offs, and decisions naturally.
-2. **Ensure trade-offs are discussed.** For each decision point, explore the pros and cons of the alternatives considered.
-3. **Provide rationale for decisions.** When you choose an option, explain why — even if the reasoning is "gut feeling" or "I don't have time to think about this more right now."
-4. **Document everything at the end.** Ask the AI assistant to produce a decision log: all discussed ideas, a brief description, their status (accepted, rejected, deferred), the context, and the rationale — grouped by choice.
-
-For example, a decision group might look like:
-
-> **Which language to use**
-> - **Python** — widely available, readable, fast enough for YAML processing. *Status: Accepted.* *Rationale: "Claude proposed Python during initial planning, and it was not identified as a choice until mid-plan. Switching would have required reworking the existing plan for marginal benefit."*
-> - **Go** — compiled, good for AI-assisted development. *Status: Rejected.* *Rationale: "Would have been my first choice if starting fresh. Marginal benefit didn't justify reworking the mid-plan."*
-> - **Node** — familiar from work projects. *Status: Rejected.* *Rationale: "Not as strong for CLI tools."*
-
-Context can be provided at the document, grouping, or item level. It should be written to facilitate future decisions where the same reasoning might be relevant.
-
-Rationale **must** use verbatim user quotes. If a verbatim quote is not available, the agent should ask for clarification rather than paraphrasing.
-
-Instructions for this process can be added to an agent's startup configuration or given at the beginning or end of a planning session. The resulting decision log provides a rich document for inferring and generating GVP elements with minimal effort on the human's part — other than reviewing and discussing the inferred GVPs.
+For guidance on using AI assistants to build and maintain GVP libraries — including planning workflows, decision logging, and copy/paste-able agent configuration — see the [AI Integration Guide](ai-integration.md).
 
 ## Consider Separating Domain-Agnostic from Domain-Specific
 
