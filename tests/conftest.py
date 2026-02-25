@@ -22,10 +22,11 @@ def tmp_library(tmp_path: Path) -> Path:
     lib = tmp_path / "test-library"
     lib.mkdir()
 
-    tags = lib / "tags.yaml"
-    tags.write_text(
+    doc = lib / "test.yaml"
+    doc.write_text(
         "meta:\n"
-        "  name: tags\n"
+        "  name: test\n"
+        "  scope: test\n"
         "  definitions:\n"
         "    tags:\n"
         "      domains:\n"
@@ -34,13 +35,6 @@ def tmp_library(tmp_path: Path) -> Path:
         "      concerns:\n"
         "        maintainability:\n"
         "          description: Reducing future cost of change\n"
-    )
-
-    doc = lib / "test.yaml"
-    doc.write_text(
-        "meta:\n"
-        "  name: test\n"
-        "  scope: test\n"
         "\n"
         "values:\n"
         "  - id: V1\n"

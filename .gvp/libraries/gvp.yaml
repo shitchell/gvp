@@ -1,6 +1,24 @@
 meta:
   name: gvp
   scope: project
+  definitions:
+    tags:
+      domains:
+        framework:
+          description: Core GVP framework design -- schema, element types, traceability model
+        tooling:
+          description: The gvp CLI utility and its implementation
+        documentation:
+          description: READMEs, glossary, specs, and examples
+      concerns:
+        alignment:
+          description: Ensuring decisions trace back to goals and values consistently
+        usability:
+          description: Accessible to non-technical users and AI assistants alike
+        integrity:
+          description: Data correctness, provenance, and trustworthiness of the GVP store
+        extensibility:
+          description: Supporting user-defined categories, tags, validation, and output formats
   defaults:
     origin:
       date: "2026-02-23"

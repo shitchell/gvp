@@ -6,8 +6,7 @@ A 4-level GVP library for a fictional CLI task manager called "taskflow." Demons
 
 ```
 software-project/
-├── tags.yaml              # domain + concern tag definitions (a document with only tag definitions)
-├── universal.yaml         # org-wide goals, values, principles, heuristics, rules, constraints
+├── universal.yaml         # org-wide goals, values, principles, heuristics, rules, constraints (+ tag definitions)
 ├── personal.yaml          # cross-project goals, values, principles, heuristics, rules
 └── projects/
     ├── taskflow.yaml      # project goals, milestones, constraints
