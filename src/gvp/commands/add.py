@@ -14,7 +14,9 @@ import yaml
 from gvp.model import Catalog
 
 
-def next_id(category: str, existing_ids: list[str], registry, prefix: str | None = None) -> str:
+def next_id(
+    category: str, existing_ids: list[str], registry, prefix: str | None = None
+) -> str:
     cat_def = registry.categories[category]
     id_prefix = cat_def.id_prefix
     if prefix:
@@ -40,7 +42,9 @@ def add_element(
     if doc is None:
         raise ValueError(f"Document '{document_name}' not found in catalog")
     existing = [e.id for e in doc.elements if e.category == category]
-    new_id = next_id(category, existing, catalog.category_registry, prefix=doc.id_prefix)
+    new_id = next_id(
+        category, existing, catalog.category_registry, prefix=doc.id_prefix
+    )
     elem_dict = {"id": new_id, "name": name, **fields}
     if not no_provenance and "origin" not in elem_dict:
         doc_defaults = doc.defaults or {}
@@ -53,7 +57,9 @@ def add_element(
         data[yaml_key] = []
     data[yaml_key].append(elem_dict)
     with open(doc.path, "w") as f:
-        yaml.dump(data, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
+        yaml.dump(
+            data, f, default_flow_style=False, sort_keys=False, allow_unicode=True
+        )
     return new_id
 
 
@@ -84,7 +90,9 @@ def add_via_editor(
     category: str,
     prefill: dict | None = None,
 ) -> str | None:
-    template = _build_template(category, prefill or {}, registry=catalog.category_registry)
+    template = _build_template(
+        category, prefill or {}, registry=catalog.category_registry
+    )
     with tempfile.NamedTemporaryFile(
         mode="w", suffix=".yaml", prefix="gvp-add-", delete=False
     ) as f:
@@ -123,6 +131,12 @@ def _build_template(category: str, prefill: dict, registry=None) -> str:
     fields["tags"] = []
     fields["maps_to"] = []
     fields.update(prefill)
-    return lines[0] + "\n" + lines[1] + "\n" + lines[2] + "\n" + yaml.dump(
-        fields, default_flow_style=False, sort_keys=False
+    return (
+        lines[0]
+        + "\n"
+        + lines[1]
+        + "\n"
+        + lines[2]
+        + "\n"
+        + yaml.dump(fields, default_flow_style=False, sort_keys=False)
     )

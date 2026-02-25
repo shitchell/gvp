@@ -54,7 +54,7 @@ def format_review_display(catalog: Catalog, elem: Element) -> str:
     ancestors = catalog.ancestors(elem)
     changes = []
     for ancestor in ancestors:
-        for entry in (ancestor.updated_by or []):
+        for entry in ancestor.updated_by or []:
             entry_date = entry.get("date", "")
             if review_date is None or entry_date > review_date:
                 changes.append((str(ancestor), entry))
@@ -62,14 +62,18 @@ def format_review_display(catalog: Catalog, elem: Element) -> str:
     if changes:
         lines.append("Changes since last review:")
         for ancestor_qid, entry in sorted(changes, key=lambda x: x[1].get("date", "")):
-            lines.append(f"  [{entry.get('date', '?')}] {ancestor_qid}: {entry.get('rationale', '(no rationale)')}")
+            lines.append(
+                f"  [{entry.get('date', '?')}] {ancestor_qid}: {entry.get('rationale', '(no rationale)')}"
+            )
     else:
         lines.append("No ancestor changes since last review.")
 
     return "\n".join(lines)
 
 
-def stamp_review(catalog: Catalog, qualified_id: str, note: str = "", by: str | None = None) -> None:
+def stamp_review(
+    catalog: Catalog, qualified_id: str, note: str = "", by: str | None = None
+) -> None:
     """Append a reviewed_by entry to an element's YAML."""
     elem = catalog.elements.get(qualified_id)
     if elem is None:
@@ -103,4 +107,6 @@ def stamp_review(catalog: Catalog, qualified_id: str, note: str = "", by: str | 
     target["reviewed_by"].append(entry)
 
     with open(doc.path, "w") as f:
-        yaml.dump(data, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
+        yaml.dump(
+            data, f, default_flow_style=False, sort_keys=False, allow_unicode=True
+        )

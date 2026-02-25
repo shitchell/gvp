@@ -141,7 +141,9 @@ class TestAutoOrigin:
         added = data["values"][1]
         # Should NOT have auto-origin since defaults.origin exists
         # (the origin would come from defaults when loaded, not from add_element)
-        assert "origin" not in added or added.get("origin") != [{"date": date.today().isoformat()}]
+        assert "origin" not in added or added.get("origin") != [
+            {"date": date.today().isoformat()}
+        ]
 
     def test_no_provenance_skips_auto_origin(self, tmp_path: Path):
         lib = tmp_path / "lib"
@@ -186,7 +188,12 @@ class TestAutoOrigin:
             document_name="test",
             category="value",
             name="New Value",
-            fields={"statement": "A new value.", "tags": [], "maps_to": [], "origin": explicit_origin},
+            fields={
+                "statement": "A new value.",
+                "tags": [],
+                "maps_to": [],
+                "origin": explicit_origin,
+            },
         )
         with open(doc_path) as f:
             data = yaml.safe_load(f)

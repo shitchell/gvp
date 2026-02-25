@@ -53,7 +53,9 @@ def edit_element_inline(
         target["updated_by"].append(updated_entry)
 
     with open(doc.path, "w") as f:
-        yaml.dump(data, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
+        yaml.dump(
+            data, f, default_flow_style=False, sort_keys=False, allow_unicode=True
+        )
 
 
 def edit_element_interactive(
@@ -84,7 +86,9 @@ def edit_element_interactive(
         return
 
     rationale = "" if no_provenance else input("Rationale: ").strip()
-    edit_element_inline(catalog, qualified_id, updates, rationale, no_provenance=no_provenance)
+    edit_element_inline(
+        catalog, qualified_id, updates, rationale, no_provenance=no_provenance
+    )
 
 
 def edit_via_editor(
