@@ -6,14 +6,21 @@ meta:
 goals:
   - id: G1
     name: Manage tasks from the command line
-    statement: Users can create, list, update, and complete tasks without leaving the terminal.
+    statement: >
+      Users can create, list, update, and complete tasks without leaving the
+      terminal. The CLI should feel native to developers who already live in
+      the shell.
     tags: [cli, usability]
-    maps_to: []
+    maps_to: [personal:G1, universal:UG2]
+
   - id: G2
     name: Reliable task storage
-    statement: Task data is never lost or corrupted during normal operation.
+    statement: >
+      Task data is never lost or corrupted during normal operation. Users
+      should never open their task list and find it empty, truncated, or
+      garbled.
     tags: [reliability]
-    maps_to: []
+    maps_to: [personal:G1, universal:UG2]
 
 milestones:
   - id: M1
@@ -29,6 +36,18 @@ milestones:
 constraints:
   - id: CON1
     name: Single-user only
-    impact: No need for locking or concurrent access patterns.
-    tags: []
+    impact: >
+      No need for locking, concurrent access patterns, or multi-tenant
+      storage. Simplifies storage and error handling significantly.
+    tags: [code]
     maps_to: []
+
+  - id: CON2
+    name: Ship v1 by end of March
+    impact: >
+      Hard deadline driven by a client demo. Features that cannot be
+      completed to full quality standards within this window must be
+      descoped or shipped at reduced polish per UH1. This constraint
+      directly activates the quality-vs-speed trade-off heuristic.
+    tags: [business]
+    maps_to: [universal:UG1]

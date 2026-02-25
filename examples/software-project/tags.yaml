@@ -1,17 +1,23 @@
 domains:
   code:
-    description: Software development decisions
+    description: Software development decisions -- languages, patterns, architecture
   systems:
-    description: Infrastructure and architecture decisions
+    description: Infrastructure, deployment, and operational concerns
   ux:
-    description: User-facing interface decisions
+    description: User-facing interface and experience decisions
   cli:
-    description: Command-line interface design decisions
+    description: Command-line interface design and ergonomics
+  business:
+    description: Revenue, sustainability, and organizational viability
 
 concerns:
   maintainability:
     description: Reducing future cost of change
   reliability:
-    description: System behaves correctly under expected conditions
+    description: System behaves correctly under expected and unexpected conditions
   usability:
-    description: Reducing friction and cognitive load
+    description: Reducing friction and cognitive load for end users
+  alignment:
+    description: Ensuring decisions trace back to goals and values consistently
+  security:
+    description: Protecting user data and system integrity from unauthorized access

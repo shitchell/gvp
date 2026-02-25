@@ -6,50 +6,93 @@ meta:
 goals:
   - id: G1
     name: Ship reliable software
-    statement: Produce software that works correctly and earns user confidence.
+    statement: >
+      Produce software that works correctly and earns user confidence through
+      predictable behavior, clear error reporting, and graceful handling of
+      edge cases.
     tags: [reliability]
-    maps_to: []
+    maps_to: [universal:UG2]
 
 values:
   - id: V1
     name: Simplicity
-    statement: Prefer the simplest approach that meets the requirement.
-    tags: [maintainability]
-    maps_to: []
-  - id: V2
-    name: Transparency
-    statement: Make system state and decisions visible to the user.
-    tags: [usability]
-    maps_to: []
-  - id: V3
-    name: Composability
-    statement: Build small, focused pieces that combine naturally.
+    statement: >
+      Prefer the simplest approach that meets the requirement. Complexity
+      must earn its place -- every abstraction, indirection, or
+      generalization should solve a real problem, not a hypothetical one.
     tags: [maintainability, code]
-    maps_to: []
+    maps_to: [personal:G1, universal:UV2]
+
+  - id: V2
+    name: Composability
+    statement: >
+      Build small, focused pieces that combine naturally. A function that
+      does one thing well is more valuable than a framework that does
+      everything poorly. Prefer composition over inheritance, pipelines
+      over monoliths, and clear interfaces over shared state.
+    tags: [maintainability, code]
+    maps_to: [personal:G1, universal:UV2]
+
+  - id: V3
+    name: Clarity
+    statement: >
+      Code, interfaces, and documentation should be understandable without
+      external context. Naming matters. Structure matters. If something
+      needs a comment to explain what it does, it probably needs a rewrite
+      to make the comment unnecessary.
+    tags: [maintainability, usability]
+    maps_to: [personal:G1, universal:UV2, universal:UV3]
 
 principles:
   - id: P1
     name: Fail Loudly
-    statement: When something goes wrong, surface the error immediately rather than hiding it.
+    statement: >
+      When something goes wrong, surface the error immediately and visibly
+      rather than hiding it behind a default, swallowing it in a catch-all,
+      or logging it where no one will look. Silent failures compound into
+      mysterious bugs.
     tags: [reliability, code]
-    maps_to: [personal:G1, universal:UV1, personal:V2]
+    maps_to: [personal:G1, universal:UV1, personal:V3]
+
   - id: P2
     name: Minimize Coupling
-    statement: Components should depend on interfaces, not implementations.
+    statement: >
+      Components should depend on interfaces, not implementations. When
+      module A changes, module B should not need to know. This is not about
+      abstraction for its own sake -- it is about limiting the blast radius
+      of change.
     tags: [maintainability, code]
-    maps_to: [personal:G1, universal:UV1, personal:V1]
+    maps_to: [personal:G1, universal:UV2, personal:V2]
+
+  - id: P3
+    name: Design around flex points
+    statement: >
+      When a specific future change is plausible, shape the architecture so
+      the change is not painful when it arrives. This does not mean
+      implementing the change early -- it means not painting yourself into
+      a corner. A well-placed interface costs little now and saves a
+      rewrite later.
+    tags: [maintainability, code]
+    maps_to: [personal:G1, universal:UV2, personal:V1, personal:V2]
 
 heuristics:
   - id: H1
-    name: Error Handling Decision
-    statement: "If the caller can recover: return an error. If not: raise an exception. If ambiguous: raise."
+    name: Error handling decision
+    statement: >
+      If the caller can recover: return an error. If the caller cannot
+      recover: raise an exception. If ambiguous: raise -- it is easier to
+      catch an exception you did not expect than to debug a silently
+      swallowed error.
     tags: [code, reliability]
     maps_to: [personal:P1]
 
 rules:
   - id: R1
-    name: Tests Before Merge
-    statement: No code merges to main without passing tests.
+    name: Tests before merge
+    statement: >
+      No code merges to main without passing tests. This is not negotiable
+      regardless of deadline pressure -- a broken main branch costs more
+      than a delayed feature.
     tags: [reliability, code]
     maps_to: [personal:G1, universal:UV1, personal:V1]
     updated_by:

@@ -3,19 +3,122 @@ meta:
   scope: universal
   id_prefix: U
 
+goals:
+  - id: UG1
+    name: Sustainable revenue
+    statement: >
+      The organization must generate enough revenue to remain viable. If the
+      business fails, every product fails with it. This is the baseline
+      constraint that influences every trade-off between quality and speed.
+    tags: [business]
+    maps_to: []
+
+  - id: UG2
+    name: Build products users rely on
+    statement: >
+      Users choose our products because they trust them with real work and
+      real data. That trust is earned through consistent reliability,
+      honest communication, and respect for the user's time.
+    tags: [reliability, usability]
+    maps_to: []
+
 values:
   - id: UV1
     name: User Trust
-    statement: Users should be able to trust the system with their data.
-    tags: [reliability]
-    maps_to: []
+    statement: >
+      Users should be able to trust the system with their data, their time,
+      and their workflows. Trust is fragile -- a single data loss incident or
+      silent failure can destroy it permanently.
+    tags: [reliability, security]
+    maps_to: [universal:UG2]
+
+  - id: UV2
+    name: Craftsmanship
+    statement: >
+      Care about the work. Code should be written with intention, not just
+      to pass a checklist. This does not mean gold-plating everything -- it
+      means being deliberate about where quality matters most and honest
+      about where pragmatism is appropriate.
+    tags: [code, maintainability]
+    maps_to: [universal:UG2]
+
+  - id: UV3
+    name: Transparency
+    statement: >
+      Be honest about trade-offs, limitations, and the reasoning behind
+      decisions. When corners are cut, document what was deferred and why.
+      When a system has known limitations, surface them rather than hiding
+      them behind optimistic defaults.
+    tags: [alignment, usability]
+    maps_to: [universal:UG1, universal:UG2]
+
+principles:
+  - id: UP1
+    name: Capture rationale always
+    statement: >
+      Every significant decision should include its rationale. When trade-offs
+      are made -- especially between quality and speed -- document what was
+      chosen, what was deferred, and why. Future maintainers (including
+      yourself in six months) need this context to make informed changes.
+    tags: [alignment, maintainability]
+    maps_to: [universal:UG2, universal:UV3]
+
+  - id: UP2
+    name: Appropriate enforcement
+    statement: >
+      Standards should be supported by the right level of enforcement. Use
+      automation and tooling where consistency matters (linting, CI, type
+      checks). Use code review where judgment matters. Use documentation
+      where context matters. Do not rely on memory or goodwill for things
+      that machines can check.
+    tags: [code, reliability]
+    maps_to: [universal:UG2, universal:UV2]
+
+heuristics:
+  - id: UH1
+    name: Quality vs. speed trade-off
+    statement: >
+      When deadline pressure is high and the feature is not safety-critical
+      or data-handling: prefer shipping a correct but unpolished
+      implementation over delaying for elegance. Document what was deferred
+      and why. When the feature is safety-critical, handles user data, or
+      affects system integrity: quality wins regardless of deadline -- cut
+      scope instead of cutting corners. When pressure is low: default to
+      craftsmanship. This heuristic is coherent with both revenue goals
+      and quality values -- sustainable revenue requires shipping, and
+      shipping garbage destroys the trust that drives revenue.
+    tags: [business, code, alignment]
+    maps_to: [universal:UG1, universal:UV2, universal:UV3]
 
 rules:
   - id: UR1
-    name: No Silent Data Loss
-    statement: Never discard user data without explicit confirmation.
-    tags: [reliability]
-    maps_to: [personal:G1, universal:UV1]
+    name: No silent data loss
+    statement: >
+      Never discard, overwrite, or fail to persist user data without explicit
+      confirmation or a clear error. If a write fails, the user must know.
+      If data is being replaced, the user must consent. No exceptions.
+    tags: [reliability, security]
+    maps_to: [universal:UG2, universal:UV1]
     origin:
       - date: "2026-01-15"
         note: "Organizational standard"
+
+  - id: UR2
+    name: Secrets never in source control
+    statement: >
+      API keys, credentials, tokens, and other secrets are never committed
+      to version control. Use environment variables, secret managers, or
+      gitignored config files.
+    tags: [security, code]
+    maps_to: [universal:UG2, universal:UV1]
+
+constraints:
+  - id: UCON1
+    name: People optimize for minimal effort
+    impact: >
+      Humans and AI alike tend toward the path of least resistance. Any
+      process or standard that relies on discipline alone will erode over
+      time. Design systems that make the right thing easy rather than
+      relying on willpower.
+    tags: [alignment]
+    maps_to: []

@@ -6,18 +6,51 @@ meta:
 design_choices:
   - id: D1
     name: JSON file storage
-    rationale: Simplest approach for single-user CLI. No external dependencies.
+    rationale: >
+      Simplest approach for single-user CLI. No external dependencies, no
+      server process, trivially inspectable with any text editor. Scales
+      poorly for large datasets, but CON1 (single-user) means we will not
+      hit that ceiling.
     tags: [code]
     maps_to: [taskflow:G2, personal:V1]
+
   - id: D2
     name: Click for CLI framework
-    rationale: Well-documented, composable, handles argument parsing cleanly.
+    rationale: >
+      Well-documented, composable, handles argument parsing and help
+      generation cleanly. Preferred over argparse for its decorator-based
+      API and built-in support for nested command groups.
     tags: [code, cli]
-    maps_to: [taskflow:G1, personal:V3]
+    maps_to: [taskflow:G1, personal:V2, personal:V3]
+
+  - id: D3
+    name: Skip comprehensive input validation in v1
+    rationale: >
+      Use basic type checks and length limits only. Full validation
+      (duplicate detection, rich error messages, suggested corrections)
+      is deferred to v1.1. Per UH1, this feature is not safety-critical
+      and the deadline (CON2) is tight -- shipping correct-but-unpolished
+      is the right call. Invalid input produces a clear error, just not a
+      helpful one yet.
+    tags: [code, usability, business]
+    maps_to: [taskflow:G1, personal:V1, universal:UH1]
 
 implementation_rules:
   - id: IR1
     name: Atomic file writes
-    statement: Always write to a temp file and rename, never write in place.
+    statement: >
+      Always write to a temp file and rename, never write in place. A
+      crash or power loss mid-write must not corrupt the task file.
     tags: [reliability, code]
     maps_to: [taskflow-v1:D1, taskflow:G2, universal:UV1]
+
+coding_principles:
+  - id: CP1
+    name: One Click command per file
+    statement: >
+      Each CLI subcommand lives in its own module. The main group imports
+      and registers them. This keeps individual commands small, testable
+      in isolation, and easy to add or remove without touching unrelated
+      code.
+    tags: [code, maintainability]
+    maps_to: [personal:V2, personal:V3, personal:P2]
