@@ -146,7 +146,9 @@ def load_document(path: Path) -> Document:
     return doc
 
 
-def load_library(library_path: Path) -> tuple[list[Document], dict[str, dict], dict[str, str]]:
+def load_library(
+    library_path: Path,
+) -> tuple[list[Document], dict[str, dict], dict[str, str]]:
     tags: dict[str, dict] = {}
     tag_sources: dict[str, str] = {}
     documents: list[Document] = []
