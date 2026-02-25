@@ -99,8 +99,18 @@ meta:
 
 ### Update docs
 
-11. **`docs/reference/schema.md`**: document `meta.definitions.tags` format, note `definitions.elements` as future
-12. **`docs/reference/validation.md`**: add W007
+User-facing docs that reference the old `tags.yaml` pattern:
+
+11. **`README.md:76`** — Tags section says "defined in a `tags.yaml` registry." Update to explain `meta.definitions.tags` (inline or dedicated file).
+12. **`GLOSSARY.md:18`** — Tag definition references `tags.yaml` registry. Update.
+13. **`GLOSSARY.md:23`** — Library definition says "optionally with a `tags.yaml` and `schema.yaml`." Update to reflect that definitions live in document meta blocks.
+14. **`docs/reference/schema.md:145`** — Element tags field says "Must be defined in `tags.yaml`." Update to reference `meta.definitions.tags`.
+15. **`docs/reference/schema.md:272+`** — Entire "tags.yaml Format" section. Rewrite for `meta.definitions.tags`, show both inline and dedicated-file conventions.
+16. **`docs/reference/validation.md:54`** — Undefined tag error references `tags.yaml`. Generalize. Also add W007.
+17. **`docs/guide/ai-integration.md:16`** — "Read `tags.yaml`" instruction. Update to explain tag definitions can be in any document.
+18. **`examples/software-project/README.md:9`** — File tree shows `tags.yaml`. Update if file is renamed or restructured.
+
+Historical docs (`docs/plans/2026-02-22-*`, `docs/plans/2026-02-24-docs-reorg-*`) are left as-is — they describe what was true at the time of writing.
 
 ## Future
 
