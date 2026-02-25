@@ -10,22 +10,13 @@ import yaml
 
 from gvp.config import GVPConfig
 from gvp.model import Catalog, Document, Element
+from gvp.schema import (
+    CategoryRegistry,
+    load_builtin_defaults,
+    merge_category_definitions,
+)
 
-CATEGORY_MAP = {
-    "values": "value",
-    "principles": "principle",
-    "heuristics": "heuristic",
-    "rules": "rule",
-    "goals": "goal",
-    "milestones": "milestone",
-    "design_choices": "design_choice",
-    "constraints": "constraint",
-    "implementation_rules": "implementation_rule",
-    "coding_principles": "coding_principle",
-}
-
-SKIP_FILES = {"schema.yaml"}
-ELEMENT_ATTRS = {
+BASE_ELEMENT_ATTRS = {
     "id",
     "name",
     "status",
@@ -107,7 +98,7 @@ def _parse_element(raw: dict, category: str, doc: Document) -> Element:
     updated_by = raw.get("updated_by") or []
     reviewed_by = raw.get("reviewed_by") or []
     priority = raw.get("priority")
-    fields = {k: v for k, v in raw.items() if k not in ELEMENT_ATTRS}
+    fields = {k: v for k, v in raw.items() if k not in BASE_ELEMENT_ATTRS}
     return Element(
         id=elem_id,
         category=category,
@@ -124,7 +115,7 @@ def _parse_element(raw: dict, category: str, doc: Document) -> Element:
     )
 
 
-def load_document(path: Path) -> Document:
+def load_document(path: Path, registry: CategoryRegistry) -> Document:
     with open(path) as f:
         data = yaml.safe_load(f) or {}
     meta = data.get("meta") or {}
@@ -139,7 +130,8 @@ def load_document(path: Path) -> Document:
         tag_definitions=_parse_tag_definitions(meta),
         elements=[],
     )
-    for yaml_key, category in CATEGORY_MAP.items():
+    yaml_key_map = registry.yaml_key_to_category()
+    for yaml_key, category in yaml_key_map.items():
         items = data.get(yaml_key)
         if not items:
             continue
@@ -151,16 +143,17 @@ def load_document(path: Path) -> Document:
 
 def load_library(
     library_path: Path,
-) -> tuple[list[Document], dict[str, dict], dict[str, str]]:
+    registry: CategoryRegistry | None = None,
+) -> tuple[list[Document], dict[str, dict], dict[str, str], dict[str, dict]]:
+    if registry is None:
+        registry = load_builtin_defaults()
     tags: dict[str, dict] = {}
     tag_sources: dict[str, str] = {}
     documents: list[Document] = []
-    # Track relative paths (without .yaml) to document names for inherits resolution
+    user_category_defs: dict[str, dict] = {}
     path_to_name: dict[str, str] = {}
     for yaml_file in sorted(library_path.rglob("*.yaml")):
-        if yaml_file.name in SKIP_FILES:
-            continue
-        doc = load_document(yaml_file)
+        doc = load_document(yaml_file, registry)
         documents.append(doc)
         rel = yaml_file.relative_to(library_path).with_suffix("")
         path_to_name[str(rel)] = doc.name
@@ -169,20 +162,32 @@ def load_library(
             if tag_name not in tags:
                 tags[tag_name] = tag_def
                 tag_sources[tag_name] = doc.name
+        # Accumulate category definitions from meta.definitions.categories
+        with open(yaml_file) as f:
+            data = yaml.safe_load(f) or {}
+        meta = data.get("meta") or {}
+        definitions = meta.get("definitions") or {}
+        cat_defs = definitions.get("categories") or {}
+        for cat_name, cat_def in cat_defs.items():
+            if cat_name not in user_category_defs:
+                user_category_defs[cat_name] = cat_def
     # Resolve path-based inherits references to document names
     for doc in documents:
         doc.inherits = [path_to_name.get(parent, parent) for parent in doc.inherits]
-    return documents, tags, tag_sources
+    return documents, tags, tag_sources, user_category_defs
 
 
 def load_catalog(cfg: GVPConfig) -> Catalog:
     catalog = Catalog()
+    registry = load_builtin_defaults()
+    all_user_cat_defs: dict[str, dict] = {}
+
     for lib_path in cfg.libraries:
         if not lib_path.exists():
             print(f"W003: library path does not exist: {lib_path}", file=sys.stderr)
             continue
         if lib_path.is_file():
-            doc = load_document(lib_path)
+            doc = load_document(lib_path, registry)
             if doc.name in catalog.documents:
                 if cfg.strict:
                     raise ValueError(
@@ -198,7 +203,15 @@ def load_catalog(cfg: GVPConfig) -> Catalog:
                 if tag_name not in catalog.tags:
                     catalog.tags[tag_name] = tag_def
             continue
-        docs, tags, tag_sources = load_library(lib_path)
+        docs, tags, tag_sources, user_cat_defs = load_library(lib_path, registry)
+        # Accumulate user category definitions
+        for cat_name, cat_def in user_cat_defs.items():
+            if cat_name in all_user_cat_defs:
+                catalog.load_warnings.append(
+                    f"W008: duplicate category definition '{cat_name}', keeping first"
+                )
+            else:
+                all_user_cat_defs[cat_name] = cat_def
         for tag_name, tag_def in tags.items():
             if tag_name not in catalog.tags:
                 catalog.tags[tag_name] = tag_def
@@ -215,4 +228,9 @@ def load_catalog(cfg: GVPConfig) -> Catalog:
                 )
                 continue
             catalog.add_document(doc)
+
+    # Merge user category definitions and store the final registry
+    if all_user_cat_defs:
+        registry = merge_category_definitions(registry, all_user_cat_defs)
+    catalog.category_registry = registry
     return catalog

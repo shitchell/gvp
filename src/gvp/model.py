@@ -4,6 +4,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from gvp.schema import CategoryRegistry
 
 
 @dataclass
@@ -61,6 +65,8 @@ class Catalog:
         self.elements: dict[str, Element] = {}
         self.tags: dict[str, dict] = {}
         self.tag_sources: dict[str, str] = {}
+        self.category_registry: CategoryRegistry | None = None
+        self.load_warnings: list[str] = []
 
     def add_document(self, doc: Document) -> None:
         self.documents[doc.name] = doc
