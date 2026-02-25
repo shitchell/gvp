@@ -75,7 +75,7 @@ Fully normalized — each inner key-value pair gets its own row.
 
 ### Data
 
-Add banked D1 considered context from memory to `.gvp/libraries/gvp.yaml`:
+Add banked D1 considered context from memory to `.gvp/library/gvp.yaml`:
 
 ```yaml
 design_choices:
@@ -88,7 +88,7 @@ design_choices:
 ```
 
 Actually — the banked context is for `v0:D1` (Python 3.11+), not `gvp:D1`. Add to
-`.gvp/libraries/v0.yaml` on the appropriate design choice.
+`.gvp/library/v0.yaml` on the appropriate design choice.
 
 
 ## 2. `priority` field on Elements
@@ -163,6 +163,6 @@ heuristics:
 | `src/gvp/renderers/csv.py` | Add `considered` and `priority` columns |
 | `src/gvp/renderers/sqlite.py` | Add `considered_alternatives` table, `priority` column |
 | `docs/reference/schema.md` | Document `considered` and `priority` fields |
-| `.gvp/libraries/v0.yaml` | Add `considered` data to v0:D1 |
+| `.gvp/library/v0.yaml` | Add `considered` data to v0:D1 |
 | `examples/software-project/universal.yaml` | Add UH2 heuristic |
 | `tests/` | Tests for all new validation, rendering |

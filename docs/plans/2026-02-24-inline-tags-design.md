@@ -116,4 +116,4 @@ Historical docs (`docs/plans/2026-02-22-*`, `docs/plans/2026-02-24-docs-reorg-*`
 
 - `meta.definitions.elements` — custom element categories with primary_field, id_prefix, mapping_rules (currently tracked as `schema.yaml` feature)
 - Remove `schema.yaml` from `SKIP_FILES` when that feature is implemented
-- Rename `.gvp/libraries/` to `.gvp/library/` (singular) — separate change
+- Rename `.gvp/library/` to `.gvp/library/` (singular) — separate change

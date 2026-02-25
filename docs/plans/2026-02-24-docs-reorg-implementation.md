@@ -727,7 +727,7 @@ One effective workflow for AI-assisted GVP development:
 
 Source material:
 - `docs/guide/developing-a-library.md` lines 19-41 (AI workflow content to move here)
-- `.gvp/libraries/gvp.yaml` — G7 "Usable by AI assistants"
+- `.gvp/library/gvp.yaml` — G7 "Usable by AI assistants"
 - `src/gvp/__main__.py` — CLI commands for examples
 
 **Step 2: Verify**
@@ -978,13 +978,13 @@ git commit -m "docs: rewrite README for Tier 1 audience — core elements only, 
 - Modify: `examples/software-project/projects/taskflow/v1.yaml`
 - Modify: `examples/software-project/tags.yaml` (if needed)
 
-This task rebuilds the example using gvp's own `.gvp/libraries/gvp.yaml` and `.gvp/libraries/v0.yaml` as the foundation, adapted to the fictional "taskflow" framing.
+This task rebuilds the example using gvp's own `.gvp/library/gvp.yaml` and `.gvp/library/v0.yaml` as the foundation, adapted to the fictional "taskflow" framing.
 
 **Step 1: Read the current example files and the gvp internal library**
 
 Files to read:
-- `.gvp/libraries/gvp.yaml` — source material for project-level elements
-- `.gvp/libraries/v0.yaml` — source material for implementation-level elements
+- `.gvp/library/gvp.yaml` — source material for project-level elements
+- `.gvp/library/v0.yaml` — source material for implementation-level elements
 - All current `examples/software-project/*.yaml` files
 
 **Step 2: Rewrite universal.yaml**

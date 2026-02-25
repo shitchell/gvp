@@ -830,11 +830,11 @@ git commit -m "feat: render considered alternatives in markdown, CSV, and SQLite
 ### Task 6: Add `considered` data to v0.yaml
 
 **Files:**
-- Modify: `.gvp/libraries/v0.yaml`
+- Modify: `.gvp/library/v0.yaml`
 
 **Step 1: Add considered alternatives to v0:D1**
 
-In `.gvp/libraries/v0.yaml`, add `considered` to the D1 design choice:
+In `.gvp/library/v0.yaml`, add `considered` to the D1 design choice:
 
 ```yaml
 design_choices:
@@ -886,7 +886,7 @@ Expected: PASS (no errors from considered validation)
 **Step 3: Commit**
 
 ```bash
-git add .gvp/libraries/v0.yaml
+git add .gvp/library/v0.yaml
 git commit -m "feat: add considered alternatives to v0:D1"
 ```
 

@@ -65,7 +65,7 @@ def _walk_backwards(cwd: Path) -> list[Path]:
 def _collect_from_dir(gvp_dir: Path) -> GVPConfig:
     """Collect config and implicit library from a gvp config directory."""
     cfg = _parse_config_yaml(gvp_dir / "config.yaml")
-    libs_dir = gvp_dir / "libraries"
+    libs_dir = gvp_dir / "library"
     if libs_dir.is_dir():
         cfg.libraries.insert(0, libs_dir)
     return cfg

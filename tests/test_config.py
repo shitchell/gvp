@@ -53,7 +53,7 @@ class TestDiscoverConfig:
 
     def test_user_dir_implicit_library(self, tmp_path: Path):
         user_dir = tmp_path / "config" / "gvp"
-        libs = user_dir / "libraries"
+        libs = user_dir / "library"
         libs.mkdir(parents=True)
         doc = libs / "personal.yaml"
         doc.write_text("meta:\n  name: personal\n  scope: personal\n")
@@ -76,10 +76,10 @@ class TestDiscoverConfig:
         gvp_dir = project / ".gvp"
         gvp_dir.mkdir()
         user_dir = tmp_path / "user-config" / "gvp"
-        user_libs = user_dir / "libraries"
+        user_libs = user_dir / "library"
         user_libs.mkdir(parents=True)
         system_dir = tmp_path / "system-config" / "gvp"
-        system_libs = system_dir / "libraries"
+        system_libs = system_dir / "library"
         system_libs.mkdir(parents=True)
         cfg = discover_config(cwd=project, user_dir=user_dir, system_dir=system_dir)
         lib_list = cfg.libraries

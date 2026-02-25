@@ -2,7 +2,7 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Replace all hardcoded category definitions with a schema-driven system using Pydantic models, move category metadata into `meta.definitions.categories`, and rename `.gvp/libraries/` to `.gvp/library/`.
+**Goal:** Replace all hardcoded category definitions with a schema-driven system using Pydantic models, move category metadata into `meta.definitions.categories`, and rename `.gvp/library/` to `.gvp/library/`.
 
 **Architecture:** A new `schema.py` module loads built-in category defaults from `src/gvp/data/defaults.yaml`, merges user definitions from `meta.definitions.categories`, and generates per-category Pydantic Element subclasses at runtime. The category registry lives on the Catalog and replaces all hardcoded category maps across loader, validator, renderers, and CLI commands.
 
@@ -1173,11 +1173,11 @@ git commit -m "feat: refactor renderers to use category registry"
 
 ## Task Group F: Directory rename
 
-### Task 9: Rename .gvp/libraries/ to .gvp/library/
+### Task 9: Rename .gvp/library/ to .gvp/library/
 
 **Files:**
 - Modify: `src/gvp/config.py:68` (`libraries` → `library`)
-- Rename: `.gvp/libraries/` → `.gvp/library/`
+- Rename: `.gvp/library/` → `.gvp/library/`
 - Modify: `tests/conftest.py` (if any paths reference `libraries`)
 - Modify: `tests/test_config.py` (if any paths reference `libraries`)
 - Modify: `docs/reference/config.md`
@@ -1189,7 +1189,7 @@ git commit -m "feat: refactor renderers to use category registry"
 **Step 1: Rename directory**
 
 ```bash
-git mv .gvp/libraries .gvp/library
+git mv .gvp/library .gvp/library
 ```
 
 **Step 2: Update config.py**
@@ -1199,9 +1199,9 @@ In `_collect_from_dir()`, line 68:
 libs_dir = gvp_dir / "library"
 ```
 
-**Step 3: Update all docs referencing `.gvp/libraries/`**
+**Step 3: Update all docs referencing `.gvp/library/`**
 
-Search and replace `.gvp/libraries` → `.gvp/library` across docs.
+Search and replace `.gvp/library` → `.gvp/library` across docs.
 
 **Step 4: Update tests**
 
@@ -1213,7 +1213,7 @@ Run: `pytest tests/ -v`
 
 ```bash
 git add -A
-git commit -m "feat: rename .gvp/libraries/ to .gvp/library/"
+git commit -m "feat: rename .gvp/library/ to .gvp/library/"
 ```
 
 ---
@@ -1248,7 +1248,7 @@ Add:
 
 **Step 3: Update config.md**
 
-Change `.gvp/libraries/` to `.gvp/library/` throughout.
+Change `.gvp/library/` to `.gvp/library/` throughout.
 
 **Step 4: Update README.md**
 

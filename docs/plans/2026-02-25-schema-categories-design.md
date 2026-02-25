@@ -7,7 +7,7 @@ Date: 2026-02-25
 Replace all hardcoded category definitions with a schema-driven system. Category
 metadata (yaml_key, id_prefix, mapping_rules, field schemas) moves into
 `meta.definitions.categories` in library documents. Element models become Pydantic
-BaseModel subclasses generated at runtime from schema definitions. The `.gvp/libraries/`
+BaseModel subclasses generated at runtime from schema definitions. The `.gvp/library/`
 directory is renamed to `.gvp/library/`.
 
 This is a foundational architectural change that touches the loader, validator, model,
@@ -396,7 +396,7 @@ All of these are replaced by the category registry:
 
 ## 7. Directory Rename
 
-`.gvp/libraries/` is renamed to `.gvp/library/`.
+`.gvp/library/` is renamed to `.gvp/library/`.
 
 Changes:
 - `src/gvp/config.py` — default discovery path
@@ -453,6 +453,6 @@ Every implementation task includes a documentation step:
 | Query | `src/gvp/commands/query.py` (minor — category list from registry) |
 | Renderers | `src/gvp/renderers/*.py` (use schema for ordering/colors/tiers) |
 | Docs | `docs/reference/*.md`, `docs/guide/*.md`, `README.md` |
-| Library | `.gvp/libraries/` → `.gvp/library/` |
+| Library | `.gvp/library/` → `.gvp/library/` |
 | Tests | All test files updated |
 | Dependencies | `pyproject.toml` (add pydantic) |
