@@ -28,6 +28,8 @@ def _render_element(elem: Element) -> str:
         lines.append(f"\n**Tags:** {', '.join(elem.tags)}")
     if elem.maps_to:
         lines.append(f"\n**Maps to:** {', '.join(elem.maps_to)}")
+    if elem.priority is not None:
+        lines.append(f"\n**Priority:** {elem.priority}")
     for key in ("statement", "rationale", "impact", "description"):
         if key in elem.fields:
             lines.append(f"\n{elem.fields[key].strip()}")

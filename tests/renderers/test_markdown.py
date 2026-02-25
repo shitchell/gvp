@@ -75,3 +75,17 @@ class TestRenderMarkdown:
         catalog = load_catalog(cfg)
         output = render_markdown(catalog)
         assert "**Inherits:** root, team" in output
+
+    def test_renders_priority(self, tmp_path: Path):
+        lib = tmp_path / "lib"
+        lib.mkdir()
+        (lib / "test.yaml").write_text(
+            "meta:\n  name: test\n"
+            "values:\n"
+            "  - id: V1\n    name: Important\n    statement: Very important.\n"
+            "    tags: []\n    maps_to: []\n    priority: 1\n"
+        )
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        output = render_markdown(catalog)
+        assert "**Priority:** 1" in output

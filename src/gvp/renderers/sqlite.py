@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS elements (
     qualified_id TEXT PRIMARY KEY, id TEXT,
     document TEXT REFERENCES documents(name),
     category TEXT, name TEXT, status TEXT DEFAULT 'active',
-    statement TEXT, fields_json TEXT
+    statement TEXT, priority REAL, fields_json TEXT
 );
 CREATE TABLE IF NOT EXISTS element_tags (
     qualified_id TEXT REFERENCES elements(qualified_id),
@@ -72,7 +72,7 @@ def render_sqlite(
             continue
         statement = elem.fields.get("statement") or elem.fields.get("rationale") or ""
         conn.execute(
-            "INSERT INTO elements VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO elements VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 qid,
                 elem.id,
@@ -81,6 +81,7 @@ def render_sqlite(
                 elem.name,
                 elem.status,
                 statement.strip(),
+                float(elem.priority) if elem.priority is not None else None,
                 json.dumps(elem.fields),
             ),
         )

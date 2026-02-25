@@ -38,3 +38,22 @@ class TestRenderCSV:
         render_csv(catalog, output_dir=output_dir)
         csv_files = list(output_dir.glob("*.csv"))
         assert len(csv_files) == 1
+
+    def test_priority_column(self, tmp_path: Path):
+        lib = tmp_path / "lib"
+        lib.mkdir()
+        (lib / "test.yaml").write_text(
+            "meta:\n  name: test\n"
+            "values:\n"
+            "  - id: V1\n    name: V\n    statement: V.\n"
+            "    tags: []\n    maps_to: []\n    priority: 2\n"
+        )
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        output = render_csv(catalog)
+        reader = csv.reader(io.StringIO(output))
+        header = next(reader)
+        assert "priority" in header
+        row = next(reader)
+        priority_idx = header.index("priority")
+        assert row[priority_idx] == "2"

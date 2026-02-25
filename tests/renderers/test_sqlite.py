@@ -79,3 +79,23 @@ class TestRenderSQLite:
         ).fetchall()
         assert len(rows) > 0
         conn.close()
+
+    def test_priority_column(self, tmp_path: Path):
+        lib = tmp_path / "lib"
+        lib.mkdir()
+        (lib / "test.yaml").write_text(
+            "meta:\n  name: test\n"
+            "values:\n"
+            "  - id: V1\n    name: V\n    statement: V.\n"
+            "    tags: []\n    maps_to: []\n    priority: 2\n"
+        )
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        db_path = tmp_path / "test.db"
+        render_sqlite(catalog, db_path)
+        conn = sqlite3.connect(db_path)
+        row = conn.execute(
+            "SELECT priority FROM elements WHERE qualified_id = 'test:V1'"
+        ).fetchone()
+        assert row[0] == 2.0
+        conn.close()
