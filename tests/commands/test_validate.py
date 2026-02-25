@@ -1159,3 +1159,119 @@ class TestPriorityValidation:
         catalog = load_catalog(cfg)
         errors, _ = validate_catalog(catalog)
         assert not any("priority" in e for e in errors)
+
+
+class TestConsideredValidation:
+    def test_valid_considered_passes(self, tmp_path: Path):
+        lib = _make_lib(
+            tmp_path,
+            textwrap.dedent("""\
+            design_choices:
+              - id: D1
+                name: Use Python
+                rationale: It works.
+                tags: []
+                maps_to: [root:G1, root:V1]
+                considered:
+                  go:
+                    description: Fast compiled language.
+                    rationale: Marginal benefit didn't justify switch.
+        """),
+        )
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        errors, _ = validate_catalog(catalog)
+        assert not any("considered" in e.lower() for e in errors)
+
+    def test_considered_not_dict_errors(self, tmp_path: Path):
+        lib = _make_lib(
+            tmp_path,
+            textwrap.dedent("""\
+            design_choices:
+              - id: D1
+                name: Use Python
+                rationale: It works.
+                tags: []
+                maps_to: [root:G1, root:V1]
+                considered: just a string
+        """),
+        )
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        errors, _ = validate_catalog(catalog)
+        assert any("considered" in e.lower() and "dict" in e.lower() for e in errors)
+
+    def test_considered_inner_not_dict_errors(self, tmp_path: Path):
+        lib = _make_lib(
+            tmp_path,
+            textwrap.dedent("""\
+            design_choices:
+              - id: D1
+                name: Use Python
+                rationale: It works.
+                tags: []
+                maps_to: [root:G1, root:V1]
+                considered:
+                  go: just a string
+        """),
+        )
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        errors, _ = validate_catalog(catalog)
+        assert any("considered" in e.lower() and "go" in e.lower() for e in errors)
+
+    def test_considered_missing_rationale_errors(self, tmp_path: Path):
+        lib = _make_lib(
+            tmp_path,
+            textwrap.dedent("""\
+            design_choices:
+              - id: D1
+                name: Use Python
+                rationale: It works.
+                tags: []
+                maps_to: [root:G1, root:V1]
+                considered:
+                  go:
+                    description: Fast compiled language.
+        """),
+        )
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        errors, _ = validate_catalog(catalog)
+        assert any("rejection rationale" in e.lower() for e in errors)
+
+    def test_no_considered_no_error(self, tmp_path: Path):
+        lib = _make_lib(
+            tmp_path,
+            textwrap.dedent("""\
+            design_choices:
+              - id: D1
+                name: Use Python
+                rationale: It works.
+                tags: []
+                maps_to: [root:G1, root:V1]
+        """),
+        )
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        errors, _ = validate_catalog(catalog)
+        assert not any("considered" in e.lower() for e in errors)
+
+    def test_considered_on_non_design_choice_no_validation(self, tmp_path: Path):
+        """considered on other categories is just an extra field, not validated."""
+        lib = _make_lib(
+            tmp_path,
+            textwrap.dedent("""\
+            principles:
+              - id: P1
+                name: Test
+                statement: Test.
+                tags: []
+                maps_to: [root:G1, root:V1]
+                considered: not a dict
+        """),
+        )
+        cfg = GVPConfig(libraries=[lib])
+        catalog = load_catalog(cfg)
+        errors, _ = validate_catalog(catalog)
+        assert not any("considered" in e.lower() for e in errors)

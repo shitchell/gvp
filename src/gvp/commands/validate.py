@@ -214,6 +214,35 @@ def _validate_user_rules(
     return errors, warnings
 
 
+
+def _validate_considered(catalog: Catalog) -> list[str]:
+    """Validate the considered field schema on design_choice elements."""
+    errors: list[str] = []
+    for qid, elem in catalog.elements.items():
+        if elem.category != "design_choice":
+            continue
+        considered = elem.fields.get("considered")
+        if considered is None:
+            continue
+        if not isinstance(considered, dict):
+            errors.append(
+                f"{qid}: considered must be a dict, got {type(considered).__name__}"
+            )
+            continue
+        for alt_name, alt_def in considered.items():
+            if not isinstance(alt_def, dict):
+                errors.append(
+                    f"{qid}: considered alternative '{alt_name}' must be a dict, "
+                    f"got {type(alt_def).__name__}"
+                )
+                continue
+            if "rationale" not in alt_def:
+                errors.append(
+                    f"{qid}: considered alternative '{alt_name}' missing "
+                    f"rejection rationale"
+                )
+    return errors
+
 def validate_catalog(
     catalog: Catalog, config: GVPConfig | None = None
 ) -> tuple[list[str], list[str]]:
@@ -279,6 +308,9 @@ def validate_catalog(
 
     # Check category-specific mapping rules
     errors.extend(_validate_mappings(catalog))
+
+    # Check considered field schema on design_choices
+    errors.extend(_validate_considered(catalog))
 
     # Check semantic warnings
     warnings.extend(_validate_semantic(catalog))
