@@ -1,0 +1,163 @@
+# Built-in GVP category definitions.
+# Users can override any property via meta.definitions.categories in their library documents.
+
+categories:
+  _all:
+    field_schemas:
+      priority:
+        type: number
+        required: false
+
+  goal:
+    yaml_key: goals
+    id_prefix: G
+    primary_field: statement
+    display_label: Goals
+    color: "#FFD700"
+    is_root: true
+    tier: 1
+    field_schemas:
+      statement:
+        type: string
+        required: true
+
+  value:
+    yaml_key: values
+    id_prefix: V
+    primary_field: statement
+    display_label: Values
+    color: "#4A90D9"
+    is_root: true
+    tier: 2
+    field_schemas:
+      statement:
+        type: string
+        required: true
+
+  principle:
+    yaml_key: principles
+    id_prefix: P
+    primary_field: statement
+    display_label: Principles
+    color: "#7B68EE"
+    mapping_rules:
+      - [goal, value]
+    tier: 3
+    field_schemas:
+      statement:
+        type: string
+        required: true
+
+  heuristic:
+    yaml_key: heuristics
+    id_prefix: H
+    primary_field: statement
+    display_label: Heuristics
+    color: "#50C878"
+    mapping_rules:
+      - [goal, value]
+      - [principle]
+      - [rule]
+    tier: 4
+    field_schemas:
+      statement:
+        type: string
+        required: true
+
+  rule:
+    yaml_key: rules
+    id_prefix: R
+    primary_field: statement
+    display_label: Rules
+    color: "#DC143C"
+    mapping_rules:
+      - [goal, value]
+    tier: 3
+    field_schemas:
+      statement:
+        type: string
+        required: true
+
+  milestone:
+    yaml_key: milestones
+    id_prefix: M
+    primary_field: description
+    display_label: Milestones
+    color: "#FFA500"
+    mapping_rules:
+      - [goal, value]
+    field_schemas:
+      description:
+        type: string
+        required: true
+      progress:
+        type: string
+        required: false
+
+  design_choice:
+    yaml_key: design_choices
+    id_prefix: D
+    primary_field: rationale
+    display_label: Design Choices
+    color: "#20B2AA"
+    mapping_rules:
+      - [goal, value]
+    tier: 5
+    field_schemas:
+      rationale:
+        type: string
+        required: true
+      considered:
+        type: dict
+        required: false
+        values:
+          type: model
+          fields:
+            rationale:
+              type: string
+              required: true
+              label: rejection rationale
+            description:
+              type: string
+              required: false
+
+  constraint:
+    yaml_key: constraints
+    id_prefix: CON
+    primary_field: impact
+    display_label: Constraints
+    color: "#A9A9A9"
+    is_root: true
+    field_schemas:
+      impact:
+        type: string
+        required: true
+
+  implementation_rule:
+    yaml_key: implementation_rules
+    id_prefix: IR
+    primary_field: statement
+    display_label: Implementation Rules
+    color: "#CD5C5C"
+    mapping_rules:
+      - [goal, value]
+      - [design_choice]
+    field_schemas:
+      statement:
+        type: string
+        required: true
+
+  coding_principle:
+    yaml_key: coding_principles
+    id_prefix: C
+    primary_field: statement
+    display_label: Coding Principles
+    color: "#9370DB"
+    mapping_rules:
+      - [goal, value]
+      - [principle]
+      - [design_choice]
+    field_schemas:
+      statement:
+        type: string
+        required: true
