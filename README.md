@@ -11,7 +11,7 @@ A framework and CLI tool for decision traceability. GVP (Goals, Values, and Prin
 
 ## How It Works
 
-GVP organizes decision-making into a layered system of **elements** connected by a many-to-many mapping graph. Each element traces its justification back to the goals and values that motivate it.
+GVP organizes decision-making into Libraries — directories that store YAML specifications for elements, tag definitions, and config files. Elements are the building blocks, connected by a many-to-many mapping graph. Each element traces its justification back to the goals and values that motivate it.
 
 ### Elements
 
@@ -28,7 +28,7 @@ Elements are the building blocks. Each has a category that describes its role:
 | **Milestone** | A concrete, achievable waypoint on the path to goals. | Is it a concrete state on the roadmap? |
 | **Constraint** | A fact about the system or environment you don't control. Descriptive, not prescriptive. | Is it a fact you don't control? |
 
-These are the core categories. You can extend them with domain-specific variants — the [software-project example](examples/software-project/) shows how to add categories like Implementation Rule and Coding Principle for code-specific scopes. See [docs/philosophy.md](docs/philosophy.md) for a discussion of the fuzzy boundaries between categories (especially goals, values, and principles).
+Tags can further classify elements by domain (e.g., `code`, `systems`, `finance`) or concern (e.g., `reliability`, `usability`). See [Tags](#tags) below.
 
 ### Relationships
 
@@ -39,6 +39,12 @@ These are the core categories. You can extend them with domain-specific variants
 - The relationships are a **graph**, not a tree — many-to-many.
 
 Goals and values are tightly coupled and sometimes hard to distinguish (see [docs/philosophy.md](docs/philosophy.md)). While neither is required to map to anything, mapping them to each other is encouraged — it surfaces alignment gaps and strengthens review.
+
+### Traceability
+
+Every element (except goals, values, and constraints) must trace its justification to at least one goal and one value — directly or transitively through other elements in the mapping graph.
+
+For per-category traceability requirements, see the [Validation Reference](docs/reference/validation.md#traceability-rules).
 
 ### Scope and Inheritance
 
@@ -73,22 +79,6 @@ Elements can be classified with tags. Tags are defined in a `tags.yaml` registry
 - **Concern tags** (`maintainability`, `reliability`, `usability`, ...): what quality the element addresses
 
 But this is a convention, not a requirement. The tagging system is agnostic — use whatever groupings make sense for your context.
-
-### Traceability
-
-Every element (except goals, values, and constraints) must trace its justification to at least one goal and one value — directly or transitively through other elements.
-
-| Category | Must map to... |
-|----------|---------------|
-| Milestone | 1+ goal and 1+ value |
-| Principle | 1+ goal and 1+ value |
-| Rule | 1+ goal and 1+ value |
-| Design Choice | 1+ goal and 1+ value |
-| Heuristic | (1+ goal and 1+ value) or 1+ principle |
-| Implementation Rule | (1+ goal and 1+ value) or 1+ design choice |
-| Coding Principle | (1+ goal and 1+ value) or 1+ principle or design choice |
-
-Goals, values, and constraints are roots — they don't need to map to anything. But as noted above, mapping goals and values to each other is a good practice for surfacing alignment.
 
 ## Installation
 
@@ -126,62 +116,33 @@ Bundled example libraries demonstrate GVP in different domains:
 
 Each example directory has its own README with detailed walkthroughs and commands.
 
-## Subcommands
+## Commands
 
 ### validate
 
-Check a catalog for structural errors, traceability violations, and user-defined rules.
+Check a catalog for structural errors and traceability violations.
 
 ```bash
 gvp validate --library path/
-gvp validate --library path/ --strict  # warnings become errors
-```
-
-### query
-
-Filter elements by tag, category, document, or status.
-
-```bash
-gvp query --library path/ --tag code --category heuristic
-gvp query --library path/ --document personal --format json
-```
-
-### trace
-
-Walk the mapping graph from a given element, showing ancestors or descendants.
-
-```bash
-gvp trace --library path/ personal:H1
-gvp trace --library path/ personal:H1 --reverse
+gvp validate --library path/ --strict
 ```
 
 ### render
 
-Generate output in markdown, CSV, SQLite, or DOT (graphviz) format.
+Generate output in markdown, CSV, SQLite, DOT, or PNG format.
 
 ```bash
-gvp render --library path/ --format markdown -o output/
+gvp render --library path/ --format markdown --stdout
 gvp render --library path/ --format dot --stdout | dot -Tpng -o graph.png
 ```
 
-### add
+### trace
 
-Create a new element in a document.
-
-```bash
-gvp add principle personal --library path/ --name "New Principle" --statement "..."
-gvp add heuristic personal --library path/ --interactive
-```
-
-### edit
-
-Modify an existing element. Three input modes: CLI flags, interactive prompts, or editor.
+Walk the mapping graph from a given element.
 
 ```bash
-gvp edit personal:P3 --library path/ --status deprecated --rationale "Superseded"
-gvp edit personal:P3 --library path/ --interactive
-gvp edit personal:P3 --library path/                    # opens in $EDITOR
-gvp edit personal:P3 --library path/ --no-provenance    # skip updated_by
+gvp trace --library path/ personal:H1
+gvp trace --library path/ personal:G1 --reverse
 ```
 
 ### review
@@ -189,29 +150,19 @@ gvp edit personal:P3 --library path/ --no-provenance    # skip updated_by
 Review elements for staleness after upstream changes.
 
 ```bash
-gvp review --library path/                    # list stale elements
-gvp review --library path/ personal:P3        # interactive review
+gvp review --library path/
+gvp review --library path/ personal:P3
 ```
 
-## Global Options
-
-| Flag | Description |
-|------|-------------|
-| `--version` | Show version |
-| `--strict` | Promote warnings to errors |
-| `--config PATH` | Override config file path |
-| `--library PATH` | Add a library path (repeatable) |
-| `--no-provenance` | Skip provenance tracking (add/edit only) |
-
-## Future Work
-
-- **PyPI publication** for `pip install gvp`
-- **Graphical tool or web interface** for visual exploration and editing
-- **Expanded examples** — a comprehensive organizational setup with multiple domains (finance, sales, engineering) converging on unified goals/values; a personal self-improvement example with intentionally conflicting values to demonstrate honest self-examination
-- **Diagrams** generated for example directories
+For the full command reference including `add`, `edit`, `query`, and all flags, see the [Usage Reference](docs/guide/usage.md).
 
 ## Further Reading
 
-- [GLOSSARY.md](GLOSSARY.md) — canonical term definitions
-- [docs/philosophy.md](docs/philosophy.md) — on the fuzzy boundaries between goals, values, and principles
-- [docs/plans/](docs/plans/) — design documents and implementation plans
+- [Glossary](GLOSSARY.md) — canonical term definitions
+- [Philosophy](docs/philosophy.md) — on fuzzy boundaries between goals, values, and principles
+- [Developing a Library](docs/guide/developing-a-library.md) — practical guidance for building GVP libraries
+- [Usage Reference](docs/guide/usage.md) — full CLI command and flag reference
+- [AI Integration](docs/guide/ai-integration.md) — using GVP with AI assistants
+- [Schema Reference](docs/reference/schema.md) — YAML document format specification
+- [Validation Reference](docs/reference/validation.md) — traceability rules, error codes, and warnings
+- [Config Reference](docs/reference/config.md) — configuration discovery and options
