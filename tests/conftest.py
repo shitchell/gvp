@@ -24,12 +24,16 @@ def tmp_library(tmp_path: Path) -> Path:
 
     tags = lib / "tags.yaml"
     tags.write_text(
-        "domains:\n"
-        "  code:\n"
-        "    description: Software development\n"
-        "concerns:\n"
-        "  maintainability:\n"
-        "    description: Reducing future cost of change\n"
+        "meta:\n"
+        "  name: tags\n"
+        "  definitions:\n"
+        "    tags:\n"
+        "      domains:\n"
+        "        code:\n"
+        "          description: Software development\n"
+        "      concerns:\n"
+        "        maintainability:\n"
+        "          description: Reducing future cost of change\n"
     )
 
     doc = lib / "test.yaml"

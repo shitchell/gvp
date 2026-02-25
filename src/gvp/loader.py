@@ -24,7 +24,7 @@ CATEGORY_MAP = {
     "coding_principles": "coding_principle",
 }
 
-SKIP_FILES = {"tags.yaml", "schema.yaml"}
+SKIP_FILES = {"schema.yaml"}
 ELEMENT_ATTRS = {
     "id",
     "name",
@@ -37,15 +37,13 @@ ELEMENT_ATTRS = {
 }
 
 
-def _load_tags(library_path: Path) -> dict[str, dict]:
-    tags_file = library_path / "tags.yaml"
-    if not tags_file.exists():
-        return {}
-    with open(tags_file) as f:
-        data = yaml.safe_load(f) or {}
+def _parse_tag_definitions(meta: dict) -> dict[str, dict]:
+    """Parse meta.definitions.tags into a flat {tag_name: {type, description, ...}} dict."""
+    definitions = meta.get("definitions") or {}
+    raw_tags = definitions.get("tags") or {}
     result = {}
     for section in ("domains", "concerns"):
-        for tag_name, tag_def in (data.get(section) or {}).items():
+        for tag_name, tag_def in (raw_tags.get(section) or {}).items():
             result[tag_name] = {"type": section.rstrip("s"), **(tag_def or {})}
     return result
 
@@ -135,6 +133,7 @@ def load_document(path: Path) -> Document:
         scope_label=meta.get("scope"),
         id_prefix=meta.get("id_prefix"),
         defaults=meta.get("defaults") or {},
+        tag_definitions=_parse_tag_definitions(meta),
         elements=[],
     )
     for yaml_key, category in CATEGORY_MAP.items():
@@ -148,7 +147,7 @@ def load_document(path: Path) -> Document:
 
 
 def load_library(library_path: Path) -> tuple[list[Document], dict[str, dict]]:
-    tags = _load_tags(library_path)
+    tags: dict[str, dict] = {}
     documents: list[Document] = []
     # Track relative paths (without .yaml) to document names for inherits resolution
     path_to_name: dict[str, str] = {}
@@ -159,6 +158,10 @@ def load_library(library_path: Path) -> tuple[list[Document], dict[str, dict]]:
         documents.append(doc)
         rel = yaml_file.relative_to(library_path).with_suffix("")
         path_to_name[str(rel)] = doc.name
+        # Accumulate tag definitions (first-wins)
+        for tag_name, tag_def in doc.tag_definitions.items():
+            if tag_name not in tags:
+                tags[tag_name] = tag_def
     # Resolve path-based inherits references to document names
     for doc in documents:
         doc.inherits = [path_to_name.get(parent, parent) for parent in doc.inherits]
@@ -184,6 +187,9 @@ def load_catalog(cfg: GVPConfig) -> Catalog:
                 )
                 continue
             catalog.add_document(doc)
+            for tag_name, tag_def in doc.tag_definitions.items():
+                if tag_name not in catalog.tags:
+                    catalog.tags[tag_name] = tag_def
             continue
         docs, tags = load_library(lib_path)
         for tag_name, tag_def in tags.items():

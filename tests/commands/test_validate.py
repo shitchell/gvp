@@ -83,7 +83,13 @@ class TestValidateCatalog:
         lib = tmp_path / "lib"
         lib.mkdir()
         (lib / "tags.yaml").write_text(
-            "domains:\n  code:\n    description: Code\n" "concerns: {}\n"
+            "meta:\n"
+            "  name: tags\n"
+            "  definitions:\n"
+            "    tags:\n"
+            "      domains:\n"
+            "        code:\n"
+            "          description: Code\n"
         )
         (lib / "test.yaml").write_text(
             "meta:\n  name: test\n"
@@ -827,7 +833,13 @@ class TestUserDefinedRules:
         lib = tmp_path / "lib"
         lib.mkdir()
         (lib / "tags.yaml").write_text(
-            "domains:\n  code:\n    description: Code\nconcerns: {}\n"
+            "meta:\n"
+            "  name: tags\n"
+            "  definitions:\n"
+            "    tags:\n"
+            "      domains:\n"
+            "        code:\n"
+            "          description: Code\n"
         )
         (lib / "root.yaml").write_text(
             textwrap.dedent(
@@ -967,7 +979,13 @@ class TestUserDefinedRules:
         lib = tmp_path / "lib"
         lib.mkdir()
         (lib / "tags.yaml").write_text(
-            "domains:\n  code:\n    description: Code\nconcerns: {}\n"
+            "meta:\n"
+            "  name: tags\n"
+            "  definitions:\n"
+            "    tags:\n"
+            "      domains:\n"
+            "        code:\n"
+            "          description: Code\n"
         )
         (lib / "root.yaml").write_text(
             textwrap.dedent(

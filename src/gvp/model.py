@@ -48,6 +48,7 @@ class Document:
     scope_label: str | None
     id_prefix: str | None
     defaults: dict
+    tag_definitions: dict[str, dict] = field(default_factory=dict)
     elements: list[Element] = field(default_factory=list)
 
 

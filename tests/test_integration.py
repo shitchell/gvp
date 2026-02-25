@@ -21,7 +21,7 @@ class TestFullPipeline:
         # Load
         cfg = GVPConfig(libraries=[gvp_docs_library])
         catalog = load_catalog(cfg)
-        assert len(catalog.documents) == 4
+        assert len(catalog.documents) == 5
         assert len(catalog.elements) >= 16
 
         # Validate
