@@ -55,3 +55,34 @@ design_choices:
       than JSON and more structured than markdown.
     tags: [tooling, framework]
     maps_to: [gvp:G7, gvp:P3, gvp:V4]
+
+  - id: D3
+    name: Rename Category to ElementCategory
+    rationale: >
+      "Category" on its own is too broad and vague to be useful -- it's like
+      calling something a "list" and expecting people to know you mean "list
+      of 1985 muscle cars." The term doesn't appear in the glossary and
+      doesn't merit an entry just to mean "type of element." Prefixing with
+      "Element" makes the meaning self-evident: ElementCategoryDef,
+      ElementCategoryRegistry, element_category_registry. "Element" is also
+      broad, but it earns its place by being in the glossary. This rename
+      touches class names, function names, variable names, and documentation
+      headings throughout the codebase.
+    tags: [tooling, framework]
+    maps_to: [gvp:G7, gvp:G9, gvp:V5, gvp:V6]
+    considered:
+      keep_category_with_glossary_entry:
+        description: >
+          Keep "Category" as-is and add it to the glossary to define the
+          specific meaning.
+        rationale: >
+          Adding a glossary entry for a term that just means "type of element"
+          is unnecessary indirection. The name should carry its own meaning.
+      element_type:
+        description: >
+          Use "ElementType" instead of "ElementCategory."
+        rationale: >
+          "Type" collides with Python's type system and Pydantic's type
+          annotations. "Category" is the established term in the codebase and
+          YAML schema (meta.definitions.categories), so keeping it as the
+          suffix avoids a second rename of the YAML interface.
