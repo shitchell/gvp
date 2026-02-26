@@ -4,7 +4,7 @@ Date: 2026-02-25
 
 ## Overview
 
-Replace all hardcoded category definitions with a schema-driven system. Category
+Replace all hardcoded element category definitions with a schema-driven system. Category
 metadata (yaml_key, id_prefix, mapping_rules, field schemas) moves into
 `meta.definitions.categories` in library documents. Element models become Pydantic
 BaseModel subclasses generated at runtime from schema definitions. The `.gvp/library/`
@@ -14,7 +14,7 @@ This is a foundational architectural change that touches the loader, validator, 
 renderers, and CLI commands.
 
 
-## 1. Category Definitions
+## 1. Element Category Definitions
 
 ### Location
 
@@ -57,7 +57,7 @@ meta:
             required: true
 ```
 
-**Required fields per category definition:**
+**Required fields per element category definition:**
 - `yaml_key` — plural YAML section key (e.g., `heuristics`)
 - `id_prefix` — for auto-generated IDs (e.g., `H`)
 
@@ -341,7 +341,7 @@ These remain as hand-written checks since they are cross-element or cross-docume
 - W005: insular mappings
 - W006: staleness
 - W007: duplicate tag definitions
-- W008: duplicate user category definitions (new)
+- W008: duplicate user element category definitions (new)
 - W009: unknown YAML section keys (new)
 
 ### Schema Definition Validation
@@ -368,7 +368,7 @@ Both paths use the same validation code; the difference is error collection vs f
 1. On startup, load built-in defaults from bundled YAML
 2. When loading a library, accumulate `meta.definitions.categories` from documents
    (first-wins, same as tags)
-3. Merge user category definitions onto built-in defaults (per-field override)
+3. Merge user element category definitions onto built-in defaults (per-field override)
 4. Build category registry on the Catalog object
 5. Generate Pydantic model subclasses per category
 6. Parse element sections using category registry (dynamic yaml_key lookup instead of
@@ -429,7 +429,7 @@ how their fields appear in markdown, SQLite, etc. without renderer code changes.
 ## 9. Documentation
 
 Every implementation task includes a documentation step:
-- `docs/reference/schema.md` — update with category definitions, field schemas, _all
+- `docs/reference/schema.md` — update with element category definitions, field schemas, _all
 - `docs/reference/validation.md` — update with W008, W009, Pydantic error translation
 - `docs/reference/config.md` — update `.gvp/library/` path
 - `docs/guide/developing-a-library.md` — custom category walkthrough
@@ -444,7 +444,7 @@ Every implementation task includes a documentation step:
 |------|-------|
 | Model | `src/gvp/model.py` (Pydantic rewrite) |
 | Schema | `src/gvp/schema.py` (new — schema loading, merging, model generation) |
-| Defaults | `src/gvp/data/defaults.yaml` (new — bundled category definitions) |
+| Defaults | `src/gvp/data/defaults.yaml` (new — bundled element category definitions) |
 | Loader | `src/gvp/loader.py` (use schema registry, remove hardcoded maps) |
 | Config | `src/gvp/config.py` (library → library path) |
 | Validator | `src/gvp/commands/validate.py` (Pydantic errors, schema validation, W008/W009) |

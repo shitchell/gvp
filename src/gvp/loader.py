@@ -11,9 +11,9 @@ import yaml
 from gvp.config import GVPConfig
 from gvp.model import Catalog, Document, Element
 from gvp.schema import (
-    CategoryRegistry,
+    ElementCategoryRegistry,
     load_builtin_defaults,
-    merge_category_definitions,
+    merge_element_category_definitions,
 )
 
 BASE_ELEMENT_ATTRS = {
@@ -115,7 +115,7 @@ def _parse_element(raw: dict, category: str, doc: Document) -> Element:
     )
 
 
-def load_document(path: Path, registry: CategoryRegistry) -> Document:
+def load_document(path: Path, registry: ElementCategoryRegistry) -> Document:
     with open(path) as f:
         data = yaml.safe_load(f) or {}
     meta = data.get("meta") or {}
@@ -130,7 +130,7 @@ def load_document(path: Path, registry: CategoryRegistry) -> Document:
         tag_definitions=_parse_tag_definitions(meta),
         elements=[],
     )
-    yaml_key_map = registry.yaml_key_to_category()
+    yaml_key_map = registry.yaml_key_to_element_category()
     for yaml_key, category in yaml_key_map.items():
         items = data.get(yaml_key)
         if not items:
@@ -143,14 +143,14 @@ def load_document(path: Path, registry: CategoryRegistry) -> Document:
 
 def load_library(
     library_path: Path,
-    registry: CategoryRegistry | None = None,
+    registry: ElementCategoryRegistry | None = None,
 ) -> tuple[list[Document], dict[str, dict], dict[str, str], dict[str, dict]]:
     if registry is None:
         registry = load_builtin_defaults()
     tags: dict[str, dict] = {}
     tag_sources: dict[str, str] = {}
     documents: list[Document] = []
-    user_category_defs: dict[str, dict] = {}
+    user_element_category_defs: dict[str, dict] = {}
     path_to_name: dict[str, str] = {}
     for yaml_file in sorted(library_path.rglob("*.yaml")):
         doc = load_document(yaml_file, registry)
@@ -162,25 +162,25 @@ def load_library(
             if tag_name not in tags:
                 tags[tag_name] = tag_def
                 tag_sources[tag_name] = doc.name
-        # Accumulate category definitions from meta.definitions.categories
+        # Accumulate element category definitions from meta.definitions.categories
         with open(yaml_file) as f:
             data = yaml.safe_load(f) or {}
         meta = data.get("meta") or {}
         definitions = meta.get("definitions") or {}
-        cat_defs = definitions.get("categories") or {}
-        for cat_name, cat_def in cat_defs.items():
-            if cat_name not in user_category_defs:
-                user_category_defs[cat_name] = cat_def
+        ecat_defs = definitions.get("categories") or {}
+        for ecat_name, ecat_def in ecat_defs.items():
+            if ecat_name not in user_element_category_defs:
+                user_element_category_defs[ecat_name] = ecat_def
     # Resolve path-based inherits references to document names
     for doc in documents:
         doc.inherits = [path_to_name.get(parent, parent) for parent in doc.inherits]
-    return documents, tags, tag_sources, user_category_defs
+    return documents, tags, tag_sources, user_element_category_defs
 
 
 def load_catalog(cfg: GVPConfig) -> Catalog:
     catalog = Catalog()
     registry = load_builtin_defaults()
-    all_user_cat_defs: dict[str, dict] = {}
+    all_user_ecat_defs: dict[str, dict] = {}
 
     for lib_path in cfg.libraries:
         if not lib_path.exists():
@@ -203,15 +203,15 @@ def load_catalog(cfg: GVPConfig) -> Catalog:
                 if tag_name not in catalog.tags:
                     catalog.tags[tag_name] = tag_def
             continue
-        docs, tags, tag_sources, user_cat_defs = load_library(lib_path, registry)
-        # Accumulate user category definitions
-        for cat_name, cat_def in user_cat_defs.items():
-            if cat_name in all_user_cat_defs:
+        docs, tags, tag_sources, user_ecat_defs = load_library(lib_path, registry)
+        # Accumulate user element category definitions
+        for ecat_name, ecat_def in user_ecat_defs.items():
+            if ecat_name in all_user_ecat_defs:
                 catalog.load_warnings.append(
-                    f"W008: duplicate category definition '{cat_name}', keeping first"
+                    f"W008: duplicate category definition '{ecat_name}', keeping first"
                 )
             else:
-                all_user_cat_defs[cat_name] = cat_def
+                all_user_ecat_defs[ecat_name] = ecat_def
         for tag_name, tag_def in tags.items():
             if tag_name not in catalog.tags:
                 catalog.tags[tag_name] = tag_def
@@ -229,8 +229,8 @@ def load_catalog(cfg: GVPConfig) -> Catalog:
                 continue
             catalog.add_document(doc)
 
-    # Merge user category definitions and store the final registry
-    if all_user_cat_defs:
-        registry = merge_category_definitions(registry, all_user_cat_defs)
-    catalog.category_registry = registry
+    # Merge user element category definitions and store the final registry
+    if all_user_ecat_defs:
+        registry = merge_element_category_definitions(registry, all_user_ecat_defs)
+    catalog.element_category_registry = registry
     return catalog

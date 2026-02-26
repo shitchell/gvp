@@ -2,7 +2,7 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Replace all hardcoded category definitions with a schema-driven system using Pydantic models, move category metadata into `meta.definitions.categories`, and rename `.gvp/library/` to `.gvp/library/`.
+**Goal:** Replace all hardcoded element category definitions with a schema-driven system using Pydantic models, move category metadata into `meta.definitions.categories`, and rename `.gvp/library/` to `.gvp/library/`.
 
 **Architecture:** A new `schema.py` module loads built-in category defaults from `src/gvp/data/defaults.yaml`, merges user definitions from `meta.definitions.categories`, and generates per-category Pydantic Element subclasses at runtime. The category registry lives on the Catalog and replaces all hardcoded category maps across loader, validator, renderers, and CLI commands.
 
@@ -58,7 +58,7 @@ This file defines all core categories with their full metadata. It ships as pack
 Create `src/gvp/data/defaults.yaml`:
 
 ```yaml
-# Built-in GVP category definitions.
+# Built-in GVP element category definitions.
 # Users can override any property via meta.definitions.categories in their library documents.
 
 categories:
@@ -267,10 +267,10 @@ Create `tests/test_schema.py`:
 import pytest
 
 from gvp.schema import (
-    CategoryDef,
-    CategoryRegistry,
+    ElementCategoryDef,
+    ElementCategoryRegistry,
     load_builtin_defaults,
-    merge_category_definitions,
+    merge_element_category_definitions,
     build_element_models,
 )
 
@@ -306,7 +306,7 @@ class TestLoadBuiltinDefaults:
         assert "priority" in goal.field_schemas
 
 
-class TestMergeCategoryDefinitions:
+class TestMergeElementCategoryDefinitions:
     def test_user_adds_new_category(self):
         registry = load_builtin_defaults()
         user_defs = {
@@ -320,7 +320,7 @@ class TestMergeCategoryDefinitions:
                 },
             }
         }
-        merged = merge_category_definitions(registry, user_defs)
+        merged = merge_element_category_definitions(registry, user_defs)
         assert "experiment" in merged.categories
         assert merged.categories["experiment"].id_prefix == "EX"
 
@@ -329,7 +329,7 @@ class TestMergeCategoryDefinitions:
         user_defs = {
             "heuristic": {"color": "#FF0000"},
         }
-        merged = merge_category_definitions(registry, user_defs)
+        merged = merge_element_category_definitions(registry, user_defs)
         assert merged.categories["heuristic"].color == "#FF0000"
         # Other properties preserved
         assert merged.categories["heuristic"].yaml_key == "heuristics"
@@ -342,7 +342,7 @@ class TestSchemaValidation:
             "bad_cat": {"id_prefix": "B"},
         }
         with pytest.raises(ValueError, match="yaml_key"):
-            merge_category_definitions(registry, user_defs)
+            merge_element_category_definitions(registry, user_defs)
 
     def test_missing_id_prefix_errors(self):
         registry = load_builtin_defaults()
@@ -350,7 +350,7 @@ class TestSchemaValidation:
             "bad_cat": {"yaml_key": "bad_cats"},
         }
         with pytest.raises(ValueError, match="id_prefix"):
-            merge_category_definitions(registry, user_defs)
+            merge_element_category_definitions(registry, user_defs)
 
     def test_non_root_without_mapping_rules_errors(self):
         registry = load_builtin_defaults()
@@ -361,7 +361,7 @@ class TestSchemaValidation:
             },
         }
         with pytest.raises(ValueError, match="mapping_rules"):
-            merge_category_definitions(registry, user_defs)
+            merge_element_category_definitions(registry, user_defs)
 
     def test_duplicate_id_prefix_errors(self):
         registry = load_builtin_defaults()
@@ -373,7 +373,7 @@ class TestSchemaValidation:
             },
         }
         with pytest.raises(ValueError, match="id_prefix.*G"):
-            merge_category_definitions(registry, user_defs)
+            merge_element_category_definitions(registry, user_defs)
 
     def test_duplicate_yaml_key_errors(self):
         registry = load_builtin_defaults()
@@ -385,7 +385,7 @@ class TestSchemaValidation:
             },
         }
         with pytest.raises(ValueError, match="yaml_key.*goals"):
-            merge_category_definitions(registry, user_defs)
+            merge_element_category_definitions(registry, user_defs)
 
     def test_unknown_category_in_mapping_rules_errors(self):
         registry = load_builtin_defaults()
@@ -397,7 +397,7 @@ class TestSchemaValidation:
             },
         }
         with pytest.raises(ValueError, match="nonexistent"):
-            merge_category_definitions(registry, user_defs)
+            merge_element_category_definitions(registry, user_defs)
 
 
 class TestBuildElementModels:
@@ -464,7 +464,7 @@ from pydantic import BaseModel, ConfigDict, ValidationError, create_model
 
 
 @dataclass
-class CategoryDef:
+class ElementCategoryDef:
     """Definition of a single GVP element category."""
 
     name: str
@@ -485,10 +485,10 @@ class CategoryDef:
 
 
 @dataclass
-class CategoryRegistry:
-    """All known category definitions, in definition order."""
+class ElementCategoryRegistry:
+    """All known element category definitions, in definition order."""
 
-    categories: dict[str, CategoryDef] = field(default_factory=dict)
+    categories: dict[str, ElementCategoryDef] = field(default_factory=dict)
 
     def yaml_key_to_category(self) -> dict[str, str]:
         """Build reverse map: yaml_key -> category name."""
@@ -498,7 +498,7 @@ class CategoryRegistry:
         return {name for name, cat in self.categories.items() if cat.is_root}
 
 
-def load_builtin_defaults() -> CategoryRegistry:
+def load_builtin_defaults() -> ElementCategoryRegistry:
     """Load the built-in defaults.yaml from package data."""
     defaults_path = files("gvp.data").joinpath("defaults.yaml")
     data = yaml.safe_load(defaults_path.read_text())
@@ -509,13 +509,13 @@ def load_builtin_defaults() -> CategoryRegistry:
     if "_all" in raw_categories:
         all_field_schemas = raw_categories.pop("_all").get("field_schemas", {})
 
-    registry = CategoryRegistry()
+    registry = ElementCategoryRegistry()
     for name, raw in raw_categories.items():
         # Merge _all field schemas (category-specific overrides _all)
         merged_fields = dict(all_field_schemas)
         merged_fields.update(raw.get("field_schemas", {}))
 
-        registry.categories[name] = CategoryDef(
+        registry.categories[name] = ElementCategoryDef(
             name=name,
             yaml_key=raw["yaml_key"],
             id_prefix=raw["id_prefix"],
@@ -530,16 +530,16 @@ def load_builtin_defaults() -> CategoryRegistry:
     return registry
 
 
-def merge_category_definitions(
-    registry: CategoryRegistry,
+def merge_element_category_definitions(
+    registry: ElementCategoryRegistry,
     user_defs: dict[str, dict],
-) -> CategoryRegistry:
-    """Merge user category definitions onto a registry. Returns a new registry.
+) -> ElementCategoryRegistry:
+    """Merge user element category definitions onto a registry. Returns a new registry.
 
     Validates schema definitions and raises ValueError on errors.
     """
     # Start with a copy
-    merged = CategoryRegistry(categories=dict(registry.categories))
+    merged = ElementCategoryRegistry(categories=dict(registry.categories))
 
     # Extract _all from user defs if present
     user_all_fields = {}
@@ -593,7 +593,7 @@ def merge_category_definitions(
             fs = dict(user_all_fields)
             fs.update(raw.get("field_schemas", {}))
 
-            merged.categories[name] = CategoryDef(
+            merged.categories[name] = ElementCategoryDef(
                 name=name,
                 yaml_key=raw["yaml_key"],
                 id_prefix=raw["id_prefix"],
@@ -716,7 +716,7 @@ class BaseElement(BaseModel):
 
 
 def build_element_models(
-    registry: CategoryRegistry,
+    registry: ElementCategoryRegistry,
 ) -> dict[str, type[BaseElement]]:
     """Generate a Pydantic model subclass for each category."""
     models: dict[str, type[BaseElement]] = {}
@@ -770,7 +770,7 @@ Replace `CATEGORY_MAP`, `SKIP_FILES`, and `ELEMENT_ATTRS` with registry-driven l
 In `src/gvp/model.py`, add to Catalog `__init__`:
 
 ```python
-from gvp.schema import CategoryRegistry
+from gvp.schema import ElementCategoryRegistry
 
 class Catalog:
     def __init__(self) -> None:
@@ -778,7 +778,7 @@ class Catalog:
         self.elements: dict[str, Element] = {}
         self.tags: dict[str, dict] = {}
         self.tag_sources: dict[str, str] = {}
-        self.category_registry: CategoryRegistry | None = None
+        self.element_category_registry: ElementCategoryRegistry | None = None
 ```
 
 Note: To avoid circular imports, the registry is set by the loader after construction, not in `__init__`. Use `from __future__ import annotations` and a string annotation or `Any` if needed.
@@ -788,7 +788,7 @@ Note: To avoid circular imports, the registry is set by the loader after constru
 Key changes to `src/gvp/loader.py`:
 
 1. Remove `CATEGORY_MAP`, `SKIP_FILES`, `ELEMENT_ATTRS` constants
-2. Import `load_builtin_defaults`, `merge_category_definitions`, `build_element_models`, `CategoryRegistry`, `BaseElement` from `gvp.schema`
+2. Import `load_builtin_defaults`, `merge_element_category_definitions`, `build_element_models`, `ElementCategoryRegistry`, `BaseElement` from `gvp.schema`
 3. Define `BASE_ELEMENT_ATTRS` as a set of structural field names that never go into `fields`:
    ```python
    BASE_ELEMENT_ATTRS = {
@@ -797,7 +797,7 @@ Key changes to `src/gvp/loader.py`:
    }
    ```
 4. `_parse_element()` takes the category's field_schema keys to compute what goes into `fields` vs model attributes
-5. `load_document()` takes a `CategoryRegistry` parameter, iterates `registry.yaml_key_to_category()` instead of `CATEGORY_MAP`
+5. `load_document()` takes a `ElementCategoryRegistry` parameter, iterates `registry.yaml_key_to_element_category()` instead of `CATEGORY_MAP`
 6. `load_library()` accumulates `meta.definitions.categories` from documents (first-wins, emit W008 on duplicates)
 7. `load_catalog()` orchestrates: load defaults → accumulate user definitions → merge → build models → parse elements with correct models
 8. Remove the `schema.yaml` skip logic
@@ -875,8 +875,8 @@ git commit -m "feat: replace Element dataclass with Pydantic BaseElement"
 **Step 1: Replace hardcoded constants**
 
 Remove:
-- `_ROOT_CATEGORIES` → use `catalog.category_registry.root_categories()`
-- `_MAPPING_RULES` → read from `catalog.category_registry.categories[cat].mapping_rules`
+- `_ROOT_CATEGORIES` → use `catalog.element_category_registry.root_element_categories()`
+- `_MAPPING_RULES` → read from `catalog.element_category_registry.categories[cat].mapping_rules`
 - `_validate_considered()` → Pydantic handles this on construction now
 - Priority type check loop → Pydantic handles this on construction now
 
@@ -885,17 +885,17 @@ Remove:
 ```python
 def _validate_mappings(catalog: Catalog) -> list[str]:
     errors = []
-    registry = catalog.category_registry
-    root_cats = registry.root_categories()
+    registry = catalog.element_category_registry
+    root_ecats = registry.root_element_categories()
 
     for qid, elem in catalog.elements.items():
-        if elem.category in root_cats:
+        if elem.category in root_ecats:
             continue
         if elem.status in ("deprecated", "rejected"):
             continue
 
-        cat_def = registry.categories.get(elem.category)
-        if cat_def is None or not cat_def.mapping_rules:
+        ecat_def = registry.categories.get(elem.category)
+        if ecat_def is None or not ecat_def.mapping_rules:
             continue
 
         target_categories = set()
@@ -906,7 +906,7 @@ def _validate_mappings(catalog: Catalog) -> list[str]:
 
         # Check: any group fully satisfied?
         satisfied = False
-        for group in cat_def.mapping_rules:
+        for group in ecat_def.mapping_rules:
             if all(c in target_categories for c in group):
                 satisfied = True
                 break
@@ -914,7 +914,7 @@ def _validate_mappings(catalog: Catalog) -> list[str]:
         if not satisfied:
             # Build helpful error message
             rule_desc = " OR ".join(
-                " AND ".join(g) for g in cat_def.mapping_rules
+                " AND ".join(g) for g in ecat_def.mapping_rules
             )
             errors.append(
                 f"{qid}: traceability — must map to ({rule_desc})"
@@ -923,7 +923,7 @@ def _validate_mappings(catalog: Catalog) -> list[str]:
     return errors
 ```
 
-**Step 3: Add W008 (duplicate user category definitions) and W009 (unknown YAML section keys)**
+**Step 3: Add W008 (duplicate user element category definitions) and W009 (unknown YAML section keys)**
 
 W008 is emitted in the loader during category accumulation (Task 4). W009 is emitted in `load_document()` when a top-level YAML key doesn't match any known `yaml_key`.
 
@@ -986,8 +986,8 @@ Remove `ID_PREFIXES` and `YAML_KEYS`. Replace with registry lookups:
 
 ```python
 def next_id(category: str, existing_ids: list[str], registry, prefix: str | None = None) -> str:
-    cat_def = registry.categories[category]
-    id_prefix = cat_def.id_prefix
+    ecat_def = registry.categories[category]
+    id_prefix = ecat_def.id_prefix
     if prefix:
         id_prefix = prefix + id_prefix
     # ... rest unchanged
@@ -996,7 +996,7 @@ def next_id(category: str, existing_ids: list[str], registry, prefix: str | None
 ```python
 def add_element(catalog, document_name, category, name, fields, no_provenance=False):
     # ...
-    yaml_key = catalog.category_registry.categories[category].yaml_key
+    yaml_key = catalog.element_category_registry.categories[category].yaml_key
     # ... rest unchanged
 ```
 
@@ -1006,10 +1006,10 @@ Replace the hardcoded if/elif chain:
 
 ```python
 def _build_template(category: str, prefill: dict, registry) -> str:
-    cat_def = registry.categories[category]
+    ecat_def = registry.categories[category]
     fields = {"name": ""}
     # Add required fields from schema
-    for fname, fschema in cat_def.field_schemas.items():
+    for fname, fschema in ecat_def.field_schemas.items():
         if fname == "priority":
             continue
         if fschema.get("required", False):
@@ -1022,10 +1022,10 @@ def _build_template(category: str, prefill: dict, registry) -> str:
 
 **Step 3: Update edit.py**
 
-`edit.py` imports `YAML_KEYS` from `add.py`. Change to use `catalog.category_registry`:
+`edit.py` imports `YAML_KEYS` from `add.py`. Change to use `catalog.element_category_registry`:
 
 ```python
-yaml_key = catalog.category_registry.categories[elem.category].yaml_key
+yaml_key = catalog.element_category_registry.categories[elem.category].yaml_key
 ```
 
 Remove the `from gvp.commands.add import YAML_KEYS` import.
@@ -1035,7 +1035,7 @@ Remove the `from gvp.commands.add import YAML_KEYS` import.
 The `cmd_add` function in `__main__.py` passes category choices to argparse. Update to get valid categories from the registry:
 
 ```python
-valid_categories = list(catalog.category_registry.categories.keys())
+valid_categories = list(catalog.element_category_registry.categories.keys())
 ```
 
 Note: This requires loading the catalog before parsing add args, or loading just the schema. May need minor restructuring of argument parsing.
@@ -1073,38 +1073,38 @@ Remove `CATEGORY_ORDER`. Replace with registry-driven ordering:
 
 ```python
 def _render_document(doc, catalog, include_deprecated=False):
-    registry = catalog.category_registry
+    registry = catalog.element_category_registry
     lines = [f"# {doc.name}"]
     if doc.scope_label:
         lines.append(f"\n**Scope:** {doc.scope_label}")
     if doc.inherits:
         lines.append(f"\n**Inherits:** {', '.join(doc.inherits)}")
 
-    for cat_name, cat_def in registry.categories.items():
+    for ecat_name, ecat_def in registry.categories.items():
         elems = [
             e for e in doc.elements
-            if e.category == cat_name
+            if e.category == ecat_name
             and (include_deprecated or e.status == "active")
         ]
         if not elems:
             continue
-        lines.append(f"\n## {cat_def.resolved_display_label()}\n")
+        lines.append(f"\n## {ecat_def.resolved_display_label()}\n")
         for elem in elems:
-            lines.append(_render_element(elem, cat_def))
+            lines.append(_render_element(elem, ecat_def))
             lines.append("")
     return "\n".join(lines)
 ```
 
-Update `_render_element` to use `cat_def.primary_field` instead of hardcoded key checks:
+Update `_render_element` to use `ecat_def.primary_field` instead of hardcoded key checks:
 
 ```python
-def _render_element(elem, cat_def=None):
+def _render_element(elem, ecat_def=None):
     lines = [f"### {elem.id}: {elem.name}"]
     # ... status, tags, maps_to, priority as before ...
 
     # Primary field from schema
-    if cat_def:
-        pf = cat_def.primary_field
+    if ecat_def:
+        pf = ecat_def.primary_field
         val = getattr(elem, pf, None) or elem.fields.get(pf)
         if val and isinstance(val, str):
             lines.append(f"\n{val.strip()}")
@@ -1128,15 +1128,15 @@ Remove `CATEGORY_COLORS` and hardcoded `tier_order`. Replace with:
 
 ```python
 def render_dot(catalog, output_dir=None, include_deprecated=False):
-    registry = catalog.category_registry
+    registry = catalog.element_category_registry
     # ...
-    color = registry.categories.get(elem.category, CategoryDef(name="", yaml_key="", id_prefix="")).color
+    color = registry.categories.get(elem.category, ElementCategoryDef(name="", yaml_key="", id_prefix="")).color
     # ...
     # Build tier_order from registry
     tiers: dict[int, list[str]] = {}
-    for cat_name, cat_def in registry.categories.items():
-        if cat_def.tier is not None:
-            tiers.setdefault(cat_def.tier, []).append(cat_name)
+    for ecat_name, ecat_def in registry.categories.items():
+        if ecat_def.tier is not None:
+            tiers.setdefault(ecat_def.tier, []).append(ecat_name)
     for tier_num in sorted(tiers):
         tier_cats = tuple(tiers[tier_num])
         # ... same rank logic ...
@@ -1144,14 +1144,14 @@ def render_dot(catalog, output_dir=None, include_deprecated=False):
 
 **Step 3: Refactor csv.py and sqlite.py**
 
-Minor changes: use `cat_def.primary_field` to get the primary content field instead of hardcoded `statement or rationale`:
+Minor changes: use `ecat_def.primary_field` to get the primary content field instead of hardcoded `statement or rationale`:
 
 ```python
 # csv.py
-cat_def = catalog.category_registry.categories.get(elem.category)
+ecat_def = catalog.element_category_registry.categories.get(elem.category)
 primary = ""
-if cat_def:
-    primary = getattr(elem, cat_def.primary_field, "") or ""
+if ecat_def:
+    primary = getattr(elem, ecat_def.primary_field, "") or ""
 ```
 
 Same pattern for sqlite.py.
@@ -1241,7 +1241,7 @@ Add new sections:
 **Step 2: Update validation.md**
 
 Add:
-- W008: duplicate user category definition
+- W008: duplicate user element category definition
 - W009: unknown YAML section key
 - Pydantic error translation behavior
 - Updated mapping rules description (now schema-driven)

@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from gvp.schema import CategoryRegistry
+    from gvp.schema import ElementCategoryRegistry
 
 from gvp.schema import BaseElement as Element  # noqa: E402
 
@@ -35,7 +35,7 @@ class Catalog:
         self.elements: dict[str, Element] = {}
         self.tags: dict[str, dict] = {}
         self.tag_sources: dict[str, str] = {}
-        self.category_registry: CategoryRegistry | None = None
+        self.element_category_registry: ElementCategoryRegistry | None = None
         self.load_warnings: list[str] = []
 
     def add_document(self, doc: Document) -> None:

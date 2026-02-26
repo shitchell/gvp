@@ -45,7 +45,7 @@ top level of the file.
 | `inherits` | string or list | No | Parent document name(s). Forms a DAG -- cycles are rejected. See [Inheritance](#inheritance) below. |
 | `defaults` | mapping | No | Default field values applied to every element unless explicitly overridden. See [Defaults](#defaults) below. |
 | `id_prefix` | string | No | Prefix for auto-generated element IDs (used by `gvp add`). |
-| `definitions` | mapping | No | Definitions for library-level constructs. Supports `definitions.tags` for tag definitions and `definitions.categories` for custom category definitions. See [Tag Definitions](#tag-definitions) and [Category Definitions](#category-definitions). |
+| `definitions` | mapping | No | Definitions for library-level constructs. Supports `definitions.tags` for tag definitions and `definitions.categories` for custom element category definitions. See [Tag Definitions](#tag-definitions) and [Element Category Definitions](#element-category-definitions). |
 
 ### Inheritance
 
@@ -134,7 +134,7 @@ be relevant outside software development contexts.
 
 These categories are the built-in defaults. The framework loads them from a
 built-in schema and they can be overridden or extended via
-`meta.definitions.categories`. See [Category Definitions](#category-definitions).
+`meta.definitions.categories`. See [Element Category Definitions](#element-category-definitions).
 
 
 ## Element Fields
@@ -218,8 +218,8 @@ goals:
 
 Extra fields are stored as additional model attributes and passed through to
 renderers. Category-specific fields (like `considered` on design choices) can
-be formally defined via `field_schemas` in the category definition -- see
-[Category Definitions](#category-definitions).
+be formally defined via `field_schemas` in the element category definition -- see
+[Element Category Definitions](#element-category-definitions).
 
 
 ## Provenance Fields
@@ -393,9 +393,9 @@ subsequent definitions for the same tag name trigger a W007 warning (see
 [Validation Reference](validation.md#warnings)).
 
 
-## Category Definitions
+## Element Category Definitions
 
-Categories can be customized or extended via `meta.definitions.categories` in any GVP document. The framework ships with built-in categories (see [Element Categories](#element-categories) above); user definitions can override properties of existing categories or add entirely new ones.
+Element categories can be customized or extended via `meta.definitions.categories` in any GVP document. The framework ships with built-in categories (see [Element Categories](#element-categories) above); user definitions can override properties of existing categories or add entirely new ones.
 
 ### Structure
 
@@ -420,7 +420,7 @@ meta:
             required: true
 ```
 
-### Category Definition Fields
+### Element Category Definition Fields
 
 | Field | Type | Required (new) | Description |
 |-------|------|----------------|-------------|
@@ -499,7 +499,7 @@ mapping_rules:
 
 ### Validation
 
-New category definitions are validated:
+New element category definitions are validated:
 - `yaml_key` and `id_prefix` are required for new categories
 - Non-root categories must have `mapping_rules`
 - `id_prefix` must be unique across all categories
@@ -508,7 +508,7 @@ New category definitions are validated:
 
 ### Accumulation
 
-Category definitions accumulate across documents in a library (first-wins). If the same category name is defined in multiple documents, a W008 warning is emitted and the first definition is kept.
+Element category definitions accumulate across documents in a library (first-wins). If the same category name is defined in multiple documents, a W008 warning is emitted and the first definition is kept.
 
 
 ## Technical Glossary

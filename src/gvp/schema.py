@@ -11,7 +11,7 @@ from pydantic import BaseModel, ConfigDict, ValidationError, create_model
 
 
 @dataclass
-class CategoryDef:
+class ElementCategoryDef:
     """Definition of a single GVP element category."""
 
     name: str
@@ -32,20 +32,20 @@ class CategoryDef:
 
 
 @dataclass
-class CategoryRegistry:
-    """All known category definitions, in definition order."""
+class ElementCategoryRegistry:
+    """All known element category definitions, in definition order."""
 
-    categories: dict[str, CategoryDef] = field(default_factory=dict)
+    categories: dict[str, ElementCategoryDef] = field(default_factory=dict)
 
-    def yaml_key_to_category(self) -> dict[str, str]:
+    def yaml_key_to_element_category(self) -> dict[str, str]:
         """Build reverse map: yaml_key -> category name."""
         return {cat.yaml_key: name for name, cat in self.categories.items()}
 
-    def root_categories(self) -> set[str]:
+    def root_element_categories(self) -> set[str]:
         return {name for name, cat in self.categories.items() if cat.is_root}
 
 
-def load_builtin_defaults() -> CategoryRegistry:
+def load_builtin_defaults() -> ElementCategoryRegistry:
     """Load the built-in defaults.yaml from package data."""
     defaults_path = files("gvp.data").joinpath("defaults.yaml")
     data = yaml.safe_load(defaults_path.read_text())
@@ -56,13 +56,13 @@ def load_builtin_defaults() -> CategoryRegistry:
     if "_all" in raw_categories:
         all_field_schemas = raw_categories.pop("_all").get("field_schemas", {})
 
-    registry = CategoryRegistry()
+    registry = ElementCategoryRegistry()
     for name, raw in raw_categories.items():
         # Merge _all field schemas (category-specific overrides _all)
         merged_fields = dict(all_field_schemas)
         merged_fields.update(raw.get("field_schemas", {}))
 
-        registry.categories[name] = CategoryDef(
+        registry.categories[name] = ElementCategoryDef(
             name=name,
             yaml_key=raw["yaml_key"],
             id_prefix=raw["id_prefix"],
@@ -77,16 +77,16 @@ def load_builtin_defaults() -> CategoryRegistry:
     return registry
 
 
-def merge_category_definitions(
-    registry: CategoryRegistry,
+def merge_element_category_definitions(
+    registry: ElementCategoryRegistry,
     user_defs: dict[str, dict],
-) -> CategoryRegistry:
-    """Merge user category definitions onto a registry. Returns a new registry.
+) -> ElementCategoryRegistry:
+    """Merge user element category definitions onto a registry. Returns a new registry.
 
     Validates schema definitions and raises ValueError on errors.
     """
     # Start with a copy
-    merged = CategoryRegistry(categories=dict(registry.categories))
+    merged = ElementCategoryRegistry(categories=dict(registry.categories))
 
     # Extract _all from user defs if present
     user_all_fields = {}
@@ -140,7 +140,7 @@ def merge_category_definitions(
             fs = dict(user_all_fields)
             fs.update(raw.get("field_schemas", {}))
 
-            merged.categories[name] = CategoryDef(
+            merged.categories[name] = ElementCategoryDef(
                 name=name,
                 yaml_key=raw["yaml_key"],
                 id_prefix=raw["id_prefix"],
@@ -156,7 +156,7 @@ def merge_category_definitions(
     # Validate: unique id_prefix and yaml_key
     seen_prefixes: dict[str, str] = {}
     seen_keys: dict[str, str] = {}
-    all_category_names = set(merged.categories.keys())
+    all_ecat_names = set(merged.categories.keys())
 
     for cname, cat in merged.categories.items():
         if cat.id_prefix in seen_prefixes:
@@ -176,7 +176,7 @@ def merge_category_definitions(
         # Validate mapping_rules reference known categories
         for group in cat.mapping_rules:
             for ref in group:
-                if ref not in all_category_names:
+                if ref not in all_ecat_names:
                     raise ValueError(
                         f"Category '{cname}': mapping_rules references "
                         f"unknown category '{ref}'"
@@ -288,7 +288,7 @@ class BaseElement(BaseModel):
 
 
 def build_element_models(
-    registry: CategoryRegistry,
+    registry: ElementCategoryRegistry,
 ) -> dict[str, type[BaseElement]]:
     """Generate a Pydantic model subclass for each category."""
     models: dict[str, type[BaseElement]] = {}

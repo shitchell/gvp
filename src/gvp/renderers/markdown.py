@@ -5,10 +5,10 @@ from __future__ import annotations
 from pathlib import Path
 
 from gvp.model import Catalog, Document, Element
-from gvp.schema import CategoryDef
+from gvp.schema import ElementCategoryDef
 
 
-def _render_element(elem: Element, cat_def: CategoryDef | None = None) -> str:
+def _render_element(elem: Element, ecat_def: ElementCategoryDef | None = None) -> str:
     lines = [f"### {elem.id}: {elem.name}"]
     if elem.status != "active":
         lines.append(f"\n**Status:** {elem.status}")
@@ -20,8 +20,8 @@ def _render_element(elem: Element, cat_def: CategoryDef | None = None) -> str:
         lines.append(f"\n**Priority:** {elem.priority}")
 
     # Primary field from schema
-    if cat_def:
-        pf = cat_def.primary_field
+    if ecat_def:
+        pf = ecat_def.primary_field
         val = getattr(elem, pf, None) or elem.fields.get(pf)
         if val and isinstance(val, str):
             lines.append(f"\n{val.strip()}")
@@ -69,24 +69,24 @@ def _render_document(
     if doc.inherits:
         lines.append(f"\n**Inherits:** {', '.join(doc.inherits)}")
 
-    registry = catalog.category_registry
+    registry = catalog.element_category_registry
     if registry:
         categories = list(registry.categories.items())
     else:
         categories = []
 
-    for cat_name, cat_def in categories:
+    for ecat_name, ecat_def in categories:
         elems = [
             e
             for e in doc.elements
-            if e.category == cat_name
+            if e.category == ecat_name
             and (include_deprecated or e.status == "active")
         ]
         if not elems:
             continue
-        lines.append(f"\n## {cat_def.resolved_display_label()}\n")
+        lines.append(f"\n## {ecat_def.resolved_display_label()}\n")
         for elem in elems:
-            lines.append(_render_element(elem, cat_def))
+            lines.append(_render_element(elem, ecat_def))
             lines.append("")
     return "\n".join(lines)
 

@@ -11,19 +11,19 @@ from gvp.model import Catalog
 def _validate_mappings(catalog: Catalog) -> list[str]:
     """Check category-specific traceability rules using the category registry."""
     errors: list[str] = []
-    registry = catalog.category_registry
+    registry = catalog.element_category_registry
     if registry is None:
         return errors
-    root_cats = registry.root_categories()
+    root_ecats = registry.root_element_categories()
 
     for qid, elem in catalog.elements.items():
-        if elem.category in root_cats:
+        if elem.category in root_ecats:
             continue
         if elem.status in ("deprecated", "rejected"):
             continue
 
-        cat_def = registry.categories.get(elem.category)
-        if cat_def is None or not cat_def.mapping_rules:
+        ecat_def = registry.categories.get(elem.category)
+        if ecat_def is None or not ecat_def.mapping_rules:
             continue
 
         target_categories: set[str] = set()
@@ -34,14 +34,14 @@ def _validate_mappings(catalog: Catalog) -> list[str]:
 
         # Check: any group fully satisfied?
         satisfied = False
-        for group in cat_def.mapping_rules:
+        for group in ecat_def.mapping_rules:
             if all(c in target_categories for c in group):
                 satisfied = True
                 break
 
         if not satisfied:
             rule_desc = " OR ".join(
-                " AND ".join(g) for g in cat_def.mapping_rules
+                " AND ".join(g) for g in ecat_def.mapping_rules
             )
             errors.append(
                 f"{qid}: traceability — must map to ({rule_desc})"
@@ -53,13 +53,13 @@ def _validate_mappings(catalog: Catalog) -> list[str]:
 def _validate_semantic(catalog: Catalog) -> list[str]:
     """Check semantic warnings (tier 2)."""
     warnings: list[str] = []
-    registry = catalog.category_registry
-    root_cats = registry.root_categories() if registry else {"goal", "value", "constraint"}
+    registry = catalog.element_category_registry
+    root_ecats = registry.root_element_categories() if registry else {"goal", "value", "constraint"}
 
     for qid, elem in catalog.elements.items():
         if elem.status in ("deprecated", "rejected"):
             continue
-        if elem.category in root_cats:
+        if elem.category in root_ecats:
             continue
 
         # W004: empty maps_to on element that should have mappings

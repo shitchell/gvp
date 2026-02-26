@@ -17,8 +17,8 @@ from gvp.model import Catalog
 def next_id(
     category: str, existing_ids: list[str], registry, prefix: str | None = None
 ) -> str:
-    cat_def = registry.categories[category]
-    id_prefix = cat_def.id_prefix
+    ecat_def = registry.categories[category]
+    id_prefix = ecat_def.id_prefix
     if prefix:
         id_prefix = prefix + id_prefix
     max_num = 0
@@ -43,7 +43,7 @@ def add_element(
         raise ValueError(f"Document '{document_name}' not found in catalog")
     existing = [e.id for e in doc.elements if e.category == category]
     new_id = next_id(
-        category, existing, catalog.category_registry, prefix=doc.id_prefix
+        category, existing, catalog.element_category_registry, prefix=doc.id_prefix
     )
     elem_dict = {"id": new_id, "name": name, **fields}
     if not no_provenance and "origin" not in elem_dict:
@@ -52,7 +52,7 @@ def add_element(
             elem_dict["origin"] = [{"date": date.today().isoformat()}]
     with open(doc.path) as f:
         data = yaml.safe_load(f) or {}
-    yaml_key = catalog.category_registry.categories[category].yaml_key
+    yaml_key = catalog.element_category_registry.categories[category].yaml_key
     if yaml_key not in data:
         data[yaml_key] = []
     data[yaml_key].append(elem_dict)
@@ -91,7 +91,7 @@ def add_via_editor(
     prefill: dict | None = None,
 ) -> str | None:
     template = _build_template(
-        category, prefill or {}, registry=catalog.category_registry
+        category, prefill or {}, registry=catalog.element_category_registry
     )
     with tempfile.NamedTemporaryFile(
         mode="w", suffix=".yaml", prefix="gvp-add-", delete=False
@@ -120,8 +120,8 @@ def _build_template(category: str, prefill: dict, registry=None) -> str:
     lines = [f"# New {category}", f"# Fill in the fields below and save.", ""]
     fields = {"name": ""}
     if registry and category in registry.categories:
-        cat_def = registry.categories[category]
-        for fname, fschema in cat_def.field_schemas.items():
+        ecat_def = registry.categories[category]
+        for fname, fschema in ecat_def.field_schemas.items():
             if fname == "priority":
                 continue
             if fschema.get("required", False):

@@ -3,10 +3,10 @@
 import pytest
 
 from gvp.schema import (
-    CategoryDef,
-    CategoryRegistry,
+    ElementCategoryDef,
+    ElementCategoryRegistry,
     load_builtin_defaults,
-    merge_category_definitions,
+    merge_element_category_definitions,
     build_element_models,
 )
 
@@ -42,7 +42,7 @@ class TestLoadBuiltinDefaults:
         assert "priority" in goal.field_schemas
 
 
-class TestMergeCategoryDefinitions:
+class TestMergeElementCategoryDefinitions:
     def test_user_adds_new_category(self):
         registry = load_builtin_defaults()
         user_defs = {
@@ -56,7 +56,7 @@ class TestMergeCategoryDefinitions:
                 },
             }
         }
-        merged = merge_category_definitions(registry, user_defs)
+        merged = merge_element_category_definitions(registry, user_defs)
         assert "experiment" in merged.categories
         assert merged.categories["experiment"].id_prefix == "EX"
 
@@ -65,7 +65,7 @@ class TestMergeCategoryDefinitions:
         user_defs = {
             "heuristic": {"color": "#FF0000"},
         }
-        merged = merge_category_definitions(registry, user_defs)
+        merged = merge_element_category_definitions(registry, user_defs)
         assert merged.categories["heuristic"].color == "#FF0000"
         # Other properties preserved
         assert merged.categories["heuristic"].yaml_key == "heuristics"
@@ -78,7 +78,7 @@ class TestSchemaValidation:
             "bad_cat": {"id_prefix": "B"},
         }
         with pytest.raises(ValueError, match="yaml_key"):
-            merge_category_definitions(registry, user_defs)
+            merge_element_category_definitions(registry, user_defs)
 
     def test_missing_id_prefix_errors(self):
         registry = load_builtin_defaults()
@@ -86,7 +86,7 @@ class TestSchemaValidation:
             "bad_cat": {"yaml_key": "bad_cats"},
         }
         with pytest.raises(ValueError, match="id_prefix"):
-            merge_category_definitions(registry, user_defs)
+            merge_element_category_definitions(registry, user_defs)
 
     def test_non_root_without_mapping_rules_errors(self):
         registry = load_builtin_defaults()
@@ -97,7 +97,7 @@ class TestSchemaValidation:
             },
         }
         with pytest.raises(ValueError, match="mapping_rules"):
-            merge_category_definitions(registry, user_defs)
+            merge_element_category_definitions(registry, user_defs)
 
     def test_duplicate_id_prefix_errors(self):
         registry = load_builtin_defaults()
@@ -109,7 +109,7 @@ class TestSchemaValidation:
             },
         }
         with pytest.raises(ValueError, match="id_prefix.*G"):
-            merge_category_definitions(registry, user_defs)
+            merge_element_category_definitions(registry, user_defs)
 
     def test_duplicate_yaml_key_errors(self):
         registry = load_builtin_defaults()
@@ -121,7 +121,7 @@ class TestSchemaValidation:
             },
         }
         with pytest.raises(ValueError, match="yaml_key.*goals"):
-            merge_category_definitions(registry, user_defs)
+            merge_element_category_definitions(registry, user_defs)
 
     def test_unknown_category_in_mapping_rules_errors(self):
         registry = load_builtin_defaults()
@@ -133,7 +133,7 @@ class TestSchemaValidation:
             },
         }
         with pytest.raises(ValueError, match="nonexistent"):
-            merge_category_definitions(registry, user_defs)
+            merge_element_category_definitions(registry, user_defs)
 
 
 class TestBuildElementModels:

@@ -27,7 +27,7 @@ def edit_element_inline(
     with open(doc.path) as f:
         data = yaml.safe_load(f) or {}
 
-    yaml_key = catalog.category_registry.categories[elem.category].yaml_key
+    yaml_key = catalog.element_category_registry.categories[elem.category].yaml_key
     items = data.get(yaml_key, [])
     target = None
     for item in items:

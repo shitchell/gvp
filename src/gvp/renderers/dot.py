@@ -32,13 +32,13 @@ def render_dot(
         lines.append('    style="dashed";')
         lines.append(f'    color="#999999";')
 
-        registry = catalog.category_registry
+        registry = catalog.element_category_registry
         for elem in doc.elements:
             if not include_deprecated and elem.status != "active":
                 continue
             nid = _node_id(str(elem))
-            cat_def = registry.categories.get(elem.category) if registry else None
-            color = cat_def.color if cat_def else "#CCCCCC"
+            ecat_def = registry.categories.get(elem.category) if registry else None
+            color = ecat_def.color if ecat_def else "#CCCCCC"
             label = f"{elem.id}\\n{elem.name}"
             lines.append(
                 f'    {nid} [label="{label}", fillcolor="{color}", '
@@ -50,12 +50,12 @@ def render_dot(
 
     # Enforce vertical ordering by grouping categories into rank tiers.
     # With rankdir=BT, rank=same keeps each tier on one horizontal band.
-    registry = catalog.category_registry
+    registry = catalog.element_category_registry
     if registry:
         tiers: dict[int, list[str]] = {}
-        for cat_name, cat_def in registry.categories.items():
-            if cat_def.tier is not None:
-                tiers.setdefault(cat_def.tier, []).append(cat_name)
+        for ecat_name, ecat_def in registry.categories.items():
+            if ecat_def.tier is not None:
+                tiers.setdefault(ecat_def.tier, []).append(ecat_name)
         for tier_num in sorted(tiers):
             tier_cats = tuple(tiers[tier_num])
             tier_nodes = [
