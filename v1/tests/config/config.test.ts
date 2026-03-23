@@ -86,10 +86,9 @@ describe('mergeConfigs', () => {
     const result = mergeConfigs({ strict: false }, { strict: true });
     expect(result.strict).toBe(true);
 
-    // Setting false after true should not override due to OR logic
+    // Once strict is true, explicit false cannot override (OR merge: any true wins)
     const result2 = mergeConfigs({ strict: true }, { strict: false });
-    // false is not `true`, so default overwrite applies
-    expect(result2.strict).toBe(false);
+    expect(result2.strict).toBe(true);
 
     // But once true is set, later true keeps it
     const result3 = mergeConfigs({ strict: true }, { source: 'local' });

@@ -111,9 +111,13 @@ export function mergeConfigs(...layers: Record<string, unknown>[]): Record<strin
         // Concatenate for validation_rules
         const existing = result[key] as unknown[] | undefined;
         result[key] = [...(existing || []), ...value];
-      } else if (key === 'strict' && value === true) {
-        // OR merge for strict (any source enabling wins)
-        result[key] = true;
+      } else if (key === 'strict') {
+        // OR merge for strict (any source enabling wins — once true, stays true)
+        if (value === true || result[key] === true) {
+          result[key] = true;
+        } else {
+          result[key] = value;
+        }
       } else {
         // Default: closer scope wins (later layer overwrites)
         result[key] = value;
