@@ -1,0 +1,101 @@
+# GVP v1 Built-in Category Definitions
+# Per DEC-9.4: loaded through same pipeline as user files (dogfooding)
+
+_all:
+  field_schemas:
+    priority:
+      type: number
+      required: false
+    refs:
+      type: list
+      required: false
+      items:
+        type: model
+        fields:
+          file:
+            type: string
+            required: true
+          identifier:
+            type: string
+            required: true
+          role:
+            type: enum
+            values: ["defines", "implements", "uses", "extends"]
+            required: true
+
+categories:
+  goal:
+    yaml_key: goals
+    id_prefix: G
+    primary_field: statement
+    is_root: true
+    color: "#4CAF50"
+
+  value:
+    yaml_key: values
+    id_prefix: V
+    primary_field: statement
+    is_root: true
+    color: "#2196F3"
+
+  constraint:
+    yaml_key: constraints
+    id_prefix: C
+    primary_field: impact
+    is_root: true
+    color: "#FF9800"
+
+  principle:
+    yaml_key: principles
+    id_prefix: P
+    primary_field: statement
+    mapping_rules:
+      - [goal, value]
+    color: "#9C27B0"
+
+  rule:
+    yaml_key: rules
+    id_prefix: R
+    primary_field: statement
+    mapping_rules:
+      - [goal, value]
+    color: "#F44336"
+
+  heuristic:
+    yaml_key: heuristics
+    id_prefix: H
+    primary_field: statement
+    mapping_rules:
+      - [goal, value]
+      - [principle]
+      - [rule]
+    color: "#00BCD4"
+
+  decision:
+    yaml_key: decisions
+    id_prefix: D
+    primary_field: rationale
+    mapping_rules:
+      - [goal, value]
+    field_schemas:
+      considered:
+        type: dict
+        required: false
+        values:
+          type: model
+          fields:
+            rationale:
+              type: string
+              required: true
+            description:
+              type: string
+              required: false
+    color: "#795548"
+
+  milestone:
+    yaml_key: milestones
+    id_prefix: M
+    primary_field: description
+    mapping_rules:
+      - [goal, value]
+    color: "#607D8B"
