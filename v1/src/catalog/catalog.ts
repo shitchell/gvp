@@ -10,6 +10,11 @@ import {
   type LibraryDefinitionSnapshot,
 } from './category-merger.js';
 import { validateMergedCategories } from './post-merge-validation.js';
+import {
+  Graph,
+  buildAncestorsGraph,
+  buildDescendantsGraph,
+} from '../model/graph.js';
 
 /**
  * The assembled, validated, queryable GVP catalog (DEC-5.7: construction fails fast).
@@ -88,5 +93,19 @@ export class Catalog {
   /** Get per-library definition snapshot (DEC-2.12) */
   getLibrarySnapshot(source: string): LibraryDefinitionSnapshot | undefined {
     return this._mergedDefinitions.librarySnapshots.get(source);
+  }
+
+  /** Build ancestors graph for an element (DEC-6.1, DEC-6.5) */
+  ancestors(element: Element): Graph {
+    return buildAncestorsGraph(element, (ref) => {
+      return this.getAllElements().find(
+        (e) => e.toLibraryId() === ref || e.hashKey() === ref,
+      );
+    });
+  }
+
+  /** Build descendants graph for an element (DEC-6.1, DEC-6.5) */
+  descendants(element: Element): Graph {
+    return buildDescendantsGraph(element, this.getAllElements());
   }
 }
