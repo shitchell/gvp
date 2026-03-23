@@ -1,19 +1,29 @@
 {
-  "name": "v1",
-  "version": "1.0.0",
-  "main": "index.js",
+  "name": "gvp",
+  "version": "1.0.0-alpha.1",
+  "description": "Goals, Values, and Principles — decision traceability framework",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "bin": {
     "gvp": "./dist/cli/index.js"
   },
+  "files": [
+    "dist/**/*",
+    "src/data/**/*"
+  ],
   "scripts": {
     "build": "tsc",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build"
   },
-  "keywords": [],
+  "keywords": ["gvp", "goals", "values", "principles", "traceability", "decisions"],
   "author": "",
-  "license": "ISC",
-  "description": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^25.5.0",
