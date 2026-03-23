@@ -10,3 +10,4 @@ export * from './catalog/index.js';
 export * from './validation/index.js';
 export * from './provenance/index.js';
 export * from './exporters/index.js';
+export * from './parsers/index.js';
