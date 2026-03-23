@@ -51,3 +51,31 @@ export class SourceResolutionError extends InheritanceError {
     this.name = 'SourceResolutionError';
   }
 }
+
+export class CatalogError extends GVPError {
+  constructor(message: string) {
+    super(message);
+    this.name = 'CatalogError';
+  }
+}
+
+export class DuplicateIdPrefixError extends CatalogError {
+  constructor(message: string) {
+    super(message);
+    this.name = 'DuplicateIdPrefixError';
+  }
+}
+
+export class DuplicateYamlKeyError extends CatalogError {
+  constructor(message: string) {
+    super(message);
+    this.name = 'DuplicateYamlKeyError';
+  }
+}
+
+export class InvalidMappingRuleRefError extends CatalogError {
+  constructor(message: string) {
+    super(message);
+    this.name = 'InvalidMappingRuleRefError';
+  }
+}
