@@ -11,3 +11,4 @@ export * from './validation/index.js';
 export * from './provenance/index.js';
 export * from './exporters/index.js';
 export * from './parsers/index.js';
+export * from './analysis/index.js';
