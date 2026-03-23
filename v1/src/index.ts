@@ -8,3 +8,4 @@ export * from './model/index.js';
 export * from './inheritance/index.js';
 export * from './catalog/index.js';
 export * from './validation/index.js';
+export * from './provenance/index.js';
