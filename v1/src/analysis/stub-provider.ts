@@ -16,14 +16,14 @@ export class StubEmbeddingProvider extends EmbeddingProvider {
     for (const word of words) {
       for (let i = 0; i < word.length; i++) {
         const idx = (word.charCodeAt(i) * (i + 1)) % this.dimensions;
-        vector[idx] += 1;
+        vector[idx] = (vector[idx] ?? 0) + 1;
       }
     }
     // Normalize
     const norm = Math.sqrt(vector.reduce((s: number, v: number) => s + v * v, 0));
     if (norm > 0) {
       for (let i = 0; i < vector.length; i++) {
-        vector[i] /= norm;
+        vector[i] = (vector[i] ?? 0) / norm;
       }
     }
     return vector;

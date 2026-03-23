@@ -24,7 +24,7 @@ export interface FieldSchemaEntry {
  */
 export const fieldSchemaEntrySchema: z.ZodType<FieldSchemaEntry> = z.lazy(() =>
   z.object({
-    type: z.enum(FIELD_TYPES as unknown as [string, ...string[]]),
+    type: z.enum(FIELD_TYPES as unknown as [string, ...string[]]) as unknown as z.ZodType<FieldType>,
     required: z.boolean().optional(),
     display_name: z.string().optional(),
     items: fieldSchemaEntrySchema.optional(),
