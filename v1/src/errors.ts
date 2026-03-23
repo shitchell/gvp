@@ -44,3 +44,10 @@ export class ProvenanceError extends GVPError {
     this.name = 'ProvenanceError';
   }
 }
+
+export class SourceResolutionError extends InheritanceError {
+  constructor(message: string) {
+    super(message);
+    this.name = 'SourceResolutionError';
+  }
+}
