@@ -7,3 +7,4 @@ export * from './config/index.js';
 export * from './model/index.js';
 export * from './inheritance/index.js';
 export * from './catalog/index.js';
+export * from './validation/index.js';
