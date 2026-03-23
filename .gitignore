@@ -6,3 +6,4 @@ build/
 .pytest_cache/
 generated/
 .worktrees/
+node_modules/
