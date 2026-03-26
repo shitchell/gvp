@@ -81,12 +81,17 @@ export function buildCatalog(config: GVPConfig, cwd: string = process.cwd()): Ca
     process.exit(1);
   }
 
-  // Parse the first document as the entry point, resolve inheritance
-  const entryFile = yamlFiles[0]!;
-  const entryDocPath = path.relative(libraryDir, entryFile).replace(/\.ya?ml$/, '');
-  const entryDoc = loadDocumentFile(entryFile, entryDocPath, source, registry);
+  // Load all documents in the library
+  const docCache = new Map<string, ReturnType<typeof loadDocumentFile>>();
+  for (const file of yamlFiles) {
+    const docPath = path.relative(libraryDir!, file).replace(/\.ya?ml$/, '');
+    const doc = loadDocumentFile(file, docPath, source, registry);
+    docCache.set(docPath, doc);
+  }
 
   const loader: DocumentLoader = (_src, docPath) => {
+    const cached = docCache.get(docPath);
+    if (cached) return cached;
     const filePath = path.join(libraryDir!, docPath + '.yaml');
     if (!fs.existsSync(filePath)) {
       const ymlPath = path.join(libraryDir!, docPath + '.yml');
@@ -98,6 +103,25 @@ export function buildCatalog(config: GVPConfig, cwd: string = process.cwd()): Ca
     return loadDocumentFile(filePath, docPath, source, registry);
   };
 
+  // Find leaf documents (ones not inherited by any other document)
+  const inheritedDocPaths = new Set<string>();
+  for (const doc of docCache.values()) {
+    const inherits = doc.meta.inherits;
+    if (inherits && Array.isArray(inherits)) {
+      for (const entry of inherits) {
+        if (typeof entry === 'string') {
+          inheritedDocPaths.add(entry);
+        }
+      }
+    }
+  }
+
+  // Use the deepest leaf as the entry point (it will pull in all ancestors)
+  const leafDocs = [...docCache.entries()]
+    .filter(([docPath]) => !inheritedDocPaths.has(docPath))
+    .map(([, doc]) => doc);
+
+  const entryDoc = leafDocs[0] ?? docCache.values().next().value!;
   const resolved = resolveInheritance(entryDoc, loader);
   return new Catalog(resolved, config);
 }

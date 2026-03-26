@@ -43,9 +43,9 @@ export const reservedFieldsSchema = z.object({
   status: z.string().default('active'),
   tags: z.array(z.string()).optional().default([]),
   maps_to: z.array(z.string()).optional().default([]),
-  origin: z.array(z.unknown()).optional(),
-  updated_by: z.array(z.unknown()).optional(),
-  reviewed_by: z.array(z.unknown()).optional(),
+  origin: z.union([z.array(z.unknown()), z.unknown()]).optional(),
+  updated_by: z.union([z.array(z.unknown()), z.unknown()]).optional(),
+  reviewed_by: z.union([z.array(z.unknown()), z.unknown()]).optional(),
   priority: z.number().optional(),
 });
 

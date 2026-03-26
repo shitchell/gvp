@@ -1,13 +1,14 @@
 meta:
   name: v0
   scope: implementation
-  inherits: gvp
+  inherits:
+    - gvp
   defaults:
     origin:
-      date: "2026-02-24"
-      note: "Inferred from planning sessions"
+      - date: "2026-02-24"
+        note: "Inferred from planning sessions"
 
-design_choices:
+decisions:
   - id: D1
     name: Python 3.11+ with PyYAML and argparse
     rationale: >
