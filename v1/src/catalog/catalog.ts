@@ -39,8 +39,12 @@ export class Catalog {
     // Step 2: Build registry from defaults + merged user definitions
     const defaults = loadDefaults();
     let registry = CategoryRegistry.fromDefaults(defaults);
-    if (Object.keys(this._mergedDefinitions.categories).length > 0) {
-      registry = registry.merge(this._mergedDefinitions.categories);
+    if (Object.keys(this._mergedDefinitions.categories).length > 0 ||
+        Object.keys(this._mergedDefinitions.allFieldSchemas).length > 0) {
+      const userAll = Object.keys(this._mergedDefinitions.allFieldSchemas).length > 0
+        ? { field_schemas: this._mergedDefinitions.allFieldSchemas }
+        : undefined;
+      registry = registry.merge(this._mergedDefinitions.categories, userAll);
     }
     this._registry = registry;
 

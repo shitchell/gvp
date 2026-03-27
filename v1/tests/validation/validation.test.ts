@@ -90,15 +90,15 @@ describe('Diagnostic creation', () => {
   it('creates a diagnostic with all fields', () => {
     const d = createDiagnostic(
       'W001',
-      'EMPTY_DOCUMENT',
-      'Document has no active elements',
+      'EMPTY_MAPS_TO',
+      'Element has no maps_to references',
       'warning',
       'semantic',
       { documentPath: 'main' },
     );
     expect(d.code).toBe('W001');
-    expect(d.name).toBe('EMPTY_DOCUMENT');
-    expect(d.description).toBe('Document has no active elements');
+    expect(d.name).toBe('EMPTY_MAPS_TO');
+    expect(d.description).toBe('Element has no maps_to references');
     expect(d.severity).toBe('warning');
     expect(d.pass).toBe('semantic');
     expect(d.context.documentPath).toBe('main');
@@ -299,17 +299,22 @@ describe('structuralPass', () => {
 });
 
 describe('semanticPass', () => {
-  it('catches empty documents (W001)', () => {
-    const doc = makeDoc('empty');
+  it('catches empty maps_to on non-root active element (W001)', () => {
+    const doc = makeDoc('main', {
+      elements: [
+        { categoryName: 'goal', data: { id: 'G1', name: 'Goal', status: 'active' } },
+        { categoryName: 'principle', data: { id: 'P1', name: 'Principle', status: 'active' } },
+      ],
+    });
     const catalog = makeCatalog([doc]);
     const results = semanticPass(catalog, defaultConfig);
 
     const w001 = results.filter(d => d.code === 'W001');
     expect(w001).toHaveLength(1);
-    expect(w001[0]!.context.documentPath).toBe('empty');
+    expect(w001[0]!.context.elementId).toBe('P1');
   });
 
-  it('does not fire W001 for documents with active elements', () => {
+  it('does not fire W001 for root elements with no maps_to', () => {
     const doc = makeDoc('main', {
       elements: [
         { categoryName: 'goal', data: { id: 'G1', name: 'Goal', status: 'active' } },
@@ -320,6 +325,29 @@ describe('semanticPass', () => {
 
     const w001 = results.filter(d => d.code === 'W001');
     expect(w001).toHaveLength(0);
+  });
+
+  it('catches empty documents (W002)', () => {
+    const doc = makeDoc('empty');
+    const catalog = makeCatalog([doc]);
+    const results = semanticPass(catalog, defaultConfig);
+
+    const w002 = results.filter(d => d.code === 'W002');
+    expect(w002).toHaveLength(1);
+    expect(w002[0]!.context.documentPath).toBe('empty');
+  });
+
+  it('does not fire W002 for documents with active elements', () => {
+    const doc = makeDoc('main', {
+      elements: [
+        { categoryName: 'goal', data: { id: 'G1', name: 'Goal', status: 'active' } },
+      ],
+    });
+    const catalog = makeCatalog([doc]);
+    const results = semanticPass(catalog, defaultConfig);
+
+    const w002 = results.filter(d => d.code === 'W002');
+    expect(w002).toHaveLength(0);
   });
 
   it('catches self-document-only mapping (W005)', () => {

@@ -74,6 +74,20 @@ export function mergeDefinitions(
       mergedTags[name] = tag;
     }
 
+    // Merge _all field_schemas from user documents (DEC-2.8)
+    const docAllSchemas = (doc.meta.definitions as Record<string, unknown> | undefined)?._all;
+    if (
+      docAllSchemas &&
+      typeof docAllSchemas === 'object' &&
+      'field_schemas' in docAllSchemas
+    ) {
+      const schemas = (docAllSchemas as { field_schemas?: Record<string, FieldSchemaEntry> })
+        .field_schemas;
+      if (schemas) {
+        Object.assign(mergedAll, schemas);
+      }
+    }
+
     // Capture per-library snapshot (DEC-2.12)
     if (!librarySnapshots.has(doc.source)) {
       librarySnapshots.set(doc.source, {
