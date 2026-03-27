@@ -2,6 +2,8 @@
 import { Command } from 'commander';
 import { validateCommand } from './commands/validate.js';
 import { exportCommand } from './commands/export.js';
+import { diffCommand } from './commands/diff.js';
+import { addCommand } from './commands/add.js';
 
 const program = new Command();
 
@@ -17,5 +19,7 @@ program
 
 program.addCommand(validateCommand());
 program.addCommand(exportCommand());
+program.addCommand(diffCommand());
+program.addCommand(addCommand());
 
 program.parse();
