@@ -10,10 +10,10 @@ describe('CLI', () => {
       expect(registry.has('markdown')).toBe(true);
     });
 
-    it('does not have optional exporters (sqlite, dot)', () => {
+    it('has optional exporters (sqlite, dot)', () => {
       const registry = createExporterRegistry();
-      expect(registry.has('sqlite')).toBe(false);
-      expect(registry.has('dot')).toBe(false);
+      expect(registry.has('sqlite')).toBe(true);
+      expect(registry.has('dot')).toBe(true);
     });
   });
 });

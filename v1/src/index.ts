@@ -1,7 +1,7 @@
 // GVP v1 - Goals, Values, and Principles framework
 export const VERSION = '1.0.0';
 
-export { GVPError, SchemaError, InheritanceError, ConfigError, ValidationError, ProvenanceError, SourceResolutionError, CatalogError, DuplicateIdPrefixError, DuplicateYamlKeyError, InvalidMappingRuleRefError } from './errors.js';
+export { GVPError, SchemaError, InheritanceError, ConfigError, ValidationError, ProvenanceError, SourceResolutionError, CatalogError, DuplicateIdPrefixError, DuplicateYamlKeyError, InvalidMappingRuleRefError, CircularInheritanceError, MissingMappingRulesError } from './errors.js';
 export * from './schema/index.js';
 export * from './config/index.js';
 export * from './model/index.js';

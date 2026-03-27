@@ -19,7 +19,14 @@ export class JsonExporter extends Exporter {
         name: doc.name,
         documentPath: doc.documentPath,
         source: doc.source,
-        meta: doc.meta,
+        meta: {
+          ...doc.meta,
+          // Ensure lossless fields are always present (DEC-7.10)
+          inherits: doc.meta.inherits ?? null,
+          defaults: doc.meta.defaults ?? null,
+          definitions: doc.meta.definitions ?? null,
+          scope: doc.meta.scope ?? null,
+        },
         elements: doc.getAllElements()
           .filter(e => includeDeprecated || e.status !== 'deprecated')
           .map(e => ({

@@ -79,3 +79,17 @@ export class InvalidMappingRuleRefError extends CatalogError {
     this.name = 'InvalidMappingRuleRefError';
   }
 }
+
+export class CircularInheritanceError extends InheritanceError {
+  constructor(message: string) {
+    super(message);
+    this.name = 'CircularInheritanceError';
+  }
+}
+
+export class MissingMappingRulesError extends CatalogError {
+  constructor(message: string) {
+    super(message);
+    this.name = 'MissingMappingRulesError';
+  }
+}

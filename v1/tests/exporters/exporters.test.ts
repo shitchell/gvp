@@ -383,13 +383,15 @@ describe('MarkdownExporter', () => {
 // -- Exporter registry --
 
 describe('createExporterRegistry', () => {
-  it('contains json, csv, and markdown exporters', () => {
+  it('contains json, csv, markdown, dot, and sqlite exporters', () => {
     const registry = createExporterRegistry();
 
     expect(registry.has('json')).toBe(true);
     expect(registry.has('csv')).toBe(true);
     expect(registry.has('markdown')).toBe(true);
-    expect(registry.size).toBe(3);
+    expect(registry.has('dot')).toBe(true);
+    expect(registry.has('sqlite')).toBe(true);
+    expect(registry.size).toBe(5);
   });
 
   it('returns Exporter instances', () => {
