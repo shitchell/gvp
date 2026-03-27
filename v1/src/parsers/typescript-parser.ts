@@ -8,11 +8,14 @@ export class TypeScriptRefParser extends RefParser {
 
   extractBlock(content: string, identifier: string): string | null {
     // Simple regex-based extraction (not a full AST parser)
-    // Look for: class Foo, function foo, const foo =, export function foo
+    // Look for: class, interface, type, function, const/let/var declarations
+    const escaped = escapeRegex(identifier);
     const patterns = [
-      new RegExp(`(?:export\\s+)?(?:abstract\\s+)?class\\s+${escapeRegex(identifier)}\\s*[{<(]`, 'm'),
-      new RegExp(`(?:export\\s+)?(?:async\\s+)?function\\s+${escapeRegex(identifier)}\\s*[(<]`, 'm'),
-      new RegExp(`(?:export\\s+)?(?:const|let|var)\\s+${escapeRegex(identifier)}\\s*[=:]`, 'm'),
+      new RegExp(`(?:export\\s+)?(?:abstract\\s+)?class\\s+${escaped}[\\s{<(]`, 'm'),
+      new RegExp(`(?:export\\s+)?interface\\s+${escaped}[\\s{<]`, 'm'),
+      new RegExp(`(?:export\\s+)?type\\s+${escaped}[\\s=<]`, 'm'),
+      new RegExp(`(?:export\\s+)?(?:async\\s+)?function\\s+${escaped}\\s*[(<]`, 'm'),
+      new RegExp(`(?:export\\s+)?(?:const|let|var)\\s+${escaped}\\s*[=:]`, 'm'),
     ];
 
     for (const pattern of patterns) {

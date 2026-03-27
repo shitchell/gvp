@@ -339,6 +339,13 @@ principles:
       a human decision.
     tags: [framework, alignment, integrity]
     maps_to: [gvp:G4, gvp:G5, gvp:G10, gvp:V1, gvp:V3]
+    refs:
+      - file: docs/philosophy.md
+        identifier: "The Framework Serves Alignment, Not People"
+        role: defines
+      - file: v1/src/analysis/analyzer.ts
+        identifier: findUnmappedRelationships
+        role: implements
     origin:
       - date: "2026-03-26"
         note: "Added during post-v1 heuristic mining -- framework informs, humans decide"
@@ -354,6 +361,16 @@ principles:
       degrade gracefully (P8), but the foundation must be sound.
     tags: [framework, integrity, tooling]
     maps_to: [gvp:G5, gvp:V10, gvp:V2, gvp:V3, gvp:P4]
+    refs:
+      - file: v1/src/catalog/post-merge-validation.ts
+        identifier: validateMergedCategories
+        role: implements
+      - file: v1/src/catalog/catalog.ts
+        identifier: Catalog
+        role: implements
+      - file: v1/src/config/loader.ts
+        identifier: loadConfig
+        role: implements
     origin:
       - date: "2026-03-26"
         note: "Added during post-v1 heuristic mining -- driven by DEC-5.7, DEC-5.13, DEC-3.6"
@@ -368,6 +385,16 @@ principles:
       doing, make them say it.
     tags: [framework, tooling, integrity]
     maps_to: [gvp:G5, gvp:V6, gvp:V10, gvp:P3]
+    refs:
+      - file: v1/src/schema/reserved-fields.ts
+        identifier: checkReservedFieldCollision
+        role: implements
+      - file: v1/src/validation/runner.ts
+        identifier: runValidation
+        role: implements
+      - file: v1/src/inheritance/source-resolver.ts
+        identifier: GitSourceResolver
+        role: implements
     origin:
       - date: "2026-03-26"
         note: "Added during post-v1 heuristic mining -- driven by DEC-2.13 (explicit mode/value), DEC-5.11 (exact-match suppression), DEC-6.6 (no magic git derivation)"
@@ -383,6 +410,13 @@ principles:
       product.
     tags: [framework, tooling, integrity]
     maps_to: [gvp:V10, gvp:V2, gvp:G8]
+    refs:
+      - file: v1/src/schema/defaults-loader.ts
+        identifier: loadDefaults
+        role: implements
+      - file: v1/src/data/defaults.yaml
+        identifier: categories
+        role: defines
     origin:
       - date: "2026-03-26"
         note: "Added during post-v1 heuristic mining -- driven by DEC-9.4 (defaults.yaml through same pipeline as user files)"
@@ -468,6 +502,19 @@ heuristics:
       be built?" vs "is the built system good?"
     tags: [tooling, code, integrity]
     maps_to: [gvp:P13, gvp:V10, gvp:P4, gvp:P10]
+    refs:
+      - file: v1/src/catalog/catalog.ts
+        identifier: Catalog
+        role: implements
+      - file: v1/src/validation/runner.ts
+        identifier: runValidation
+        role: implements
+      - file: v1/src/errors.ts
+        identifier: CatalogError
+        role: defines
+      - file: v1/src/validation/diagnostic.ts
+        identifier: Diagnostic
+        role: defines
     origin:
       - date: "2026-03-26"
         note: "Added during post-v1 heuristic mining -- driven by DEC-5.7 (exceptions vs diagnostics), DEC-5.13 (eager config validation)"
