@@ -4,6 +4,9 @@ import { validateCommand } from './commands/validate.js';
 import { exportCommand } from './commands/export.js';
 import { diffCommand } from './commands/diff.js';
 import { addCommand } from './commands/add.js';
+import { inspectCommand } from './commands/inspect.js';
+import { queryCommand } from './commands/query.js';
+import { reviewCommand } from './commands/review.js';
 
 const program = new Command();
 
@@ -21,5 +24,8 @@ program.addCommand(validateCommand());
 program.addCommand(exportCommand());
 program.addCommand(diffCommand());
 program.addCommand(addCommand());
+program.addCommand(inspectCommand());
+program.addCommand(queryCommand());
+program.addCommand(reviewCommand());
 
 program.parse();
