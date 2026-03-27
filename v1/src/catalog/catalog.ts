@@ -32,6 +32,33 @@ export class Catalog {
     this._config = config;
     this._documents = resolvedInheritance.orderedDocuments;
 
+    // Step 0: Apply config_overrides from documents (DEC-2.4, DEC-2.13)
+    // Iterate in DFS order (ancestors first = ancestor-wins)
+    const appliedOverrides = new Set<string>();
+    for (const doc of this._documents) {
+      const overrides = doc.meta.config_overrides;
+      if (!overrides) continue;
+      for (const [key, override] of Object.entries(overrides)) {
+        // DEC-4.8: user identity is personal, excluded from config_overrides
+        if (key === 'user') continue;
+        if (override.mode === 'replace') {
+          // Ancestor-wins: only set if not already set by an earlier ancestor
+          if (!appliedOverrides.has(key)) {
+            (this._config as Record<string, unknown>)[key] = override.value;
+            appliedOverrides.add(key);
+          }
+        } else if (override.mode === 'additive') {
+          // Accumulate: arrays concatenated, ancestor first
+          const existing = (this._config as Record<string, unknown>)[key];
+          if (Array.isArray(existing) && Array.isArray(override.value)) {
+            (this._config as Record<string, unknown>)[key] = [...existing, ...override.value];
+          } else {
+            (this._config as Record<string, unknown>)[key] = override.value;
+          }
+        }
+      }
+    }
+
     // Step 1: Merge definitions across documents
     const defDirection = config.priority?.definitions ?? 'descendant';
     this._mergedDefinitions = mergeDefinitions(this._documents, defDirection);

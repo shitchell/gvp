@@ -6,6 +6,7 @@ import type { Diagnostic } from '../../validation/diagnostic.js';
 export function validateCommand(): Command {
   const cmd = new Command('validate')
     .description('Validate the GVP library')
+    .option('--scope <scope>', 'Scope validation to: staged, working, or <commit>..<commit> (DEC-10.5)')
     .action(async () => {
       try {
         const { config } = parseConfigOptions(cmd);

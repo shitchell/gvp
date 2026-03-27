@@ -190,6 +190,97 @@ describe('Catalog', () => {
     expect(tags.optional).toEqual({ description: 'Optional' });
   });
 
+  it('applies config_overrides with replace mode (DEC-2.4, DEC-2.13)', () => {
+    const doc = makeDoc('main', {
+      elements: [
+        { categoryName: 'goal', data: { id: 'G1', name: 'Goal 1', status: 'active' } },
+      ],
+    });
+    // Manually set config_overrides on the document meta
+    (doc.meta as Record<string, unknown>).config_overrides = {
+      strict: { mode: 'replace', value: true },
+      default_timezone: { mode: 'replace', value: 'America/New_York' },
+    };
+
+    const config: GVPConfig = {
+      strict: false,
+      suppress_diagnostics: [],
+      strict_export_options: true,
+      validation_rules: [],
+    };
+
+    const catalog = new Catalog(singleDocResolved(doc), config);
+    expect(catalog.config.strict).toBe(true);
+    expect((catalog.config as Record<string, unknown>).default_timezone).toBe('America/New_York');
+  });
+
+  it('applies config_overrides with additive mode for arrays', () => {
+    const doc = makeDoc('main');
+    (doc.meta as Record<string, unknown>).config_overrides = {
+      suppress_diagnostics: { mode: 'additive', value: ['WARN-001', 'WARN-002'] },
+    };
+
+    const config: GVPConfig = {
+      strict: false,
+      suppress_diagnostics: ['EXISTING'],
+      strict_export_options: true,
+      validation_rules: [],
+    };
+
+    const catalog = new Catalog(singleDocResolved(doc), config);
+    expect(catalog.config.suppress_diagnostics).toEqual(['EXISTING', 'WARN-001', 'WARN-002']);
+  });
+
+  it('ancestor-wins: first document replace override wins over later ones', () => {
+    const ancestor = makeDoc('ancestor', { source: '@org' });
+    (ancestor.meta as Record<string, unknown>).config_overrides = {
+      strict: { mode: 'replace', value: true },
+    };
+
+    const descendant = makeDoc('descendant', {
+      source: '@local',
+      inherits: ['ancestor'],
+    });
+    (descendant.meta as Record<string, unknown>).config_overrides = {
+      strict: { mode: 'replace', value: false },
+    };
+
+    const resolved: ResolvedInheritance = {
+      orderedDocuments: [ancestor, descendant], // ancestor first in DFS order
+      aliasMap: new Map(),
+      sccs: [],
+    };
+
+    const config: GVPConfig = {
+      strict: false,
+      suppress_diagnostics: [],
+      strict_export_options: true,
+      validation_rules: [],
+    };
+
+    const catalog = new Catalog(resolved, config);
+    expect(catalog.config.strict).toBe(true); // ancestor wins
+  });
+
+  it('config_overrides ignores user key (DEC-4.8)', () => {
+    const doc = makeDoc('main');
+    (doc.meta as Record<string, unknown>).config_overrides = {
+      user: { mode: 'replace', value: { name: 'Evil', email: 'evil@example.com' } },
+      strict: { mode: 'replace', value: true },
+    };
+
+    const config: GVPConfig = {
+      strict: false,
+      suppress_diagnostics: [],
+      strict_export_options: true,
+      validation_rules: [],
+    };
+
+    const catalog = new Catalog(singleDocResolved(doc), config);
+    expect(catalog.config.user).toBeUndefined(); // user key not overridden
+    expect(catalog.config.strict).toBe(true); // other keys still work
+  });
+
   it('provides library snapshots (DEC-2.12)', () => {
     const doc = makeDoc('main', {
       definitions: {

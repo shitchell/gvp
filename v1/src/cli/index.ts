@@ -8,6 +8,7 @@ import { inspectCommand } from './commands/inspect.js';
 import { queryCommand } from './commands/query.js';
 import { reviewCommand } from './commands/review.js';
 import { editCommand } from './commands/edit.js';
+import { analyzeCommand } from './commands/analyze.js';
 
 const program = new Command();
 
@@ -29,5 +30,6 @@ program.addCommand(inspectCommand());
 program.addCommand(queryCommand());
 program.addCommand(reviewCommand());
 program.addCommand(editCommand());
+program.addCommand(analyzeCommand());
 
 program.parse();

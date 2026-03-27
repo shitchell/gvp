@@ -36,9 +36,16 @@ const definitionsSchema = z.object({
   categories: z.record(z.string(), categoryDefinitionSchema).optional(),
 }).optional();
 
+/** Config override entry (DEC-2.4, DEC-2.13) */
+export const configOverrideEntrySchema = z.object({
+  mode: z.enum(['replace', 'additive']),
+  value: z.unknown(),
+});
+
 /** Document meta schema */
 export const documentMetaSchema = z.object({
   name: z.string().optional(),
+  id_prefix: z.string().optional(), // DOM-2: per-document id prefix
   inherits: z.union([
     z.string().transform(s => [s]),  // bare string -> array
     z.array(z.string()),
@@ -54,6 +61,7 @@ export const documentMetaSchema = z.object({
   scope: z.string().optional(),
   defaults: z.record(z.string(), z.unknown()).optional(),
   definitions: definitionsSchema,
+  config_overrides: z.record(z.string(), configOverrideEntrySchema).optional(), // DEC-2.4, DEC-2.13
 }).passthrough();
 
 export type DocumentMeta = z.infer<typeof documentMetaSchema>;
