@@ -98,81 +98,130 @@ gvp query --library ./shared/ --category heuristic --tag performance --status ac
 
 ---
 
-## trace
+## inspect
 
-Trace an element's mapping chain -- walk up to its ancestors (goals and values) or down to its descendants. Useful for understanding why a decision exists or what depends on it.
+Inspect a single element with full context. View its details, trace its ancestry, check its refs, or review its provenance history.
 
 ### Flags
 
 | Flag | Description |
 |------|-------------|
-| `--library PATH` | Additional library path. Repeatable. |
-| `element` | **Positional.** Qualified element ID (e.g., `personal:H5`). |
-| `--reverse` | Show descendants instead of ancestors. |
-| `--maps-to` | Find all elements that map to the given element and print each trace. |
+| `element` | **Positional (optional with --ref).** Element ID (e.g., `P1`, `gvp:P1`). |
+| `--trace` | Show ancestor trace (walk `maps_to` graph to goals/values). |
+| `--descendants` | Show descendant trace (what maps to this element). |
+| `--refs` | Show refs with status (file exists? identifier found?). |
+| `--reviews` | Show review history. |
+| `--updates` | Show update history. |
+| `--ref FILE::ID` | Find elements referencing a file/identifier and trace them. |
 | `--format FORMAT` | Output format: `text` (default) or `json`. |
 
 ### Examples
 
 ```bash
-# Trace a heuristic back to its goals and values
-gvp trace personal:H5
+# View element details
+gvp inspect P13
 
-# Show everything that depends on a value
-gvp trace personal:V2 --reverse
+# Trace a principle back to its goals and values
+gvp inspect P13 --trace
 
-# Find all elements that map to a goal
-gvp trace personal:G1 --maps-to
+# Show what depends on a goal
+gvp inspect G1 --descendants
 
-# Output trace as JSON
-gvp trace personal:P3 --format json
+# Check refs status (file exists? identifier found?)
+gvp inspect P13 --refs
 
-# Trace with a shared library loaded
-gvp trace org:D4 --library ./shared-values/
+# "Why does this code exist?" -- trace from code to goals
+gvp inspect --ref src/catalog/catalog.ts::Catalog --trace
 
-# Find descendants of a goal as JSON (useful for impact analysis)
-gvp trace personal:G1 --maps-to --format json
+# Show review and update history
+gvp inspect H2 --reviews --updates
+
+# Output as JSON for scripting
+gvp inspect P13 --format json
 ```
 
 ---
 
-## render
+## export
 
-Generate output files from the catalog in one or more formats.
+Export the catalog to one or more output formats.
 
 ### Flags
 
 | Flag | Description |
 |------|-------------|
-| `--library PATH` | Additional library path. Repeatable. |
-| `--format FMT [FMT ...]` | Output format(s): `markdown`, `csv`, `sqlite`, `dot`, `png`, `all`. Default: `all`. Multiple formats can be specified. |
-| `-o`, `--output DIR` | Output directory. Default: `generated/`. |
-| `--stdout` | Print output to stdout instead of writing files. |
-| `--include-deprecated` | Include deprecated and rejected elements in the output. |
+| `-f`, `--format FMT` | Output format: `json`, `csv`, `markdown`, `dot`. Default: `json`. |
+| `-o`, `--output PATH` | Output file path. Default: stdout. |
+| `--include-deprecated` | Include deprecated and rejected elements. |
 
 ### Examples
 
 ```bash
-# Render all formats to the default directory
-gvp render
+# Export as JSON to stdout
+gvp export --format json
 
-# Render only markdown
-gvp render --format markdown
+# Export markdown to a file
+gvp export --format markdown -o output.md
 
-# Render markdown and CSV to a custom directory
-gvp render --format markdown csv -o ./output/
+# Export CSV
+gvp export --format csv -o elements.csv
 
-# Print markdown to stdout (useful for piping)
-gvp render --format markdown --stdout
+# Generate DOT graph
+gvp export --format dot -o graph.dot
 
-# Generate a dependency graph as PNG
-gvp render --format png -o ./diagrams/
+# Include deprecated elements
+gvp export --format json --include-deprecated
+```
 
-# Render everything including deprecated elements
-gvp render --include-deprecated
+---
 
-# Render DOT source to stdout for custom processing
-gvp render --format dot --stdout | dot -Tsvg -o graph.svg
+## diff
+
+Trace code changes between git commits back to GVP decisions via refs. Shows which decisions are affected by code changes and their full traceability chain.
+
+### Flags
+
+| Flag | Description |
+|------|-------------|
+| `commitA` | **Positional (optional).** Start commit. Default: `HEAD~1`. |
+| `commitB` | **Positional (optional).** End commit. Default: `HEAD`. |
+
+### Examples
+
+```bash
+# What decisions were affected by the last commit?
+gvp diff
+
+# What decisions were affected in the last 5 commits?
+gvp diff HEAD~5 HEAD
+
+# What decisions are affected by changes in a PR branch?
+gvp diff main HEAD
+
+# Pipe JSON output for CI/CD
+gvp diff main HEAD 2>/dev/null | jq '.[] | .element.libraryId'
+```
+
+---
+
+## analyze
+
+Detect unmapped relationships and potential conflicts using embedding-based similarity analysis. This is an advisory tool -- it surfaces potential issues for human review.
+
+### Flags
+
+| Flag | Description |
+|------|-------------|
+| `--threshold NUM` | Similarity threshold (0-1). Default: `0.7`. |
+
+### Examples
+
+```bash
+# Find potentially related but unmapped elements
+gvp analyze
+
+# Lower threshold for more results
+gvp analyze --threshold 0.5
 ```
 
 ---
