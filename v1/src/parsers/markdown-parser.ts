@@ -6,36 +6,38 @@ import { RefParser } from './base.js';
 export class MarkdownRefParser extends RefParser {
   readonly extensions = ['.md', '.markdown'];
 
-  extractBlock(content: string, identifier: string): string | null {
+  extractIdentifiers(content: string, matching?: string): Array<{ identifier: string; block: string }> {
+    const results: Array<{ identifier: string; block: string }> = [];
     const lines = content.split('\n');
-    let capturing = false;
-    let captureLevel = 0;
-    const block: string[] = [];
 
-    for (const line of lines) {
-      const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
-      if (headingMatch) {
-        const level = headingMatch[1]!.length;
-        const text = headingMatch[2]!.trim();
-
-        if (capturing) {
-          // Stop if we hit a heading at same or higher level
-          if (level <= captureLevel) break;
-        }
-
-        if (text === identifier) {
-          capturing = true;
-          captureLevel = level;
-          block.push(line);
-          continue;
-        }
-      }
-
-      if (capturing) {
-        block.push(line);
+    // Find all headings with their positions and levels
+    const headings: Array<{ text: string; level: number; lineIndex: number }> = [];
+    for (let i = 0; i < lines.length; i++) {
+      const m = lines[i]!.match(/^(#{1,6})\s+(.+)$/);
+      if (m) {
+        headings.push({ text: m[2]!.trim(), level: m[1]!.length, lineIndex: i });
       }
     }
 
-    return block.length > 0 ? block.join('\n') : null;
+    for (let h = 0; h < headings.length; h++) {
+      const heading = headings[h]!;
+
+      // Skip if filtering and doesn't match
+      if (matching && heading.text !== matching) continue;
+
+      // Find end: next heading at same or higher (lower number) level
+      let endLine = lines.length;
+      for (let j = h + 1; j < headings.length; j++) {
+        if (headings[j]!.level <= heading.level) {
+          endLine = headings[j]!.lineIndex;
+          break;
+        }
+      }
+
+      const block = lines.slice(heading.lineIndex, endLine).join('\n');
+      results.push({ identifier: heading.text, block });
+    }
+
+    return results;
   }
 }

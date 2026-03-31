@@ -6,33 +6,29 @@ import { RefParser } from './base.js';
 export class YamlRefParser extends RefParser {
   readonly extensions = ['.yaml', '.yml'];
 
-  extractBlock(content: string, identifier: string): string | null {
+  extractIdentifiers(content: string, matching?: string): Array<{ identifier: string; block: string }> {
+    const results: Array<{ identifier: string; block: string }> = [];
     const lines = content.split('\n');
-    const block: string[] = [];
-    let capturing = false;
 
-    for (const line of lines) {
-      // Check for top-level key (no indentation)
-      const keyMatch = line.match(/^(\w[\w-]*)\s*:/);
-      if (keyMatch) {
-        if (capturing) break; // Hit next top-level key
-        if (keyMatch[1] === identifier) {
-          capturing = true;
-          block.push(line);
-          continue;
-        }
-      }
-
-      if (capturing) {
-        // Still in the block (indented or blank lines)
-        if (line.trim() === '' || /^\s/.test(line)) {
-          block.push(line);
-        } else {
-          break; // Non-indented, non-blank = new top-level key
-        }
+    // Find all top-level keys (no indentation)
+    const topKeys: Array<{ name: string; lineIndex: number }> = [];
+    for (let i = 0; i < lines.length; i++) {
+      const m = lines[i]!.match(/^(\w[\w-]*)\s*:/);
+      if (m) {
+        topKeys.push({ name: m[1]!, lineIndex: i });
       }
     }
 
-    return block.length > 0 ? block.join('\n') : null;
+    for (let k = 0; k < topKeys.length; k++) {
+      const key = topKeys[k]!;
+      if (matching && key.name !== matching) continue;
+
+      // Block extends to next top-level key or end of file
+      const endLine = k + 1 < topKeys.length ? topKeys[k + 1]!.lineIndex : lines.length;
+      const block = lines.slice(key.lineIndex, endLine).join('\n');
+      results.push({ identifier: key.name, block });
+    }
+
+    return results;
   }
 }

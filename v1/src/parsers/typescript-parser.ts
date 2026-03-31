@@ -6,32 +6,35 @@ import { RefParser } from './base.js';
 export class TypeScriptRefParser extends RefParser {
   readonly extensions = ['.ts', '.tsx', '.js', '.jsx'];
 
-  extractBlock(content: string, identifier: string): string | null {
-    // Simple regex-based extraction (not a full AST parser)
-    // Look for: class, interface, type, function, const/let/var declarations
-    const escaped = escapeRegex(identifier);
+  extractIdentifiers(content: string, matching?: string): Array<{ identifier: string; block: string }> {
+    const results: Array<{ identifier: string; block: string }> = [];
+
+    // Patterns that capture the identifier name
     const patterns = [
-      new RegExp(`(?:export\\s+)?(?:abstract\\s+)?class\\s+${escaped}[\\s{<(]`, 'm'),
-      new RegExp(`(?:export\\s+)?interface\\s+${escaped}[\\s{<]`, 'm'),
-      new RegExp(`(?:export\\s+)?type\\s+${escaped}[\\s=<]`, 'm'),
-      new RegExp(`(?:export\\s+)?(?:async\\s+)?function\\s+${escaped}\\s*[(<]`, 'm'),
-      new RegExp(`(?:export\\s+)?(?:const|let|var)\\s+${escaped}\\s*[=:]`, 'm'),
+      /(?:export\s+)?(?:abstract\s+)?class\s+(\w+)/gm,
+      /(?:export\s+)?interface\s+(\w+)/gm,
+      /(?:export\s+)?type\s+(\w+)/gm,
+      /(?:export\s+)?(?:async\s+)?function\s+(\w+)/gm,
+      /(?:export\s+)?(?:const|let|var)\s+(\w+)\s*[=:]/gm,
     ];
 
+    const seen = new Set<string>(); // Avoid duplicates
+
     for (const pattern of patterns) {
-      const match = content.match(pattern);
-      if (match && match.index !== undefined) {
-        // Extract from the match to the end of the block (brace matching)
-        return extractBraceBlock(content, match.index);
+      let match;
+      while ((match = pattern.exec(content)) !== null) {
+        const name = match[1]!;
+        if (seen.has(name)) continue;
+        if (matching && name !== matching) continue;
+        seen.add(name);
+
+        const block = extractBraceBlock(content, match.index!);
+        results.push({ identifier: name, block });
       }
     }
 
-    return null;
+    return results;
   }
-}
-
-function escapeRegex(str: string): string {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function extractBraceBlock(content: string, startIndex: number): string {

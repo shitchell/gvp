@@ -2,12 +2,12 @@ import type { Catalog } from '../../catalog/catalog.js';
 import type { GVPConfig } from '../../config/schema.js';
 import type { Diagnostic } from '../diagnostic.js';
 import { createDiagnostic } from '../diagnostic.js';
+import { createRefParserRegistry, findParser } from '../../parsers/registry.js';
 import * as fs from 'fs';
 import * as path from 'path';
 
 const PASS_NAME = 'coverage';
 
-/** Patterns to exclude from source scanning */
 const EXCLUDE_PATTERNS = [
   /node_modules/,
   /\/dist\//,
@@ -23,87 +23,71 @@ const EXCLUDE_PATTERNS = [
  */
 export function coveragePass(catalog: Catalog, config: GVPConfig): Diagnostic[] {
   const diagnostics: Diagnostic[] = [];
+  const parsers = createRefParserRegistry();
 
-  // Build set of all files referenced by any element
-  const referencedFiles = new Set<string>();
+  // Build set of all referenced file::identifier pairs
+  const referencedPairs = new Set<string>();
   for (const element of catalog.getAllElements()) {
-    const refs = element.get('refs') as Array<{ file: string; identifier: string; role: string }> | undefined;
-    if (!refs || !Array.isArray(refs)) continue;
+    const refs = element.get('refs') as Array<{ file: string; identifier: string }> | undefined;
+    if (!refs) continue;
     for (const ref of refs) {
-      referencedFiles.add(ref.file);
+      referencedPairs.add(`${ref.file}::${ref.identifier}`);
     }
   }
 
-  // W012: Source file not referenced by any GVP element
-  const sourceRoot = resolveSourceRoot(catalog, config);
-  if (sourceRoot && fs.existsSync(sourceRoot)) {
-    const projectRoot = findProjectRoot(catalog);
-    if (projectRoot) {
-      const sourceFiles = collectSourceFiles(sourceRoot);
-      for (const absFile of sourceFiles) {
+  // W012: Orphan identifiers — parser-driven discovery
+  const projectRoot = findProjectRoot(catalog);
+  if (projectRoot) {
+    for (const parser of parsers) {
+      const files = collectFilesByExtension(projectRoot, parser.extensions);
+
+      for (const absFile of files) {
         const relFile = path.relative(projectRoot, absFile);
-        if (!referencedFiles.has(relFile)) {
-          diagnostics.push(createDiagnostic(
-            'W012',
-            'SOURCE_FILE_NOT_REFERENCED',
-            `Source file not referenced by any GVP element: ${relFile}`,
-            'warning',
-            PASS_NAME,
-            { details: relFile },
-          ));
+        if (EXCLUDE_PATTERNS.some(p => p.test(relFile))) continue;
+
+        try {
+          const content = fs.readFileSync(absFile, 'utf-8');
+          const identifiers = parser.extractIdentifiers(content);
+
+          for (const { identifier } of identifiers) {
+            const key = `${relFile}::${identifier}`;
+            if (!referencedPairs.has(key)) {
+              diagnostics.push(createDiagnostic(
+                'W012',
+                'ORPHAN_IDENTIFIER',
+                `Identifier '${identifier}' in ${relFile} is not referenced by any GVP element`,
+                'warning',
+                PASS_NAME,
+                { details: key },
+              ));
+            }
+          }
+        } catch {
+          // File read error — skip
         }
       }
     }
   }
 
-  // W013: GVP element has no code refs
+  // W013: Decision has no refs (scoped to decisions only)
   for (const element of catalog.getAllElements()) {
     if (element.status !== 'active') continue;
+    if (element.categoryName !== 'decision') continue;
 
-    const catDef = catalog.registry.getByName(element.categoryName);
-    if (catDef?.is_root) continue;
-
-    const refs = element.get('refs') as Array<{ file: string; identifier: string; role: string }> | undefined;
+    const refs = element.get('refs') as Array<unknown> | undefined;
     if (!refs || !Array.isArray(refs) || refs.length === 0) {
       diagnostics.push(createDiagnostic(
         'W013',
-        'ELEMENT_NO_REFS',
-        `Element ${element.toLibraryId()} has no code refs`,
+        'DECISION_NO_REFS',
+        `Decision ${element.toLibraryId()} has no refs`,
         'warning',
         PASS_NAME,
-        { elementId: element.id, documentPath: element.documentPath },
+        { elementId: element.id, documentPath: element.documentPath, categoryName: element.categoryName },
       ));
     }
   }
 
   return diagnostics;
-}
-
-/**
- * Resolve the source root directory for coverage scanning.
- * Priority: config coverage.source_root > detect src/ relative to library root.
- */
-function resolveSourceRoot(catalog: Catalog, config: GVPConfig): string | null {
-  // Check for config-based source root
-  const coverageConfig = (config as Record<string, unknown>).coverage as { source_root?: string } | undefined;
-  if (coverageConfig?.source_root) {
-    const projectRoot = findProjectRoot(catalog);
-    if (projectRoot) {
-      return path.resolve(projectRoot, coverageConfig.source_root);
-    }
-    return path.resolve(coverageConfig.source_root);
-  }
-
-  // Auto-detect: look for src/ relative to the project root
-  const projectRoot = findProjectRoot(catalog);
-  if (projectRoot) {
-    const srcDir = path.join(projectRoot, 'src');
-    if (fs.existsSync(srcDir)) {
-      return srcDir;
-    }
-  }
-
-  return null;
 }
 
 /**
@@ -125,28 +109,24 @@ function findProjectRoot(catalog: Catalog): string | null {
 }
 
 /**
- * Recursively collect source files, excluding test files, node_modules, and dist.
+ * Recursively collect files matching given extensions, excluding test/dist/node_modules.
  */
-function collectSourceFiles(dir: string): string[] {
+function collectFilesByExtension(dir: string, extensions: string[]): string[] {
   const files: string[] = [];
-
   try {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
     for (const entry of entries) {
       const fullPath = path.join(dir, entry.name);
-
-      // Check exclusions
       if (EXCLUDE_PATTERNS.some(p => p.test(fullPath))) continue;
-
       if (entry.isDirectory()) {
-        files.push(...collectSourceFiles(fullPath));
+        files.push(...collectFilesByExtension(fullPath, extensions));
       } else if (entry.isFile()) {
-        files.push(fullPath);
+        const ext = path.extname(entry.name).toLowerCase();
+        if (extensions.includes(ext)) {
+          files.push(fullPath);
+        }
       }
     }
-  } catch {
-    // Directory read error — skip
-  }
-
+  } catch { /* skip unreadable dirs */ }
   return files;
 }

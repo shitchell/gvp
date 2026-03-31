@@ -233,8 +233,8 @@ describe('W011: Ref identifier not found in file', () => {
   });
 });
 
-describe('W013: Element has no code refs', () => {
-  it('fires W013 for non-root active element with no refs', () => {
+describe('W013: Decision has no code refs', () => {
+  it('fires W013 for active decision with no refs', () => {
     const doc = makeDoc('main', '/main.yaml', {
       elements: [
         {
@@ -261,12 +261,16 @@ describe('W013: Element has no code refs', () => {
     expect(w013[0]!.context.elementId).toBe('DC1');
   });
 
-  it('does not fire W013 for root elements', () => {
+  it('does not fire W013 for non-decision categories', () => {
     const doc = makeDoc('main', '/main.yaml', {
       elements: [
         {
           categoryName: 'goal',
           data: { id: 'G1', name: 'Goal', status: 'active' },
+        },
+        {
+          categoryName: 'value',
+          data: { id: 'V1', name: 'Value', status: 'active' },
         },
       ],
     });
@@ -278,7 +282,7 @@ describe('W013: Element has no code refs', () => {
     expect(w013).toHaveLength(0);
   });
 
-  it('does not fire W013 for elements with refs', () => {
+  it('does not fire W013 for decisions with refs', () => {
     const doc = makeDoc('main', '/main.yaml', {
       elements: [
         {
@@ -305,7 +309,7 @@ describe('W013: Element has no code refs', () => {
     expect(w013).toHaveLength(0);
   });
 
-  it('does not fire W013 for inactive elements', () => {
+  it('does not fire W013 for inactive decisions', () => {
     const doc = makeDoc('main', '/main.yaml', {
       elements: [
         {

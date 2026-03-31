@@ -10,7 +10,43 @@ import {
 describe('MarkdownRefParser', () => {
   const parser = new MarkdownRefParser();
 
-  it('finds heading by text', () => {
+  it('extractIdentifiers returns all headings when no filter', () => {
+    const content = [
+      '## Goals',
+      'Goal content here.',
+      '',
+      '### Sub-goal',
+      'Sub-goal content.',
+      '',
+      '## Values',
+      'Value content here.',
+    ].join('\n');
+
+    const results = parser.extractIdentifiers(content);
+    const names = results.map(r => r.identifier);
+    expect(names).toContain('Goals');
+    expect(names).toContain('Sub-goal');
+    expect(names).toContain('Values');
+    expect(results).toHaveLength(3);
+  });
+
+  it('extractIdentifiers filters when matching provided', () => {
+    const content = [
+      '## Goals',
+      'Goal content here.',
+      '',
+      '## Values',
+      'Value content here.',
+    ].join('\n');
+
+    const results = parser.extractIdentifiers(content, 'Goals');
+    expect(results).toHaveLength(1);
+    expect(results[0]!.identifier).toBe('Goals');
+    expect(results[0]!.block).toContain('Goal content here.');
+    expect(results[0]!.block).not.toContain('Values');
+  });
+
+  it('extractBlock finds heading by text', () => {
     const content = '# Introduction\n\nSome text here.\n';
     const result = parser.extractBlock(content, 'Introduction');
     expect(result).not.toBeNull();
@@ -50,7 +86,43 @@ describe('MarkdownRefParser', () => {
 describe('TypeScriptRefParser', () => {
   const parser = new TypeScriptRefParser();
 
-  it('finds class by name', () => {
+  it('extractIdentifiers returns all classes/functions', () => {
+    const content = [
+      'import { Foo } from "./foo.js";',
+      '',
+      'export class MyClass {',
+      '  name: string;',
+      '}',
+      '',
+      'export function greet() {',
+      '  return "hello";',
+      '}',
+      '',
+      'export class Other {}',
+    ].join('\n');
+
+    const results = parser.extractIdentifiers(content);
+    const names = results.map(r => r.identifier);
+    expect(names).toContain('MyClass');
+    expect(names).toContain('greet');
+    expect(names).toContain('Other');
+  });
+
+  it('extractIdentifiers filters when matching provided', () => {
+    const content = [
+      'export class MyClass {',
+      '  name: string;',
+      '}',
+      '',
+      'export class Other {}',
+    ].join('\n');
+
+    const results = parser.extractIdentifiers(content, 'MyClass');
+    expect(results).toHaveLength(1);
+    expect(results[0]!.identifier).toBe('MyClass');
+  });
+
+  it('extractBlock finds class by name', () => {
     const content = [
       'import { Foo } from "./foo.js";',
       '',
@@ -71,7 +143,7 @@ describe('TypeScriptRefParser', () => {
     expect(result).not.toContain('class Other');
   });
 
-  it('finds function by name', () => {
+  it('extractBlock finds function by name', () => {
     const content = [
       'export function greet(name: string): string {',
       '  return `Hello, ${name}!`;',
@@ -97,7 +169,44 @@ describe('TypeScriptRefParser', () => {
 describe('YamlRefParser', () => {
   const parser = new YamlRefParser();
 
-  it('finds top-level key', () => {
+  it('extractIdentifiers returns all top-level keys', () => {
+    const content = [
+      'goals:',
+      '  - id: G1',
+      '    name: First goal',
+      '',
+      'values:',
+      '  - id: V1',
+      '',
+      'decisions:',
+      '  - id: DC1',
+    ].join('\n');
+
+    const results = parser.extractIdentifiers(content);
+    const names = results.map(r => r.identifier);
+    expect(names).toContain('goals');
+    expect(names).toContain('values');
+    expect(names).toContain('decisions');
+    expect(results).toHaveLength(3);
+  });
+
+  it('extractIdentifiers filters when matching provided', () => {
+    const content = [
+      'goals:',
+      '  - id: G1',
+      '',
+      'values:',
+      '  - id: V1',
+    ].join('\n');
+
+    const results = parser.extractIdentifiers(content, 'goals');
+    expect(results).toHaveLength(1);
+    expect(results[0]!.identifier).toBe('goals');
+    expect(results[0]!.block).toContain('id: G1');
+    expect(results[0]!.block).not.toContain('values');
+  });
+
+  it('extractBlock finds top-level key', () => {
     const content = [
       'goals:',
       '  - id: G1',
