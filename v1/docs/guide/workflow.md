@@ -5,25 +5,27 @@ How to use GVP for end-to-end design traceability — from initial design discus
 ## The Flow
 
 ```
-1. Design Discussion (interactive, capture decisions in a design doc)
-    ↓
-2. Review the Design Doc (nothing missed?)
-    ↓
-3. Translate Design Doc → GVP Library (every decision becomes a YAML element)
-    ↓
-4. Deterministic Check: design doc → library (grep for every decision ID)
-    ↓
-5. Create Implementation Plan (every chunk references GVP decision IDs)
-    ↓
-6. Deterministic Check: library → plan (grep for every decision ID)
-    ↓
-7. Implement in Chunks (with periodic reviews)
-    ↓
-8. Add Refs (link decisions ↔ code bidirectionally)
-    ↓
-9. Validate Coverage (gvp validate --coverage)
-    ↓
-10. Ongoing Maintenance (edits → reviews → approvals, git hooks, PR rules)
+ 1. Design Discussion (interactive, capture decisions in a design doc)
+     ↓
+ 2. Review the Design Doc (nothing missed?)
+     ↓
+ 3. Translate Design Doc → GVP Library (every decision becomes a YAML element)
+     ↓
+ 4. Deterministic Check: design doc → library (grep for every decision ID)
+     ↓
+ 5. Fidelity Check: fresh reader describes project from library alone
+     ↓
+ 6. Create Implementation Plan (every chunk references GVP decision IDs)
+     ↓
+ 7. Deterministic Check: library → plan (grep for every decision ID)
+     ↓
+ 8. Implement in Chunks (with periodic reviews)
+     ↓
+ 9. Add Refs (link decisions ↔ code bidirectionally)
+     ↓
+10. Validate Coverage (gvp validate --coverage)
+     ↓
+11. Ongoing Maintenance (edits → reviews → approvals, git hooks, PR rules)
 ```
 
 Things get missed. That's normal — attention is finite. The deterministic checks
@@ -126,7 +128,29 @@ If `comm` outputs anything, those decisions were missed. Go back and add them.
 This check is cheap and catches the most common failure mode: "we discussed it,
 wrote it down, then forgot to translate it."
 
-## Step 5: Create Implementation Plan
+## Step 5: Fidelity Check — Can a Fresh Reader Understand the Project?
+
+Before moving to implementation, verify that the GVP library alone — without
+the design doc, without verbal context — communicates the project faithfully.
+
+Have someone (or an AI agent) read **only** the GVP library YAML and attempt to
+provide a comprehensive description of the project: what it does, how it works,
+how the pieces fit together, and the rationale behind every decision. They
+should **explicitly note anywhere they had to guess** or fill in gaps.
+
+Compare their description against your mental model:
+- Does it match? → Library is complete.
+- Did they guess correctly? → Implicit knowledge that should be made explicit.
+- Did they guess wrong? → A gap or ambiguity in the library.
+- Did they miss something entirely? → An element is missing.
+
+This step catches a different class of gap than the deterministic check: Step 4
+verifies *coverage* (nothing was dropped). This step verifies *fidelity* (the
+captured information actually communicates the intent). Both are necessary —
+you can have 100% coverage with 0% fidelity if every decision has an ID but
+unclear rationale.
+
+## Step 6: Create Implementation Plan
 
 Write an implementation plan where every chunk explicitly references the GVP
 decision IDs it implements:
@@ -146,7 +170,7 @@ Steps:
 The `[D1, D3, D5]` annotations are not decoration — they are the traceability
 link between the plan and the library.
 
-## Step 6: Deterministic Check — Library → Plan
+## Step 7: Deterministic Check — Library → Plan
 
 Verify that every decision in the GVP library appears in the implementation
 plan:
@@ -165,7 +189,7 @@ comm -23 /tmp/library-ids.txt /tmp/plan-ids.txt
 If anything shows up, a decision exists but no implementation task covers it.
 Either add it to a task or confirm it's intentionally deferred.
 
-## Step 7: Implement in Chunks
+## Step 8: Implement in Chunks
 
 Implement following the plan. After each chunk:
 
@@ -187,7 +211,7 @@ decisions:
         role: defines
 ```
 
-## Step 8: Periodic Reviews During Implementation
+## Step 9: Periodic Reviews During Implementation
 
 After each chunk or at natural milestones, check alignment:
 
@@ -209,7 +233,7 @@ If `gvp diff` shows decisions were affected by code changes, review them:
 gvp inspect D1 --trace --refs
 ```
 
-## Step 9: Validate Coverage
+## Step 10: Validate Coverage
 
 Before considering a milestone complete:
 
@@ -225,7 +249,7 @@ This checks two directions:
 Fix gaps by adding refs to decisions or creating new decisions for
 undocumented code.
 
-## Step 10: "Why Does This Code Exist?"
+## Step 11: "Why Does This Code Exist?"
 
 At any point, trace from code back to goals:
 
