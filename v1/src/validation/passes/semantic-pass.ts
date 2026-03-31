@@ -98,7 +98,7 @@ export function semanticPass(catalog: Catalog, _config: GVPConfig): Diagnostic[]
     }
   }
 
-  // W004: Orphan element — non-root active element that nothing maps TO
+  // W004: Orphan element — truly isolated (no incoming AND no outgoing edges)
   {
     // Build a set of all elements that are targets of some maps_to
     const mappedToSet = new Set<string>();
@@ -115,11 +115,15 @@ export function semanticPass(catalog: Catalog, _config: GVPConfig): Diagnostic[]
 
       const libId = element.toLibraryId();
       const hKey = element.hashKey();
-      if (!mappedToSet.has(libId) && !mappedToSet.has(hKey)) {
+      const hasIncoming = mappedToSet.has(libId) || mappedToSet.has(hKey);
+      const hasOutgoing = element.maps_to.length > 0;
+
+      // Only flag if truly isolated — no edges in either direction
+      if (!hasIncoming && !hasOutgoing) {
         diagnostics.push(createDiagnostic(
           'W004',
           'ORPHAN_ELEMENT',
-          `Element ${libId} is a non-root active element that nothing maps to`,
+          `Element ${libId} is isolated — nothing maps to it and it maps to nothing`,
           'warning',
           PASS_NAME,
           { elementId: element.id, documentPath: element.documentPath, categoryName: element.categoryName },
