@@ -132,6 +132,14 @@ default_timezone: "America/New_York"
 priority:
   elements: ancestor      # ancestor-wins for elements
   definitions: descendant  # descendant-wins for definitions
+
+# Coverage settings (patterns use glob syntax via minimatch: *, **, ?)
+coverage:
+  exclude:
+    - "README.md"
+    - ".gvp/**"
+    - "**/*.test.ts"
+    - "docs/**"
 ```
 
 ## Built-in Categories

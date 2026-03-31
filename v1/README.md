@@ -133,12 +133,13 @@ priority:
   elements: ancestor      # ancestor-wins for elements
   definitions: descendant  # descendant-wins for definitions
 
-# Coverage settings
+# Coverage settings (patterns use glob syntax via minimatch: *, **, ?)
 coverage:
   exclude:
     - "README.md"
-    - "GLOSSARY.md"
-    - ".gvp/"
+    - ".gvp/**"
+    - "**/*.test.ts"
+    - "docs/**"
 ```
 
 ## Built-in Categories
