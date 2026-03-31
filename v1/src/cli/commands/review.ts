@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import * as fs from 'fs';
 import * as yaml from 'js-yaml';
 import { randomUUID } from 'crypto';
-import { parseConfigOptions, buildCatalog } from '../helpers.js';
+import { parseConfigOptions, buildCatalog, requireUserIdentity } from '../helpers.js';
 import { isStale, getUnreviewedUpdates } from '../../provenance/staleness.js';
 import { computeReviewHash, validateReviewHash } from '../../provenance/review-hash.js';
 
@@ -65,10 +65,11 @@ export function reviewCommand(): Command {
           }
 
           // Stamp reviewed_by
+          const user = requireUserIdentity(config);
           const reviewEntry = {
             id: randomUUID(),
             date: new Date().toISOString(),
-            by: config.user ?? undefined,
+            by: user,
             updates_reviewed: unreviewedIds,
             note: opts.note ?? undefined,
           };

@@ -126,6 +126,24 @@ export function buildCatalog(config: GVPConfig, cwd: string = process.cwd()): Ca
   return new Catalog(resolved, config);
 }
 
+/**
+ * Require user identity for provenance operations (DEC-4.3, DEC-4.8).
+ * Exits with an error if user identity is not configured.
+ */
+export function requireUserIdentity(config: GVPConfig): { name: string; email: string } {
+  if (!config.user || !config.user.name || !config.user.email) {
+    console.error('Error: GVP user identity not configured (DEC-4.3).');
+    console.error('');
+    console.error('Set your identity in .gvp.yaml or .gvp/config.yaml:');
+    console.error('');
+    console.error('  user:');
+    console.error('    name: "Your Name"');
+    console.error('    email: "you@example.com"');
+    process.exit(1);
+  }
+  return config.user;
+}
+
 function loadDocumentFile(filePath: string, docPath: string, source: string, registry: CategoryRegistry) {
   const content = fs.readFileSync(filePath, 'utf-8');
   return parseDocument(content, filePath, docPath, source, registry);

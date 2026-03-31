@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import * as fs from 'fs';
 import * as yaml from 'js-yaml';
 import { randomUUID } from 'crypto';
-import { parseConfigOptions, buildCatalog } from '../helpers.js';
+import { parseConfigOptions, buildCatalog, requireUserIdentity } from '../helpers.js';
 import { resolveTimezone } from '../../schema/datetime.js';
 
 export function addCommand(): Command {
@@ -73,13 +73,12 @@ export function addCommand(): Command {
         // Add origin provenance (DEC-4.7)
         const skipReview = opts.skipReview || opts.provenance === false;
         const tz = resolveTimezone(config.default_timezone);
+        const user = requireUserIdentity(config);
         const originEntry: Record<string, unknown> = {
           id: randomUUID(),
           date: new Date().toISOString(),
+          by: user,
         };
-        if (config.user) {
-          originEntry.by = config.user;
-        }
         if (skipReview) {
           originEntry.skip_review = true;
         }

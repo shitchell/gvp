@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import * as fs from 'fs';
 import * as yaml from 'js-yaml';
 import { randomUUID } from 'crypto';
-import { parseConfigOptions, buildCatalog } from '../helpers.js';
+import { parseConfigOptions, buildCatalog, requireUserIdentity } from '../helpers.js';
 
 export function editCommand(): Command {
   const cmd = new Command('edit')
@@ -65,12 +65,13 @@ export function editCommand(): Command {
         }
 
         // Add updated_by provenance (DEC-4.7)
+        const user = requireUserIdentity(config);
         const updateEntry: Record<string, unknown> = {
           id: randomUUID(),
           date: new Date().toISOString(),
           rationale: opts.rationale ?? 'skip-review update',
+          by: user,
         };
-        if (config.user) updateEntry.by = config.user;
         if (opts.skipReview) updateEntry.skip_review = true;
 
         if (!target.updated_by) target.updated_by = [];
