@@ -173,3 +173,4 @@ The `refs` system is domain-agnostic — it works with any file type that has a 
 - [Getting Started](docs/guide/getting-started.md) — Set up GVP on a new project
 - [Command Reference](docs/guide/usage.md) — Detailed command documentation
 - [Workflow Guide](docs/guide/workflow.md) — End-to-end design → implementation → review workflow
+- [Lightweight Capture](docs/guide/lightweight-capture.md) — ~5 min decision capture after brainstorming sessions

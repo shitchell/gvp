@@ -359,15 +359,20 @@ gvp review D3 --approve --token a1b2c3d4
 
 ### Git Pre-Commit Hook
 
+Use the provided hook script:
+
 ```bash
-#!/bin/bash
-# .git/hooks/pre-commit
-gvp validate --scope staged
-if [ $? -ne 0 ]; then
-  echo "GVP validation failed. Fix issues before committing."
-  exit 1
-fi
+# Copy or symlink the hook
+cp scripts/gvp-hook.sh .git/hooks/pre-commit
+chmod +x .git/hooks/pre-commit
+
+# Or symlink (stays in sync with updates)
+ln -sf ../../scripts/gvp-hook.sh .git/hooks/pre-commit
 ```
+
+The hook runs `gvp validate --scope staged`, warns about stale elements, and
+supports `--coverage`, `--strict`, and `--ci` flags. See `scripts/gvp-hook.sh`
+for details.
 
 ### PR Review Checklist
 
