@@ -44,25 +44,40 @@ The design doc should capture:
 - **Goals**: What are we trying to achieve?
 - **Values**: What do we care about? What guides tradeoffs?
 - **Constraints**: What limitations are we working within?
+- **Principles**: What guidelines should we follow?
+- **Heuristics**: How do we make consistent decisions? (e.g., "when choosing
+  between simplicity and flexibility, default to simplicity unless...")
 - **Decisions**: Every architectural choice, with rationale and alternatives considered
+
+Heuristics are especially important — they force you to think through your
+decision-making process and apply it consistently. If you find yourself making
+the same kind of tradeoff repeatedly, that's a heuristic worth capturing.
 
 Write the design doc to `docs/design.md` or similar. Be thorough — every
 "we should..." or "let's use..." in the discussion is a decision worth capturing.
 
+Use descriptive **titles** for each element — these titles will be translated
+verbatim into your GVP library elements and used for deterministic grep checks
+later.
+
 ```markdown
 ## Architecture
 
-### D1: Use PostgreSQL
+### Use PostgreSQL
 We'll use PostgreSQL for the database.
 - **Rationale**: Mature, reliable, team has experience.
 - **Considered**: MySQL (less feature-rich), MongoDB (schema flexibility not needed)
 
-### D2: REST API with Express
+### REST API with Express
 ...
-```
 
-Label decisions with IDs (D1, D2, ...) in the design doc. These IDs will carry
-through to the GVP library and implementation plan.
+## Heuristics
+
+### Prefer standard libraries over custom implementations
+When a well-maintained library exists for a problem, use it rather than
+rolling our own. Custom code is only justified when the library doesn't
+fit the use case or introduces unacceptable dependencies.
+```
 
 ## Step 2: Review the Design Doc
 
@@ -84,8 +99,13 @@ gvp init
 ```
 
 Then translate every element from the design doc into the GVP YAML. Every
-goal, value, constraint, principle, and decision from the design doc becomes a
-YAML element with proper `maps_to` traceability.
+goal, value, constraint, principle, heuristic, and decision from the design doc
+becomes a YAML element with proper `maps_to` traceability.
+
+**Use the exact titles from the design doc as element `name` values.** This
+enables the deterministic grep check in Step 4 — if the title appears in both
+the design doc and the library, nothing was missed. IDs are auto-assigned and
+may not match between doc and library, but titles should be verbatim.
 
 ```yaml
 decisions:
@@ -109,24 +129,27 @@ gvp validate
 
 ## Step 4: Deterministic Check — Design Doc → Library
 
-Verify that every decision from the design doc made it into the GVP library.
-This is a mechanical check, not a judgment call:
+Verify that every element from the design doc made it into the GVP library.
+This is a mechanical check on **titles**, not IDs — IDs are auto-assigned and
+may differ, but titles should be verbatim matches.
 
 ```bash
-# Extract decision IDs from the design doc
-grep -oP 'D\d+' docs/design.md | sort -u > /tmp/design-ids.txt
+# Extract element titles from the design doc (headings under ## or ###)
+grep -oP '###?\s+\K.+' docs/design.md | sort -u > /tmp/design-titles.txt
 
-# Extract decision IDs from the GVP library
-grep -oP 'id: D\d+' .gvp/library/*.yaml | grep -oP 'D\d+' | sort -u > /tmp/library-ids.txt
+# Extract element names from the GVP library
+grep -oP 'name: \K.+' .gvp/library/*.yaml | sort -u > /tmp/library-names.txt
 
 # Find any in the design doc but missing from the library
-comm -23 /tmp/design-ids.txt /tmp/library-ids.txt
+comm -23 /tmp/design-titles.txt /tmp/library-names.txt
 ```
 
-If `comm` outputs anything, those decisions were missed. Go back and add them.
+If `comm` outputs anything, those elements were discussed and documented but
+not translated to the library. Go back and add them.
 
 This check is cheap and catches the most common failure mode: "we discussed it,
-wrote it down, then forgot to translate it."
+wrote it down, then forgot to translate it." Using titles rather than IDs means
+the check works even when IDs are auto-assigned by tooling.
 
 ## Step 5: Fidelity Check — Can a Fresh Reader Understand the Project?
 
@@ -193,7 +216,7 @@ Either add it to a task or confirm it's intentionally deferred.
 
 Implement following the plan. After each chunk:
 
-1. Add `refs` to decisions linking them to the code you just wrote
+1. Add `refs` to decisions linking them to the code or documentation you just wrote
 2. Commit
 3. Run `gvp validate`
 
