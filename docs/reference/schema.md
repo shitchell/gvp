@@ -118,23 +118,20 @@ category-specific content field that carries the element's main substance.
 |----------|----------|---------------|
 | `goals` | goal | `statement` |
 | `values` | value | `statement` |
-| `principles` | principle | `statement` |
-| `heuristics` | heuristic | `statement` |
-| `rules` | rule | `statement` |
-| `design_choices` | design_choice | `rationale` |
-| `milestones` | milestone | `description` |
 | `constraints` | constraint | `impact` |
-| `implementation_rules` | implementation_rule | `statement` |
-| `coding_principles` | coding_principle | `statement` |
+| `principles` | principle | `statement` |
+| `rules` | rule | `statement` |
+| `heuristics` | heuristic | `statement` |
+| `decisions` | decision | `rationale` |
+| `milestones` | milestone | `description` |
 
-`implementation_rules` and `coding_principles` are not core categories. They are
-conventions used in the `software-project` example. The framework supports them
-natively (they are in the category map), but they are not required and may not
-be relevant outside software development contexts.
-
-These categories are the built-in defaults. The framework loads them from a
+These 8 categories are the built-in defaults. The framework loads them from a
 built-in schema and they can be overridden or extended via
 `meta.definitions.categories`. See [Element Category Definitions](#element-category-definitions).
+
+Additional categories (e.g., `implementation_rule`, `coding_principle`) can be
+defined via `meta.definitions.categories` in any GVP document. The
+`software-project` example demonstrates this with domain-specific categories.
 
 
 ## Element Fields
@@ -159,10 +156,9 @@ These fields are recognized on every element regardless of category.
 
 Each category has a primary content field:
 
-- **statement** -- Used by goals, values, principles, heuristics, rules,
-  implementation_rules, and coding_principles. Contains the element's core
-  assertion or commitment.
-- **rationale** -- Used by design_choices. Explains why the choice was made,
+- **statement** -- Used by goals, values, principles, heuristics, and rules.
+  Contains the element's core assertion or commitment.
+- **rationale** -- Used by decisions. Explains why the decision was made,
   including what alternatives were considered.
 - **impact** -- Used by constraints. Describes how the constraint affects
   decisions.
@@ -170,23 +166,23 @@ Each category has a primary content field:
 
 Milestones also support a `progress` field for tracking completion status.
 
-### considered (Design Choices)
+### considered (Decisions)
 
-The `considered` field is an optional map on `design_choice` elements that records
+The `considered` field is an optional map on `decision` elements that records
 alternatives that were evaluated and rejected. Each key is the alternative name, and
 each value is a dict that must include `rationale` (the rejection rationale).
 
 ```yaml
-design_choices:
+decisions:
   - id: D1
-    name: Use Python
+    name: Use TypeScript
     rationale: ...
     considered:
       go:
         description: Fast compiled language.
         rationale: Marginal benefit didn't justify switching.
-      node:
-        rationale: Not as strong for CLI tools.
+      python:
+        rationale: Not as strong for npm distribution.
 ```
 
 | Inner Field | Type | Required | Description |
@@ -217,7 +213,7 @@ goals:
 ```
 
 Extra fields are stored as additional model attributes and passed through to
-renderers. Category-specific fields (like `considered` on design choices) can
+renderers. Category-specific fields (like `considered` on decisions) can
 be formally defined via `field_schemas` in the element category definition -- see
 [Element Category Definitions](#element-category-definitions).
 

@@ -23,10 +23,10 @@ Elements with status `deprecated` or `rejected` are excluded from all traceabili
 | Milestone | 1+ goal AND 1+ value |
 | Principle | 1+ goal AND 1+ value |
 | Rule | 1+ goal AND 1+ value |
-| Design Choice | 1+ goal AND 1+ value |
+| Decision | 1+ goal AND 1+ value |
 | Heuristic | (1+ goal AND 1+ value) OR 1+ principle or rule |
 
-Milestones, principles, rules, and design choices must map directly to at least one goal and at least one value. Both are required -- mapping to only a goal or only a value is a traceability violation.
+Milestones, principles, rules, and decisions must map directly to at least one goal and at least one value. Both are required -- mapping to only a goal or only a value is a traceability violation.
 
 Heuristics have an **alternative path**: instead of mapping directly to a goal and a value, a heuristic can map to a principle or a rule. Either satisfies the requirement. The idea is that the principle or rule it maps to must itself trace to a goal and value, so the chain is still complete -- just indirect.
 
@@ -36,10 +36,12 @@ Some example projects (such as `software-project`) define additional categories 
 
 | Category | Must map to... |
 |----------|---------------|
-| Implementation Rule | (1+ goal AND 1+ value) OR 1+ design choice |
-| Coding Principle | (1+ goal AND 1+ value) OR 1+ principle or design choice |
+| Implementation Rule | (1+ goal AND 1+ value) OR 1+ decision |
+| Coding Principle | (1+ goal AND 1+ value) OR 1+ principle or decision |
 
-These follow the same alternative-path pattern. An implementation rule can map directly to a goal and value, or it can take the shortcut of mapping to a design choice (which itself must trace to a goal and value). A coding principle can map to a goal and value directly, or to a principle or design choice.
+These are not built-in categories -- they are defined via `meta.definitions.categories` in the example project's documents.
+
+These follow the same alternative-path pattern. An implementation rule can map directly to a goal and value, or it can take the shortcut of mapping to a decision (which itself must trace to a goal and value). A coding principle can map to a goal and value directly, or to a principle or decision.
 
 ### How Alternatives Work
 
@@ -50,42 +52,41 @@ The alternative path is a shortcut, not an escape hatch. The element you map to 
 
 ## Errors
 
-Errors cause `gvp validate` to exit with code 1. Each error is printed to stderr with an `ERROR:` prefix.
+Errors cause `gvp validate` to exit with code 1.
 
-| Check | Description |
-|-------|-------------|
-| Broken `maps_to` reference | A qualified ID in an element's `maps_to` list does not match any loaded element in the catalog. |
-| Undefined tag | A tag on an element is not defined via `meta.definitions.tags` in any loaded document. |
-| ID sequence gap | Element IDs within a category in a single document have gaps. For example, if a document contains P1 and P3 but no P2, that is a gap. IDs are expected to be sequential starting from 1. |
-| Broken `inherits` reference | A document's `meta.inherits` names a document that was not found in any loaded library. |
-| Circular inheritance | The inheritance graph contains a cycle (e.g., document A inherits B, and B inherits A). |
-| Traceability violation | A non-root element does not satisfy its category's mapping rules (see [Traceability Rules](#traceability-rules) above). |
+| Code | Name | Description |
+|------|------|-------------|
+| E001 | BROKEN_REFERENCE | A qualified ID in an element's `maps_to` list does not match any loaded element in the catalog. |
+| E003 | BROKEN_INHERITANCE | A document's `meta.inherits` names a document that was not found in any loaded library. |
+| E004 | SCHEMA_VALIDATION | Element fails schema validation (missing required fields, wrong types, etc.). |
 
 
 ## Warnings
 
 Warnings are printed to stderr but do not cause a non-zero exit code under normal operation. Each warning is prefixed with a code for identification and suppression.
 
-| Code | Description |
-|------|-------------|
-| W001 | **Empty document** -- a loaded document contains no elements. |
-| W002 | **Duplicate document name** -- two documents share the same `meta.name`. The first one loaded is kept; the second is skipped. In `--strict` mode, this becomes a hard error that raises an exception. |
-| W003 | **Library path does not exist** -- a path listed in `config.yaml` under `libraries` does not exist on disk. |
-| W004 | **Empty `maps_to`** -- a non-root element has no `maps_to` references at all. This is a weaker signal than a traceability violation: the element has no mappings rather than incorrect ones. |
-| W005 | **Self-document-only mapping** -- an element in a document that has `inherits` maps only to elements in its own document, never tracing back to an inherited ancestor. This suggests the element may be disconnected from the parent GVP it extends. Only checked when the element's document has an `inherits` chain. |
-| W006 | **Stale element** -- an ancestor element (reachable through `maps_to`) has an `updated_by` date that is newer than this element's most recent `reviewed_by` date. This means an upstream element changed and the downstream element has not been reviewed since. Use `gvp review` to inspect and acknowledge. |
-| W007 | **Duplicate tag definition** -- the same tag name is defined in `meta.definitions.tags` in multiple documents within a library. The first loaded document's definition is kept; subsequent definitions for the same tag name are flagged. |
-| W008 | **Duplicate element category definition** -- the same category name is defined in `meta.definitions.categories` in multiple documents. The first definition is kept. |
-| W009 | **Unknown YAML section** -- a top-level YAML key in a document does not match any known category `yaml_key`. This may indicate a typo or a category that hasn't been defined. |
+| Code | Name | Description |
+|------|------|-------------|
+| W001 | EMPTY_MAPS_TO | A non-root active element has no `maps_to` references at all. This is a weaker signal than a traceability violation: the element has no mappings rather than incorrect ones. |
+| W002 | EMPTY_DOCUMENT | A loaded document contains no elements. |
+| W003 | MAPPING_RULES_VIOLATION | A non-root element does not satisfy its category's mapping rules (see [Traceability Rules](#traceability-rules) above). |
+| W005 | SELF_DOCUMENT_MAPPING | An element in a document that has `inherits` maps only to elements in its own document, never tracing back to an inherited ancestor. Only checked when the element's document has an `inherits` chain. |
+| W006 | STALE_ELEMENT | An ancestor element (reachable through `maps_to`) has an `updated_by` date that is newer than this element's most recent `reviewed_by` date. Use `gvp review` to inspect and acknowledge. |
+| W007 | UNDEFINED_TAG | A tag on an element is not defined via `meta.definitions.tags` in any loaded document. |
+| W009 | ID_SEQUENCE_GAP | Element IDs within a category in a single document have gaps (e.g., P1 and P3 but no P2). |
+| W010 | REF_FILE_MISSING | A ref points to a file that does not exist on disk. |
+| W011 | REF_IDENTIFIER_MISSING | A ref's identifier was not found in the referenced file. |
+| W012 | ORPHAN_IDENTIFIER | An identifier in a file is not referenced by any element (coverage pass only). |
+| W013 | DECISION_NO_REFS | A decision element has no refs (coverage pass only). |
 
-### Suppressing Warnings
+### Suppressing Diagnostics
 
-Warnings can be suppressed in `config.yaml` using the `suppress_warnings` list. See [config.md](config.md) for details on configuration format.
+Diagnostics can be suppressed in `config.yaml` using the `suppress_diagnostics` list. See [config.md](config.md) for details on configuration format.
 
 ```yaml
-suppress_warnings:
+suppress_diagnostics:
   - W001
-  - W004
+  - W005
 ```
 
 
@@ -95,7 +96,6 @@ When `--strict` is passed on the command line (or `strict: true` is set in `conf
 
 - Any warning that would normally be printed to stderr also gets added to the error list.
 - The exit code becomes 1 if any warnings exist.
-- W002 (duplicate document name) becomes a hard error that raises an exception during loading, before validation even runs.
 
 Strict mode is useful in CI pipelines where you want to enforce a zero-warning policy.
 
@@ -106,13 +106,13 @@ gvp validate --strict
 
 ## User-Defined Validation Rules
 
-You can define custom validation rules in `config.yaml` under the `validation.rules` key. Each rule specifies a set of match filters (which elements the rule applies to) and a set of require checks (what those elements must satisfy).
+You can define custom validation rules in `config.yaml` under the `validation_rules` key (top-level). Each rule specifies a set of match filters (which elements the rule applies to) and a set of require checks (what those elements must satisfy).
 
 ### Match Filters
 
 | Filter | Description |
 |--------|-------------|
-| `category` | Only apply to elements of this category (e.g., `design_choice`). |
+| `category` | Only apply to elements of this category (e.g., `decision`). |
 | `scope` | Only apply to elements in documents with this scope label. |
 | `tag` | Only apply to elements that have this tag. |
 | `status` | Only apply to elements with this status (e.g., `active`). |
@@ -135,23 +135,22 @@ Each rule has a `level` field: either `"error"` (default) or `"warning"`. Errors
 ### Full Example
 
 ```yaml
-validation:
-  rules:
-    - name: Design choices must reference a heuristic
-      match:
-        category: design_choice
-      require:
-        maps_to_category: heuristic
-      level: warning
+validation_rules:
+  - name: Decisions must reference a heuristic
+    match:
+      category: decision
+    require:
+      maps_to_category: heuristic
+    level: warning
 
-    - name: Implementation elements must trace to project scope
-      match:
-        scope: implementation
-      require:
-        maps_to_scope: project
-      level: error
+  - name: Implementation elements must trace to project scope
+    match:
+      scope: implementation
+    require:
+      maps_to_scope: project
+    level: error
 ```
 
-The first rule warns if any design choice does not map to at least one heuristic. The second rule errors if any element in a document with `scope: implementation` does not map to at least one element in a document with `scope: project`.
+The first rule warns if any decision does not map to at least one heuristic. The second rule errors if any element in a document with `scope: implementation` does not map to at least one element in a document with `scope: project`.
 
 See [config.md](config.md) for the full configuration file format and [schema.md](schema.md) for field definitions.
