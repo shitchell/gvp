@@ -1,168 +1,180 @@
-# gvp
+# GVP — Goals, Values, and Principles
 
-A framework and CLI tool for decision traceability. GVP (Goals, Values, and Principles) helps you capture the reasoning behind decisions so that every choice — from architecture to process — can trace back to what you're trying to achieve and why it matters.
+A decision traceability framework. Define your goals, values, and principles in YAML. Trace every decision back to what drives it. Link decisions to the code, documents, and artifacts they produce.
 
-## Why
-
-- **Alignment during AI-assisted work.** When AI helps with planning and development, it needs to know how you make decisions and why. GVP gives it (and you) that context explicitly.
-- **Easier planning.** How you make decisions and why is already documented. New plans start from shared ground instead of re-deriving principles each time.
-- **Review over time.** Goals shift, values evolve, circumstances change. GVP surfaces when downstream decisions may need revisiting because the reasoning above them has changed.
-- **Internal consistency.** When everything traces to goals and values, contradictions and misalignment become visible — across projects, across scopes, across time.
-
-## How It Works
-
-GVP organizes decision-making into Libraries — directories that store YAML specifications for elements, tag definitions, and config files. Elements are the building blocks, connected by a many-to-many mapping graph. Each element traces its justification back to the goals and values that motivate it.
-
-### Elements
-
-Elements are the building blocks. Each has a category that describes its role:
-
-| Category | Description | How to identify |
-|----------|-------------|-----------------|
-| **Goal** | A target state you're working toward. Quantifiable, even if broadly. | Is it a destination, not a method? |
-| **Value** | A subjective quality you favor. Shapes trade-offs when two valid approaches exist. | Does it describe a quality you care about, not a specific action? |
-| **Principle** | An actionable bias. States a preference that requires judgment to apply. | Is it a bias or preference that tells you what to *do*? |
-| **Heuristic** | A decision procedure. Where a principle says "prefer X," a heuristic says "if A, then B; else C." | Can you write it as an if/then tree? |
-| **Rule** | A hard stop. Binary, no exceptions. A principle that graduated to "never cross this line." | Is it a bright line that's never crossed? |
-| **Design Choice** | Tools you've picked and high-level architectural decisions. Change when the implementation changes. | Would it change if you switched frameworks? |
-| **Milestone** | A concrete, achievable waypoint on the path to goals. | Is it a concrete state on the roadmap? |
-| **Constraint** | A fact about the system or environment you don't control. Descriptive, not prescriptive. | Is it a fact you don't control? |
-
-Tags can further classify elements by domain (e.g., `code`, `systems`, `finance`) or concern (e.g., `reliability`, `usability`). See [Tags](#tags) below.
-
-### Relationships
-
-- **Goals** are the destination. Everything else exists to get there.
-- **Values** are the compass. They shape every decision but don't prescribe specific actions.
-- **Principles** state preferences. **Heuristics** encode the procedure for applying them. **Rules** are principles with zero tolerance for exceptions.
-- **Constraints** are external facts that shape your choices but aren't themselves decisions.
-- The relationships are a **graph**, not a tree — many-to-many.
-
-Goals and values are tightly coupled and sometimes hard to distinguish (see [docs/philosophy.md](docs/philosophy.md)). While neither is required to map to anything, mapping them to each other is encouraged — it surfaces alignment gaps and strengthens review.
-
-### Traceability
-
-Every element (except goals, values, and constraints) must trace its justification to at least one goal and one value — directly or transitively through other elements in the mapping graph.
-
-For per-category traceability requirements, see the [Validation Reference](docs/reference/validation.md#traceability-rules).
-
-### Scope and Inheritance
-
-GVP documents form an inheritance graph. A document can inherit from one or more parents via `meta.inherits`. You need at least one scope, and the depth is up to you. The conventional structure is:
-
-```
-universal.yaml                         (organization-wide)
-  ├─ personal.yaml                     (individual, cross-project)
-  │    └─ projects/<project>.yaml      (project-level: goals, constraints)
-  │         └─ ...                      (arbitrary further nesting)
-  └─ python-projects.yaml             (language-specific conventions)
-       └─ projects/<project>.yaml      (can inherit from both personal + python)
-```
-
-A document can inherit from multiple parents:
-
-```yaml
-meta:
-  name: my-project
-  inherits:
-    - personal
-    - python-projects
-```
-
-For personal use, `universal.yaml` can remain empty — or you can skip it entirely and start from `personal.yaml`. What constitutes a "project" vs. deeper nesting is up to you. The framework doesn't enforce granularity, only that the inheritance graph is acyclic.
-
-### Tags
-
-Elements can be classified with tags. Tags are defined in a document's `meta.definitions.tags` block — either inline alongside elements, or in a dedicated file. How you organize your tags is up to you — one useful pattern is separating them into:
-
-- **Domain tags** (`code`, `systems`, `finance`, ...): what area the element applies to
-- **Concern tags** (`maintainability`, `reliability`, `usability`, ...): what quality the element addresses
-
-But this is a convention, not a requirement. The tagging system is agnostic — use whatever groupings make sense for your context.
-
-## Installation
+## Install
 
 ```bash
-pip install -e .
-
-# For graphviz/DOT rendering:
-pip install -e ".[diagrams]"
+npm install -g gvp
 ```
-
-> **Note:** PyPI publication is planned. For now, install from source.
 
 ## Quick Start
 
 ```bash
-# Validate a GVP library
-gvp validate --library examples/software-project/
+# Initialize a GVP library
+mkdir -p .gvp/library
+cat > .gvp/library/project.yaml << 'EOF'
+meta:
+  name: my-project
+  scope: project
 
-# Query elements by tag
-gvp query --library examples/software-project/ --tag code
+goals:
+  - id: G1
+    name: Ship reliable software
+    statement: Deliver software that works correctly.
+    tags: []
+    maps_to: []
 
-# Trace an element's mapping graph
-gvp trace --library examples/software-project/ personal:H1
+values:
+  - id: V1
+    name: Simplicity
+    statement: Complexity must earn its place.
+    tags: []
+    maps_to: [my-project:G1]
 
-# Render to markdown
-gvp render --library examples/software-project/ --format markdown --stdout
+decisions:
+  - id: D1
+    name: Use TypeScript
+    rationale: Type safety and npm ecosystem.
+    tags: []
+    maps_to: [my-project:G1, my-project:V1]
+    refs:
+      - file: src/index.ts
+        identifier: main
+        role: implements
+EOF
+
+# Validate
+gvp validate
+
+# Export
+gvp export --format json
+gvp export --format markdown
 ```
-
-## Examples
-
-Bundled example libraries demonstrate GVP in different domains:
-
-- **[Software Project](examples/software-project/)** — a 4-level chain for a fictional CLI task manager, demonstrating domain-specific categories and cross-scope traceability
-- **[Small Business](examples/small-business/)** — a 2-level chain for a fictional coffee shop, showing GVP works beyond software
-
-Each example directory has its own README with detailed walkthroughs and commands.
 
 ## Commands
 
-### validate
+| Command | Description |
+|---------|-------------|
+| `gvp validate` | Validate the GVP library |
+| `gvp validate --coverage` | Include coverage checks (orphan identifiers, decisions without refs) |
+| `gvp validate --scope staged` | Scope validation to staged git changes |
+| `gvp export --format <fmt>` | Export catalog to json, csv, markdown, or dot |
+| `gvp add <category> <name>` | Add a new element with auto-assigned ID |
+| `gvp edit <element> --field key=value` | Modify an existing element |
+| `gvp review` | Find stale elements needing review |
+| `gvp review <element>` | Review a specific element |
+| `gvp inspect <element>` | View element details |
+| `gvp inspect <element> --trace` | Trace element to its goals and values |
+| `gvp inspect --ref file::identifier --trace` | "Why does this code exist?" |
+| `gvp query --category decision` | Filter elements by category, tag, status |
+| `gvp query --refs-file src/foo.ts` | Find elements referencing a file |
+| `gvp diff <commitA> <commitB>` | Trace code changes back to decisions |
+| `gvp analyze` | Detect unmapped relationships via similarity |
 
-Check a catalog for structural errors and traceability violations.
+## Global Options
 
-```bash
-gvp validate --library path/
-gvp validate --library path/ --strict
+| Flag | Description |
+|------|-------------|
+| `--config <path>` | Load specific config file |
+| `--no-config` | Skip all config files |
+| `-c key=value` | Inline config override |
+| `--strict` | Promote warnings to errors |
+| `-v` / `-vv` / `-vvv` | Verbose output |
+
+## Validation Codes
+
+### Errors
+
+| Code | Name | Description |
+|------|------|-------------|
+| E001 | BROKEN_REFERENCE | `maps_to` target not found |
+| E002 | DUPLICATE_ELEMENT_ID | Duplicate element ID within a document |
+| E003 | BROKEN_INHERITANCE | Inherited document not found |
+| E004 | SCHEMA_VALIDATION | Element fails schema validation |
+
+### Warnings
+
+| Code | Name | Description |
+|------|------|-------------|
+| W001 | EMPTY_MAPS_TO | Non-root active element has no `maps_to` |
+| W002 | EMPTY_DOCUMENT | Document has no active elements |
+| W003 | MAPPING_RULES_VIOLATION | Element doesn't satisfy category mapping rules |
+| W004 | ORPHAN_ELEMENT | Isolated element (no incoming or outgoing edges) |
+| W005 | SELF_DOCUMENT_MAPPING | Element maps only within its own document |
+| W006 | STALE_ELEMENT | Element has unreviewed updates |
+| W007 | UNDEFINED_TAG | Element uses tag not in definitions |
+| W008 | DUPLICATE_CATEGORY_DEF | Duplicate category definition within library siblings |
+| W009 | ID_SEQUENCE_GAP | Gap in element ID sequence |
+| W010 | REF_FILE_MISSING | Ref points to nonexistent file |
+| W011 | REF_IDENTIFIER_MISSING | Ref identifier not found in file |
+| W012 | ORPHAN_IDENTIFIER | Identifier not referenced by any element (coverage pass) |
+| W013 | DECISION_NO_REFS | Decision has no refs (coverage pass) |
+| W014 | NO_ROOT_TRACE | Element cannot trace to any root element transitively |
+
+## Config
+
+Config files are discovered in this order (closer scope wins):
+
+1. `/etc/gvp/config.yaml` (system)
+2. `~/.config/gvp/config.yaml` (global)
+3. `.gvp/config.yaml` (project)
+4. `.gvp.yaml` (local, gitignored)
+
+Environment variables: `GVP_CONFIG_SYSTEM`, `GVP_CONFIG_GLOBAL`, `GVP_CONFIG_PROJECT`, `GVP_CONFIG_LOCAL`
+
+```yaml
+# .gvp/config.yaml
+user:
+  name: "Your Name"
+  email: "you@example.com"
+
+strict: false
+suppress_diagnostics: []
+default_timezone: "America/New_York"
+
+priority:
+  elements: ancestor      # ancestor-wins for elements
+  definitions: descendant  # descendant-wins for definitions
+
+# Coverage settings (patterns use glob syntax via minimatch: *, **, ?)
+coverage:
+  exclude:
+    - "README.md"
+    - ".gvp/**"
+    - "**/*.test.ts"
+    - "docs/**"
 ```
 
-### render
+## Built-in Categories
 
-Generate output in markdown, CSV, SQLite, DOT, or PNG format.
+| Category | Prefix | Root | Primary Field |
+|----------|--------|------|---------------|
+| goal | G | yes | statement |
+| value | V | yes | statement |
+| constraint | C | yes | impact |
+| principle | P | no | statement |
+| rule | R | no | statement |
+| heuristic | H | no | statement |
+| decision | D | no | rationale |
+| milestone | M | no | description |
 
-```bash
-gvp render --library path/ --format markdown --stdout
-gvp render --library path/ --format dot --stdout | dot -Tpng -o graph.png
+## Refs — Linking Decisions to Artifacts
+
+Any element can have `refs` linking it to external files:
+
+```yaml
+refs:
+  - file: src/catalog/catalog.ts
+    identifier: Catalog
+    role: implements  # defines | implements | uses | extends
 ```
 
-### trace
+The `refs` system is domain-agnostic — it works with any file type that has a registered parser (TypeScript, Markdown, YAML built-in).
 
-Walk the mapping graph from a given element.
+## Documentation
 
-```bash
-gvp trace --library path/ personal:H1
-gvp trace --library path/ personal:G1 --reverse
-```
-
-### review
-
-Review elements for staleness after upstream changes.
-
-```bash
-gvp review --library path/
-gvp review --library path/ personal:P3
-```
-
-For the full command reference including `add`, `edit`, `query`, and all flags, see the [Usage Reference](docs/guide/usage.md).
-
-## Further Reading
-
-- [Glossary](GLOSSARY.md) — canonical term definitions
-- [Philosophy](docs/philosophy.md) — on fuzzy boundaries between goals, values, and principles
-- [Developing a Library](docs/guide/developing-a-library.md) — practical guidance for building GVP libraries
-- [Usage Reference](docs/guide/usage.md) — full CLI command and flag reference
-- [AI Integration](docs/guide/ai-integration.md) — using GVP with AI assistants
-- [Schema Reference](docs/reference/schema.md) — YAML document format specification
-- [Validation Reference](docs/reference/validation.md) — traceability rules, error codes, and warnings
-- [Config Reference](docs/reference/config.md) — configuration discovery and options
+- [Getting Started](docs/guide/getting-started.md) — Set up GVP on a new project
+- [Command Reference](docs/guide/workflow.md#quick-reference) — Command reference
+- [Workflow Guide](docs/guide/workflow.md) — End-to-end design → implementation → review workflow
+- [Lightweight Capture](docs/guide/lightweight-capture.md) — ~5 min decision capture after brainstorming sessions

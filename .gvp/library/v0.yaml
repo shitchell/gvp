@@ -1,0 +1,89 @@
+meta:
+  name: v0
+  scope: implementation
+  inherits:
+    - gvp
+  defaults:
+    origin:
+      - date: "2026-02-24"
+        note: "Inferred from planning sessions"
+
+decisions:
+  - id: D1
+    name: Python 3.11+ with PyYAML and argparse
+    rationale: >
+      Claude proposed Python during initial planning, and it was not
+      identified as a choice until mid-plan. Switching would have required
+      reworking the existing plan for marginal benefit. Python is widely
+      available, readable, runs everywhere without compilation, and is fast
+      enough for a CLI that processes YAML files. PyYAML is the standard YAML
+      library. argparse avoids external dependencies for argument parsing.
+    tags: [tooling]
+    maps_to: [gvp:G2, gvp:G7, gvp:V4, gvp:V5]
+    considered:
+      go:
+        description: >
+          Guy generally prefers compiled languages for AI-assisted development
+          (easier toolchain). Would have been his first choice if starting fresh.
+        rationale: >
+          Marginal benefit didn't justify reworking the mid-plan.
+      node:
+        description: >
+          Many projects at work use it, so it would have broad familiarity.
+        rationale: >
+          Not as strong for CLI tools.
+      rust:
+        description: >
+          Considered but not seriously evaluated for this project.
+        rationale: >
+          No compelling advantage over Python for a YAML-processing CLI.
+      ruby:
+        description: >
+          Considered but not seriously evaluated for this project.
+        rationale: >
+          No compelling advantage over Python for a YAML-processing CLI.
+      perl:
+        description: >
+          Considered but not seriously evaluated for this project.
+        rationale: >
+          No compelling advantage over Python for a YAML-processing CLI.
+
+  - id: D2
+    name: YAML as source of truth format
+    rationale: >
+      YAML is human-readable, supports comments, handles nested structures,
+      and is widely supported by tools and languages. It is more readable
+      than JSON and more structured than markdown.
+    tags: [tooling, framework]
+    maps_to: [gvp:G7, gvp:P3, gvp:V4]
+
+  - id: D3
+    name: Rename Category to ElementCategory
+    rationale: >
+      "Category" on its own is too broad and vague to be useful -- it's like
+      calling something a "list" and expecting people to know you mean "list
+      of 1985 muscle cars." The term doesn't appear in the glossary and
+      doesn't merit an entry just to mean "type of element." Prefixing with
+      "Element" makes the meaning self-evident: ElementCategoryDef,
+      ElementCategoryRegistry, element_category_registry. "Element" is also
+      broad, but it earns its place by being in the glossary. This rename
+      touches class names, function names, variable names, and documentation
+      headings throughout the codebase.
+    tags: [tooling, framework]
+    maps_to: [gvp:G7, gvp:G9, gvp:V5, gvp:V6]
+    considered:
+      keep_category_with_glossary_entry:
+        description: >
+          Keep "Category" as-is and add it to the glossary to define the
+          specific meaning.
+        rationale: >
+          Adding a glossary entry for a term that just means "type of element"
+          is unnecessary indirection. The name should carry its own meaning.
+      element_type:
+        description: >
+          Use "ElementType" instead of "ElementCategory."
+        rationale: >
+          "Type" collides with Python's type system and Pydantic's type
+          annotations. "Category" is the established term in the codebase and
+          YAML schema (meta.definitions.categories), so keeping it as the
+          suffix avoids a second rename of the YAML interface.

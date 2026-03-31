@@ -1,0 +1,742 @@
+meta:
+  name: gvp
+  scope: project
+  definitions:
+    tags:
+      framework:
+        description: Core GVP framework design -- schema, element types, traceability model
+      tooling:
+        description: The gvp CLI utility and its implementation
+      documentation:
+        description: READMEs, glossary, specs, and examples
+      alignment:
+        description: Ensuring decisions trace back to goals and values consistently
+      usability:
+        description: Accessible to non-technical users and AI assistants alike
+      integrity:
+        description: Data correctness, provenance, and trustworthiness of the GVP store
+      extensibility:
+        description: Supporting user-defined categories, tags, validation, and output formats
+      code:
+        description: Code-level patterns and implementation heuristics
+  defaults:
+    origin:
+      - date: "2026-02-23"
+        note: "Inferred from planning sessions"
+
+goals:
+  - id: G1
+    name: Facilitate alignment across collaborators
+    statement: >
+      Collaborators -- human or AI -- can consult the GVP store to understand
+      how decisions are made and why, producing plans and work that align with
+      stated goals and values without repeated explanation. Applies during
+      planning, execution, and review.
+    tags: [framework, alignment]
+    maps_to: []
+
+  - id: G2
+    name: Facilitate easier planning for AI and humans
+    statement: >
+      Decision-making context is already documented, so new planning sessions
+      start from shared ground rather than blank slates.
+    tags: [framework, alignment, usability]
+    maps_to: [gvp:G1]
+
+  - id: G3
+    name: Enable periodic review of GVPs
+    statement: >
+      Users can revisit their goals, values, and principles over time to verify
+      they still hold true, updating or deprecating those that no longer apply.
+    tags: [framework, integrity]
+    maps_to: [gvp:G4]
+
+  - id: G4
+    name: Review guiding values against their results
+    statement: >
+      Users can examine whether their stated values are actually producing
+      outcomes coherent with their goals, surfacing contradictions or drift.
+    tags: [framework, alignment, integrity]
+    maps_to: []
+
+  - id: G5
+    name: Ensure internal consistency across all scopes
+    statement: >
+      The framework helps detect and surface misalignment between elements at
+      different scopes so contradictions are visible rather than hidden.
+    tags: [framework, alignment]
+    maps_to: []
+
+  - id: G6
+    name: Works anywhere
+    statement: >
+      The tool should work for organizations, teams, and individuals alike --
+      across domains, project structures, and workflows. This includes being
+      domain-agnostic in its core design.
+    tags: [framework, usability]
+    maps_to: []
+
+  - id: G7
+    name: Usable by AI assistants
+    statement: >
+      AI assistants should be able to read, query, and propose changes to GVP
+      stores as part of planning and development workflows.
+    tags: [framework, alignment]
+    maps_to: [gvp:G1]
+
+  - id: G8
+    name: Just works out of the box
+    statement: >
+      The tool should work correctly and predictably with minimal setup.
+      Sensible defaults, automatic discovery, and progressive fallbacks mean
+      a user can start using the tool without reading documentation or writing
+      configuration.
+    tags: [framework, usability]
+    maps_to: [gvp:G6]
+
+  - id: G9
+    name: Adapts to the user
+    statement: >
+      The tool should conform to the user's environment, needs, and how they
+      conceptualize and model their goals and projects -- rather than demanding
+      the user conform to the tool.
+    tags: [framework, usability, extensibility]
+    maps_to: []
+
+  - id: G10
+    name: Automated detection of similar and conflicting elements
+    statement: >
+      The framework should progressively improve its ability to automatically
+      detect elements that are semantically similar, potentially conflicting,
+      or unmapped despite apparent relevance -- reducing the burden on humans
+      and AI agents to manually discover these relationships.
+    tags: [framework, alignment, tooling]
+    maps_to: [gvp:G5, gvp:G7]
+    origin:
+      - date: "2026-03-26"
+        note: "Added during post-v1 heuristic mining -- supports Surface Tension principle"
+
+values:
+  - id: V1
+    name: Alignment
+    statement: >
+      Shared understanding between agents -- human or AI -- of what the vision
+      is and how we're getting there. Across people, across projects, across
+      time.
+    tags: [framework, alignment]
+    maps_to: [gvp:G1]
+
+  - id: V2
+    name: Coherency
+    statement: >
+      The system of decisions should be internally consistent. Elements across
+      scopes should not contradict each other. The graph matters more than any
+      single element.
+    tags: [framework, integrity]
+    maps_to: [gvp:G5]
+
+  - id: V3
+    name: Honesty
+    statement: >
+      Capture real reasoning, even when messy or uncomfortable. Fuzzy gut
+      feelings are valid starting points worth documenting. Presenting a clean
+      facade over unclear motivations helps no one.
+    tags: [framework, integrity]
+    maps_to: [gvp:G3, gvp:G4]
+
+  - id: V4
+    name: Simplicity
+    statement: >
+      The quality of being uncomplicated and easy to understand. Complexity
+      must earn its place.
+    tags: [framework, tooling]
+    maps_to: [gvp:G8]
+
+  - id: V5
+    name: Approachability
+    statement: >
+      Meet users where they are. The framework should be intuitive regardless
+      of domain expertise or technical background -- through layered
+      documentation, domain-specific examples, and terminology that fits the
+      audience.
+    tags: [framework, usability]
+    maps_to: [gvp:G6]
+
+  - id: V6
+    name: Clarity
+    statement: >
+      Easy, simple understanding throughout all aspects of the system -- its
+      usage, its output, and its interwoven philosophies.
+    tags: [framework, usability]
+    maps_to: [gvp:G1, gvp:V5]
+
+  - id: V7
+    name: Flexibility
+    statement: >
+      Systems should be adaptable to different environments, preferences, and
+      unforeseen contexts.
+    tags: [framework, extensibility]
+    maps_to: [gvp:G9]
+
+  - id: V8
+    name: Configurability
+    statement: >
+      Users should have control over how the system behaves in their context.
+    tags: [framework, extensibility]
+    maps_to: [gvp:G9, gvp:V7]
+
+  - id: V9
+    name: Auditability
+    statement: >
+      Every action that changes the state of the system leaves a complete,
+      immutable trace. Where traceability ensures decisions connect to their
+      justification (the "why"), auditability ensures every change is
+      recorded (the "what" and "when"). Data may be excluded from review
+      cycles, but it is never excluded from the record.
+    tags: [framework, integrity]
+    maps_to: [gvp:G3, gvp:G4, gvp:V2, gvp:V3]
+    origin:
+      - date: "2026-03-19"
+        note: "Added during v1 design review -- driven by DEC-4.6 (--skip-review records full provenance) and DEC-1.0a (fully transitive, transparent dependencies)"
+
+  - id: V10
+    name: System Integrity
+    statement: >
+      The system should be trustworthy. Its outputs, its state, and its
+      guarantees should be reliable -- or visibly absent.
+    tags: [framework, integrity]
+    maps_to: [gvp:V2, gvp:V3]
+    origin:
+      - date: "2026-03-26"
+        note: "Added during post-v1 heuristic mining -- the system is either fully valid or refuses to operate"
+
+principles:
+  - id: P1
+    name: Capture rationale always
+    statement: >
+      Every decision should include its rationale. Use direct quotes where
+      possible. Never infer, assume, or paraphrase someone's reasoning.
+      If rationale was not discussed, note it as TBD and follow up.
+    tags: [framework, integrity, alignment]
+    maps_to: [gvp:G1, gvp:G2, gvp:V1, gvp:V3]
+
+  - id: P2
+    name: Fuzzy boundaries are a feature
+    statement: >
+      Categories are tools for thinking, not rigid taxonomies. Goals and values
+      are tightly coupled and co-evolve. Tags embrace the fuzziness of human
+      conceptualization rather than forcing hierarchical boxes.
+    tags: [framework, usability]
+    maps_to: [gvp:G6, gvp:V5, gvp:V7]
+
+  - id: P3
+    name: Source of truth is structured data
+    statement: >
+      The source of truth should be well-defined, parseable, and manipulable
+      with deterministic tools. Consistency and scriptability matter more than
+      the specific format.
+    tags: [framework, integrity, tooling]
+    maps_to: [gvp:G1, gvp:G7, gvp:V2, gvp:V4]
+
+  - id: P4
+    name: Enforce standards through appropriate friction
+    statement: >
+      Adherence to standards should be supported by the right level of
+      enforcement -- from transparency and trust where risk is low, to active
+      friction where attention matters, to hard stops where violation is
+      destructive or irreversible.
+    tags: [framework, integrity, usability]
+    maps_to: [gvp:G3, gvp:G4, gvp:V2, gvp:V1, gvp:CON1]
+
+  - id: P5
+    name: Design around flex points
+    statement: >
+      When a specific future change is plausible, design around it now rather
+      than refactoring later. A little upfront complexity in the interface
+      buys future simplicity. This does not mean implementing the change
+      early -- it means shaping the architecture so the change is not painful
+      when it arrives.
+    tags: [framework, tooling]
+    maps_to: [gvp:G2, gvp:V4, gvp:V2, gvp:V7]
+
+  - id: P6
+    name: Minimize friction while maintaining coherency
+    statement: >
+      The default posture is to impose the least friction necessary to maintain
+      alignment and coherency. Where possible, make the right thing easy
+      rather than making the wrong thing hard. But where coherency demands
+      friction, friction wins.
+    tags: [framework, usability, integrity]
+    maps_to: [gvp:G5, gvp:V2, gvp:V4, gvp:V5, gvp:CON1]
+
+  - id: P7
+    name: Respect the user's environment
+    statement: >
+      Integrate with existing conventions and configurations rather than
+      imposing new ones. Use platform idioms, mirror patterns from established
+      tools, and respect the user's choices about their own workflow.
+    tags: [framework, tooling, usability]
+    maps_to: [gvp:G6, gvp:G9, gvp:V5, gvp:V7]
+
+  - id: P8
+    name: Opinionated defaults with escape hatches
+    statement: >
+      Offer well-considered defaults that push toward stated goals and values.
+      Always provide explicit opt-outs to accommodate unforeseen scenarios
+      where the defaults fall short.
+    tags: [framework, usability, extensibility]
+    maps_to: [gvp:G8, gvp:G9, gvp:V4, gvp:V5, gvp:V3, gvp:V7]
+
+  - id: P9
+    name: Optimize signal-to-noise ratio
+    statement: >
+      Present the right information at the right time. More is not better --
+      relevance matters more than comprehensiveness. Hide what is not actively
+      needed, but never lose it.
+    tags: [framework, usability]
+    maps_to: [gvp:G1, gvp:G2, gvp:V6, gvp:V4, gvp:V5]
+
+  - id: P10
+    name: Lean on established standards
+    statement: >
+      When facing a design or architectural choice, look to established
+      standards and conventions in the ecosystem for guidance. Proven patterns
+      from mature tools (language compilers, linters, frameworks) carry
+      hard-won lessons. Adopt them where they fit rather than inventing from
+      scratch. Deviate only with clear rationale for why the standard doesn't
+      apply.
+    tags: [framework, tooling]
+    maps_to: [gvp:G8, gvp:V4, gvp:V2, gvp:P7]
+    origin:
+      - date: "2026-03-19"
+        note: "Added during v1 Theme 5 design review -- driven by DEC-5.7 (ESLint/Zod precedent for exception vs diagnostic split)"
+
+  - id: P11
+    name: Collapse redundant mechanisms
+    statement: >
+      When two mechanisms serve the same purpose, eliminate the weaker one
+      rather than adding coordination logic between them. When two mechanisms
+      look structurally similar but serve different purposes, keep them
+      distinct. Purpose -- not structural similarity -- determines whether
+      to merge.
+    tags: [framework, tooling]
+    maps_to: [gvp:G5, gvp:V4, gvp:V2]
+    origin:
+      - date: "2026-03-26"
+        note: "Added during post-v1 heuristic mining -- driven by DEC-2.15 (drop libraries config), DEC-5.5 (suppress over conditional), DEC-9.3 (tags over custom categories)"
+
+  - id: P12
+    name: Surface tension, don't resolve it
+    statement: >
+      The framework records and traces the state of goals, values, principles,
+      and decisions -- creating a structured record that makes tensions, gaps,
+      and misalignments discoverable. It does not auto-detect or auto-resolve
+      these issues. The responsibility of finding misalignment largely rests
+      with humans or AI agents reviewing the traced state. When gaps or
+      conflicts are identified (whether by humans, AI agents, or optional
+      tooling like embedding-based analysis), the framework provides the
+      structured context needed to understand them -- but resolution is always
+      a human decision.
+    tags: [framework, alignment, integrity]
+    maps_to: [gvp:G4, gvp:G5, gvp:G10, gvp:V1, gvp:V3]
+    refs:
+      - file: docs/philosophy.md
+        identifier: "The Framework Serves Alignment, Not People"
+        role: defines
+      - file: v1/src/analysis/analyzer.ts
+        identifier: findUnmappedRelationships
+        role: implements
+    origin:
+      - date: "2026-03-26"
+        note: "Added during post-v1 heuristic mining -- framework informs, humans decide"
+
+  - id: P13
+    name: Refuse to operate on a broken foundation
+    statement: >
+      When the system's structural invariants -- schemas, configuration,
+      category definitions -- cannot be fully validated, the system should
+      refuse to proceed rather than operating in a partially valid state.
+      Unreliable output is worse than no output. Core functionality either
+      works completely or fails clearly. Optional or peripheral features may
+      degrade gracefully (P8), but the foundation must be sound.
+    tags: [framework, integrity, tooling]
+    maps_to: [gvp:G5, gvp:V10, gvp:V2, gvp:V3, gvp:P4]
+    refs:
+      - file: v1/src/catalog/post-merge-validation.ts
+        identifier: validateMergedCategories
+        role: implements
+      - file: v1/src/catalog/catalog.ts
+        identifier: Catalog
+        role: implements
+      - file: v1/src/config/loader.ts
+        identifier: loadConfig
+        role: implements
+    origin:
+      - date: "2026-03-26"
+        note: "Added during post-v1 heuristic mining -- driven by DEC-5.7, DEC-5.13, DEC-3.6"
+
+  - id: P14
+    name: Explicit over implicit
+    statement: >
+      When the choice is between a concise but implicit/inferred behavior and
+      a verbose but explicit one, prefer explicit. Accept verbosity when it
+      eliminates ambiguity. No auto-deriving, no wildcards, no "what did you
+      probably mean" inference. If the user must understand what the system is
+      doing, make them say it.
+    tags: [framework, tooling, integrity]
+    maps_to: [gvp:G5, gvp:V6, gvp:V10, gvp:P3]
+    refs:
+      - file: v1/src/schema/reserved-fields.ts
+        identifier: checkReservedFieldCollision
+        role: implements
+      - file: v1/src/validation/runner.ts
+        identifier: runValidation
+        role: implements
+      - file: v1/src/inheritance/source-resolver.ts
+        identifier: GitSourceResolver
+        role: implements
+    origin:
+      - date: "2026-03-26"
+        note: "Added during post-v1 heuristic mining -- driven by DEC-2.13 (explicit mode/value), DEC-5.11 (exact-match suppression), DEC-6.6 (no magic git derivation)"
+
+  - id: P15
+    name: Dogfood your own abstractions
+    statement: >
+      When the framework defines an abstraction -- a loading pipeline, a
+      validation system, an extension interface -- use that same abstraction
+      for all built-in functionality. Built-in defaults should load through
+      the same pipeline as user-defined data. This is especially important
+      for dynamic, modular frameworks where the extension points ARE the
+      product.
+    tags: [framework, tooling, integrity]
+    maps_to: [gvp:V10, gvp:V2, gvp:G8]
+    refs:
+      - file: v1/src/schema/defaults-loader.ts
+        identifier: loadDefaults
+        role: implements
+      - file: v1/src/data/defaults.yaml
+        identifier: categories
+        role: defines
+    origin:
+      - date: "2026-03-26"
+        note: "Added during post-v1 heuristic mining -- driven by DEC-9.4 (defaults.yaml through same pipeline as user files)"
+
+heuristics:
+  - id: H1
+    name: Core vs. example placement
+    statement: >
+      If a feature or element type is domain-specific, put it in examples. If
+      it is structural and applies regardless of domain, put it in core.
+    tags: [framework, extensibility]
+    maps_to: [gvp:R4, gvp:G6, gvp:V7]
+
+  - id: H2
+    name: Review threshold
+    statement: >
+      If a change is trivial (typo fix, formatting), record it but skip
+      review. If it changes meaning, intent, or scope, track and review it
+      fully. Every change leaves a trace regardless -- the question is
+      whether it warrants the review cycle.
+    tags: [framework, integrity]
+    maps_to: [gvp:P4, gvp:V4, gvp:V9]
+    updated_by:
+      - date: "2026-03-19"
+        rationale: "Updated to reflect v1 design decision DEC-4.6 -- provenance is always recorded, only review is skippable"
+
+  - id: H3
+    name: Simplicity vs. flex point trade-off
+    statement: >
+      Default to the simpler option. Then evaluate: (1) Is there a specific
+      plausible future change that this decision affects? If no, keep it
+      simple. (2) If yes, does designing around it now add significant
+      complexity or cost? If yes, document the deferred alternative and move
+      on. If no, design around it now. When in doubt, simplicity wins.
+    tags: [tooling, framework]
+    maps_to: [gvp:P5, gvp:V4, gvp:P1]
+
+  - id: H4
+    name: Enforcement level selection
+    statement: >
+      Is the action low-risk and easily reversible? Allow it freely with
+      transparency. Could the action compromise coherency but is recoverable?
+      Add friction -- warnings, required confirmation, visible diffs. Is the
+      action destructive, irreversible, or a direct violation of a rule? Block
+      it entirely.
+    tags: [framework, integrity]
+    maps_to: [gvp:P4, gvp:P6, gvp:CON1]
+
+  - id: H5
+    name: Friction proportionality check
+    statement: >
+      Does the friction feel disproportionate to the significance of the
+      action? If yes, scale it down or provide an escape hatch -- friction
+      that feels unjustified breeds resentment and undermines adoption. If
+      no, the friction is appropriate.
+    tags: [framework, usability, integrity]
+    maps_to: [gvp:P4, gvp:P6, gvp:CON1]
+
+  - id: H6
+    name: Evaluate collapse by layer
+    statement: >
+      When deciding whether to collapse two systems into one, evaluate at
+      each layer independently. The engine layer should unify where purpose
+      is shared -- one mechanism, not two doing the same job. The interface
+      layer (CLI, API, class hierarchy) may keep distinct entry points for
+      different user intents, even when the engine underneath is shared.
+      Developer-facing APIs are UX too -- distinct method names serve mental
+      categorization, not just distinct implementations.
+    tags: [tooling, code]
+    maps_to: [gvp:P11, gvp:V4, gvp:P9]
+    origin:
+      - date: "2026-03-26"
+        note: "Added during post-v1 heuristic mining -- driven by DEC-7.2 (export + inspect share exporter layer but are distinct commands)"
+
+  - id: H7
+    name: Fail-fast at boundaries, collect all at analysis
+    statement: >
+      Prerequisites that must succeed before work can proceed should throw
+      exceptions (fail-fast) -- bad config, broken schema, structural
+      invariants. Analysis that inspects a valid system should collect all
+      findings and report them together (collect-all) -- validation warnings,
+      semantic checks, traceability gaps. The boundary is: "can the system
+      be built?" vs "is the built system good?"
+    tags: [tooling, code, integrity]
+    maps_to: [gvp:P13, gvp:V10, gvp:P4, gvp:P10]
+    refs:
+      - file: v1/src/catalog/catalog.ts
+        identifier: Catalog
+        role: implements
+      - file: v1/src/validation/runner.ts
+        identifier: runValidation
+        role: implements
+      - file: v1/src/errors.ts
+        identifier: CatalogError
+        role: defines
+      - file: v1/src/validation/diagnostic.ts
+        identifier: Diagnostic
+        role: defines
+    origin:
+      - date: "2026-03-26"
+        note: "Added during post-v1 heuristic mining -- driven by DEC-5.7 (exceptions vs diagnostics), DEC-5.13 (eager config validation)"
+
+  - id: H8
+    name: Error when it affects current output
+    statement: >
+      If missing, invalid, or unavailable data has any possible impact --
+      direct or indirect -- on the correctness of the current operation's
+      output, it is an error. Only skip the error when the gap has zero
+      possible impact on the outcome; a warning is still appropriate.
+    tags: [tooling, code, integrity]
+    maps_to: [gvp:V10, gvp:P13, gvp:P8, gvp:H4]
+    origin:
+      - date: "2026-03-26"
+        note: "Added during post-v1 heuristic mining -- driven by DEC-7.11 (optional exporter failure timing), DEC-10.4 (ref parser graceful degradation)"
+
+rules:
+  - id: R1
+    name: IDs are never reused
+    statement: >
+      Once an ID has been assigned, it is permanently consumed. Deprecated or
+      retired elements retain their IDs. New elements always receive the next
+      sequential ID.
+    tags: [framework, integrity]
+    maps_to: [gvp:G5, gvp:V2]
+
+  - id: R2
+    name: No element deletion
+    statement: >
+      Elements are never removed from a GVP file. To retire an element, set
+      status to deprecated. Retired elements may be moved to an archive
+      document within the same library to reduce noise, but they remain part
+      of the graph and their IDs are never reused (R1).
+    tags: [framework, integrity]
+    maps_to: [gvp:G3, gvp:V2, gvp:V3, gvp:R1]
+
+  - id: R3
+    name: All elements must trace to a goal and a value
+    statement: >
+      Every element that is not a root (goal, value, or constraint) must trace
+      its justification to at least one goal and at least one value -- directly
+      or transitively. Where alternative mapping paths are permitted (e.g., a
+      heuristic mapping to a principle instead of directly to a goal + value),
+      the alternative itself must trace through to a goal and a value. While
+      goals, values, and constraints are not required to map to anything,
+      mapping goals and values to each other is strongly encouraged -- it
+      surfaces alignment gaps and strengthens review.
+    tags: [framework, alignment]
+    maps_to: [gvp:G5, gvp:V1, gvp:V2]
+
+  - id: R4
+    name: Core stays domain-agnostic
+    statement: >
+      The core framework must not contain domain-specific categories or
+      terminology. Domain-specific elements belong in examples or user-defined
+      extensions, not in the schema or core documentation.
+    tags: [framework, extensibility]
+    maps_to: [gvp:G6, gvp:V5, gvp:V7]
+
+design_choices:
+  - id: D1
+    name: Walk-backwards config discovery
+    rationale: >
+      Searching upward from the current directory for .gvp/ mirrors how tools
+      like git discover repositories. This allows project-level GVP stores to
+      be found automatically without global configuration.
+    tags: [tooling, usability]
+    maps_to: [gvp:G6, gvp:G8, gvp:P7, gvp:V4, gvp:V5]
+
+  - id: D2
+    name: Multiple output formats from single source
+    rationale: >
+      Markdown for humans, CSV for spreadsheets, SQLite for queries, DOT for
+      graph visualization. One source of truth, many views. Users should not
+      maintain parallel representations.
+    tags: [tooling, extensibility]
+    maps_to: [gvp:G1, gvp:G2, gvp:P3, gvp:V5, gvp:V7]
+
+  - id: D3
+    name: Single untyped maps_to field
+    rationale: >
+      Typed edge mappings (supports, implements, derives_from) were considered
+      and deferred. A single maps_to list is simpler and sufficient for current
+      needs. Typed edges can be added later without breaking existing files.
+    tags: [framework, tooling]
+    maps_to: [gvp:G2, gvp:V4, gvp:H3]
+
+  - id: D4
+    name: Tags over hierarchical categories
+    rationale: >
+      An element can be about reliability AND usability AND code quality
+      simultaneously. Tags let users express this without forcing a single
+      primary classification.
+    tags: [framework, usability]
+    maps_to: [gvp:G6, gvp:G9, gvp:P2, gvp:V5, gvp:V7]
+
+  - id: D5
+    name: Layered documentation
+    rationale: >
+      README and user-facing docs stay non-technical for easy onboarding and
+      minimal learning curve. Technical specs, schema details, and power-user
+      docs live in docs/ for those who want depth. Neither audience hits a
+      ceiling or a barrier.
+    tags: [documentation, usability]
+    maps_to: [gvp:G6, gvp:G8, gvp:V6, gvp:V4, gvp:V5, gvp:P9]
+
+  - id: D6
+    name: Qualified IDs as universal references
+    rationale: >
+      All element references use document:id format. IDs are unique across the
+      lifetime of the project, never renumbered, never reused. This enables
+      deterministic mapping and tracing, preserves history for review and
+      future planning, and avoids errors from renumbering.
+    tags: [framework, integrity]
+    maps_to: [gvp:G1, gvp:G3, gvp:G5, gvp:G7, gvp:V2, gvp:V4, gvp:V6, gvp:R1, gvp:P3]
+
+  - id: D7
+    name: Tiered validation (errors, warnings, strict)
+    rationale: >
+      Validation issues are categorized by severity. Errors block, warnings
+      inform, strict mode promotes warnings to errors. Individual warnings
+      are suppressible by code in config. This gives users control over how
+      strictly the tool enforces standards.
+    tags: [tooling, integrity]
+    maps_to: [gvp:G5, gvp:G6, gvp:V8, gvp:P4, gvp:P8, gvp:H4]
+
+  - id: D8
+    name: Status filtering with opt-in history
+    rationale: >
+      Deprecated and rejected elements are excluded from validation and
+      default renders to keep active state clean and reduce context pollution.
+      Historical elements are accessible via --include-deprecated for review
+      and future planning.
+    tags: [tooling, usability]
+    maps_to: [gvp:G1, gvp:G3, gvp:P9, gvp:R2, gvp:V6]
+
+  - id: D9
+    name: Editor selection cascade
+    rationale: >
+      Check $VISUAL, $EDITOR, which editor, vi, nano -- in that order.
+      Respects the user's configured environment first, falls back
+      progressively to ensure it works everywhere.
+    tags: [tooling, usability]
+    maps_to: [gvp:G6, gvp:G8, gvp:G9, gvp:P7, gvp:P8, gvp:V5]
+
+  - id: D10
+    name: Scope inheritance with two-direction priority
+    rationale: >
+      GVP documents form an inheritance chain. Priority follows one DFS
+      ordering but applies in two directions: for elements, ancestors win
+      (org-wide standards override project-level); for definitions (tags,
+      categories, field_schemas), descendants win (projects can extend and
+      customize). Both directions are configurable. Elements that apply
+      broadly live at higher scopes and are inherited by all descendants.
+      The depth of nesting is user-defined.
+    tags: [framework, tooling]
+    maps_to: [gvp:G5, gvp:G6, gvp:G9, gvp:V2, gvp:V7, gvp:V8, gvp:P7]
+    updated_by:
+      - date: "2026-03-19"
+        rationale: "Updated to reflect v1 design decisions DEC-1.3, DEC-2.1 -- two-direction priority model"
+
+  - id: D11
+    name: Staleness detection via update UUIDs
+    rationale: >
+      Each update entry has a unique ID. Each review entry lists the specific
+      update IDs it reviewed (updates_reviewed). An element is stale when it
+      has non-skip-review updates whose IDs do not appear in any review's
+      updates_reviewed list. This is more precise than timestamp comparison --
+      it tracks exactly which changes have been reviewed and which haven't,
+      and it respects the reviewer's actual scope (they only mark what they
+      actually saw).
+    tags: [tooling, integrity]
+    maps_to: [gvp:G3, gvp:G4, gvp:V2, gvp:V3, gvp:P4]
+    updated_by:
+      - date: "2026-03-19"
+        rationale: "Updated to reflect v1 design decisions DEC-4.1, DEC-4.2, DEC-4.7"
+
+  - id: D12
+    name: Three input modes (CLI flags, interactive, editor)
+    rationale: >
+      The add and edit commands support CLI flags (for scripts and AI),
+      interactive prompts (for guided input), and $EDITOR (for complex
+      edits). This meets different users and workflows without forcing a
+      single interaction style.
+    tags: [tooling, usability]
+    maps_to: [gvp:G8, gvp:G9, gvp:P7, gvp:P8, gvp:V5, gvp:V8]
+
+  - id: D13
+    name: --skip-review flag for trivial changes
+    rationale: >
+      The --skip-review flag writes a full provenance entry but marks it with
+      skip_review: true, opting out of the review cycle. This is an escape
+      hatch for genuinely trivial changes (typo fixes, formatting) where
+      full review tracking would add noise without value. A 10-second typo
+      fix should not trigger a review cycle. Unlike the previous
+      --no-provenance approach, the full audit trail is preserved -- every
+      change is recorded, but trivial changes don't trigger downstream
+      review. Opting out is explicit, not silent, and nothing is lost.
+    tags: [tooling, integrity]
+    maps_to: [gvp:G8, gvp:P8, gvp:H2, gvp:H5, gvp:V4, gvp:P9, gvp:V9, gvp:CON1]
+    updated_by:
+      - date: "2026-03-19"
+        rationale: "Updated to reflect v1 design decision DEC-4.6 -- renamed from --no-provenance, now records full provenance"
+
+  - id: D14
+    name: Validate output distinguishes structural from semantic correctness
+    rationale: >
+      The validate command's success message explicitly notes that only
+      deterministic structural checks passed and suggests using gvp export for
+      semantic review. This prevents humans and especially AI from reading "OK"
+      and assuming full alignment -- structural validity does not guarantee
+      semantic coherence. Manual review is still required.
+    tags: [tooling, integrity, alignment]
+    maps_to: [gvp:G5, gvp:P9, gvp:V6, gvp:V1, gvp:H5]
+
+constraints:
+  - id: CON1
+    name: Agents optimize for minimal effort
+    impact: >
+      Humans and AI alike tend toward the path of least resistance. Any
+      friction the framework introduces must justify its cost against this
+      tendency.
+    tags: [framework, usability]
+    maps_to: []

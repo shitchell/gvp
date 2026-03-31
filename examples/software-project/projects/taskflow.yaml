@@ -34,7 +34,7 @@ milestones:
         note: "Confirmed complete after v0.1 release"
 
 constraints:
-  - id: CON1
+  - id: C1
     name: Single-user only
     impact: >
       No need for locking, concurrent access patterns, or multi-tenant
@@ -42,7 +42,7 @@ constraints:
     tags: [code]
     maps_to: []
 
-  - id: CON2
+  - id: C2
     name: Ship v1 by end of March
     impact: >
       Hard deadline driven by a client demo. Features that cannot be
