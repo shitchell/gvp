@@ -124,17 +124,17 @@ Command-line flags take precedence over discovered configuration:
 Use a specific config file and ignore discovery:
 
 ```sh
-gvp validate --config ./my-config.yaml
+cairn validate --config ./my-config.yaml
 ```
 
 Run with no configuration at all:
 
 ```sh
-gvp validate --no-config
+cairn validate --no-config
 ```
 
 Add an extra library path without changing config files:
 
 ```sh
-gvp validate --library /tmp/experimental-gvps
+cairn validate --library /tmp/experimental-gvps
 ```

@@ -23,7 +23,7 @@ How to use GVP for end-to-end design traceability — from initial design discus
      ↓
  9. Add Refs (link decisions ↔ code bidirectionally)
      ↓
-10. Validate Coverage (gvp validate --coverage)
+10. Validate Coverage (cairn validate --coverage)
      ↓
 11. Ongoing Maintenance (edits → reviews → approvals, git hooks, PR rules)
 ```
@@ -95,7 +95,7 @@ This review catches gaps while the discussion is fresh.
 Initialize the library:
 
 ```bash
-gvp init
+cairn init
 ```
 
 Then translate every element from the design doc into the GVP YAML. Every
@@ -124,7 +124,7 @@ decisions:
 Validate as you go:
 
 ```bash
-gvp validate
+cairn validate
 ```
 
 ## Step 4: Deterministic Check — Design Doc → Library
@@ -218,7 +218,7 @@ Implement following the plan. After each chunk:
 
 1. Add `refs` to decisions linking them to the code or documentation you just wrote
 2. Commit
-3. Run `gvp validate`
+3. Run `cairn validate`
 
 ```yaml
 # After implementing D1's code, add refs:
@@ -240,20 +240,20 @@ After each chunk or at natural milestones, check alignment:
 
 ```bash
 # What decisions are affected by recent changes?
-gvp diff main HEAD
+cairn diff main HEAD
 
 # Any stale decisions needing review?
-gvp review
+cairn review
 
 # Full validation
-gvp validate
+cairn validate
 ```
 
-If `gvp diff` shows decisions were affected by code changes, review them:
+If `cairn diff` shows decisions were affected by code changes, review them:
 
 ```bash
 # See the full trace for an affected decision
-gvp inspect D1 --trace --refs
+cairn inspect D1 --trace --refs
 ```
 
 ## Step 10: Validate Coverage
@@ -261,7 +261,7 @@ gvp inspect D1 --trace --refs
 Before considering a milestone complete:
 
 ```bash
-gvp validate --coverage
+cairn validate --coverage
 ```
 
 This checks two directions:
@@ -277,7 +277,7 @@ undocumented code.
 At any point, trace from code back to goals:
 
 ```bash
-gvp inspect --ref src/db/connection.ts::createPool --trace
+cairn inspect --ref src/db/connection.ts::createPool --trace
 ```
 
 Output shows the full chain: code → decision → principles → goals/values.
@@ -293,14 +293,14 @@ Once the project is built and traced, changes follow a lighter cycle:
 1. Discuss the change and decide on approach
 2. Add a new decision to the GVP library (or update an existing one):
    ```bash
-   gvp add decision "Add caching layer" \
+   cairn add decision "Add caching layer" \
      --field rationale="Reduce database load for read-heavy endpoints"
    ```
 3. Implement the feature
 4. Add refs linking the new decision to the new code
 5. Commit and validate:
    ```bash
-   gvp validate --coverage
+   cairn validate --coverage
    ```
 
 ### Changing an Existing Decision
@@ -310,7 +310,7 @@ throwing errors to returning null):
 
 1. Update the decision with rationale for the change:
    ```bash
-   gvp edit D3 \
+   cairn edit D3 \
      --field rationale="Return null instead of throwing — callers handle missing data more gracefully" \
      --rationale "Changed approach after discovering most callers wrap in try/catch anyway"
    ```
@@ -318,39 +318,39 @@ throwing errors to returning null):
 3. Commit both changes
 4. Check what's stale:
    ```bash
-   gvp review
+   cairn review
    ```
 5. Review and approve:
    ```bash
    # See what changed
-   gvp review D3
+   cairn review D3
 
    # Approve with the provided hash token
-   gvp review D3 --approve --token <hash>
+   cairn review D3 --approve --token <hash>
    ```
 
 ### The Edit → Review → Approve Cycle
 
-Every `gvp edit` automatically creates an `updated_by` provenance entry with
+Every `cairn edit` automatically creates an `updated_by` provenance entry with
 a UUID, timestamp, and your rationale. This entry starts as "unreviewed."
 
-`gvp review` finds all elements with unreviewed updates. For each one, it
+`cairn review` finds all elements with unreviewed updates. For each one, it
 shows what changed and provides a one-time hash token. The token proves you
 actually looked at the pending changes before approving — preventing
 rubber-stamp reviews.
 
 ```bash
 # Find stale elements
-gvp review
+cairn review
 #  → gvp:D3 "Handle null responses" (1 unreviewed update)
 
 # See details and get approval token
-gvp review D3
+cairn review D3
 #  → Unreviewed updates: 1
-#  → To approve: gvp review D3 --approve --token a1b2c3d4
+#  → To approve: cairn review D3 --approve --token a1b2c3d4
 
 # Approve
-gvp review D3 --approve --token a1b2c3d4
+cairn review D3 --approve --token a1b2c3d4
 ```
 
 ---
@@ -370,7 +370,7 @@ chmod +x .git/hooks/pre-commit
 ln -sf ../../scripts/gvp-hook.sh .git/hooks/pre-commit
 ```
 
-The hook runs `gvp validate --scope staged`, warns about stale elements, and
+The hook runs `cairn validate --scope staged`, warns about stale elements, and
 supports `--coverage`, `--strict`, and `--ci` flags. See `scripts/gvp-hook.sh`
 for details.
 
@@ -379,8 +379,8 @@ for details.
 ```markdown
 ## GVP Traceability
 
-- [ ] `gvp diff main HEAD` reviewed — affected decisions acknowledged
-- [ ] `gvp validate` passes (no errors)
+- [ ] `cairn diff main HEAD` reviewed — affected decisions acknowledged
+- [ ] `cairn validate` passes (no errors)
 - [ ] New code has corresponding decision refs
 - [ ] New decisions have code refs
 ```
@@ -391,13 +391,13 @@ Weekly or per-milestone:
 
 ```bash
 # Full validation with coverage
-gvp validate --coverage --strict
+cairn validate --coverage --strict
 
 # Check for stale decisions
-gvp review
+cairn review
 
 # Analyze for unmapped relationships
-gvp analyze
+cairn analyze
 ```
 
 ---
@@ -406,15 +406,15 @@ gvp analyze
 
 | Task | Command |
 |------|---------|
-| Initialize a new project | `gvp init` |
-| Add a new decision | `gvp add decision "Name" --field rationale="Why"` |
-| Edit a decision | `gvp edit D1 --field rationale="Updated" --rationale "Why we changed"` |
-| Validate the library | `gvp validate` |
-| Check coverage | `gvp validate --coverage` |
-| Scope to staged changes | `gvp validate --scope staged` |
-| What changed? | `gvp diff HEAD~5 HEAD` |
-| Why does this code exist? | `gvp inspect --ref file::id --trace` |
-| What needs review? | `gvp review` |
-| Approve a review | `gvp review D1 --approve --token <hash>` |
-| Find unmapped relationships | `gvp analyze` |
-| Export for documentation | `gvp export --format markdown` |
+| Initialize a new project | `cairn init` |
+| Add a new decision | `cairn add decision "Name" --field rationale="Why"` |
+| Edit a decision | `cairn edit D1 --field rationale="Updated" --rationale "Why we changed"` |
+| Validate the library | `cairn validate` |
+| Check coverage | `cairn validate --coverage` |
+| Scope to staged changes | `cairn validate --scope staged` |
+| What changed? | `cairn diff HEAD~5 HEAD` |
+| Why does this code exist? | `cairn inspect --ref file::id --trace` |
+| What needs review? | `cairn review` |
+| Approve a review | `cairn review D1 --approve --token <hash>` |
+| Find unmapped relationships | `cairn analyze` |
+| Export for documentation | `cairn export --format markdown` |

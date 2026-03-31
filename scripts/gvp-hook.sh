@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 ##
-# GVP validation hook for git pre-commit and CI/CD pipelines.
+# Cairn/GVP validation hook for git pre-commit and CI/CD pipelines.
 #
 # Usage:
 #   # As a git pre-commit hook:
@@ -65,14 +65,16 @@ done
 # Check for GVP
 # --------------------------------------------------------------------------- #
 
-# Find gvp binary
+# Find cairn/gvp binary (prefer cairn, fall back to gvp)
 GVP=""
-if command -v gvp &>/dev/null; then
+if command -v cairn &>/dev/null; then
+    GVP="cairn"
+elif command -v gvp &>/dev/null; then
     GVP="gvp"
 elif command -v npx &>/dev/null; then
-    GVP="npx gvp"
+    GVP="npx cairn"
 else
-    echo "[gvp-hook] gvp not found. Skipping validation." >&2
+    echo "[gvp-hook] cairn not found. Skipping validation." >&2
     exit 0
 fi
 
@@ -147,7 +149,7 @@ if echo "$STALE_OUTPUT" | grep -q "stale element"; then
     echo "[gvp-hook] Warning: stale elements found:" >&2
     echo "$STALE_OUTPUT" >&2
     echo "" >&2
-    echo "[gvp-hook] Run 'gvp review' to review them." >&2
+    echo "[gvp-hook] Run 'cairn review' to review them." >&2
     # Stale elements are a warning, not a blocker
 fi
 

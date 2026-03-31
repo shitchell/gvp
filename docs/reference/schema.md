@@ -44,7 +44,7 @@ top level of the file.
 | `scope` | string | No | Human-readable scope label (e.g., `"universal"`, `"project"`, `"implementation"`). Used by user-defined validation rules; not enforced by the framework. |
 | `inherits` | string or list | No | Parent document name(s). Forms a DAG -- cycles are rejected. See [Inheritance](#inheritance) below. |
 | `defaults` | mapping | No | Default field values applied to every element unless explicitly overridden. See [Defaults](#defaults) below. |
-| `id_prefix` | string | No | Prefix for auto-generated element IDs (used by `gvp add`). |
+| `id_prefix` | string | No | Prefix for auto-generated element IDs (used by `cairn add`). |
 | `definitions` | mapping | No | Definitions for library-level constructs. Supports `definitions.tags` for tag definitions and `definitions.categories` for custom element category definitions. See [Tag Definitions](#tag-definitions) and [Element Category Definitions](#element-category-definitions). |
 
 ### Inheritance

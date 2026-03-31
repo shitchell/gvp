@@ -3,7 +3,7 @@
 ## Install
 
 ```bash
-npm install -g gvp
+npm install -g @principled/cairn
 ```
 
 ## Initialize a Library
@@ -47,12 +47,12 @@ EOF
 ## Validate
 
 ```bash
-gvp validate
+cairn validate
 ```
 
 If everything is well-formed, you'll see:
 ```
-Validation passed. Structural checks OK. Use `gvp export` for semantic review.
+Validation passed. Structural checks OK. Use `cairn export` for semantic review.
 ```
 
 ## Add Elements
@@ -60,8 +60,8 @@ Validation passed. Structural checks OK. Use `gvp export` for semantic review.
 Add elements via CLI:
 
 ```bash
-gvp add principle "Fail loudly" --field statement="Errors should be visible, never silent"
-gvp add decision "Use TypeScript" --field rationale="Type safety and ecosystem"
+cairn add principle "Fail loudly" --field statement="Errors should be visible, never silent"
+cairn add decision "Use TypeScript" --field rationale="Type safety and ecosystem"
 ```
 
 Or edit the YAML directly — both approaches are equivalent.
@@ -87,19 +87,19 @@ decisions:
 
 ```bash
 # See all goals
-gvp query --category goal
+cairn query --category goal
 
 # Inspect a specific element
-gvp inspect V1
+cairn inspect V1
 
 # Trace a decision to its goals
-gvp inspect D1 --trace
+cairn inspect D1 --trace
 
 # "Why does this code exist?"
-gvp inspect --ref src/index.ts::main --trace
+cairn inspect --ref src/index.ts::main --trace
 
 # Export as markdown
-gvp export --format markdown
+cairn export --format markdown
 ```
 
 ## Configure

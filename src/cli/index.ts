@@ -14,9 +14,9 @@ import { initCommand } from './commands/init.js';
 const program = new Command();
 
 program
-  .name('gvp')
-  .description('Goals, Values, and Principles — decision traceability framework')
-  .version('1.0.0-alpha')
+  .name('cairn')
+  .description('Cairn — decision traceability framework (Goals, Values, and Principles)')
+  .version('1.0.0-beta')
   .option('--config <path>', 'Load specific config file (replaces discovery)')
   .option('--no-config', 'Skip all config files')
   .option('-c, --override <key=value...>', 'Inline config override (highest precedence)')

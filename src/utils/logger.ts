@@ -10,7 +10,7 @@ export function getVerbosity(): number {
 
 export function log(level: number, ...args: unknown[]): void {
   if (verbosity >= level) {
-    console.error('[gvp]', ...args);
+    console.error('[cairn]', ...args);
   }
 }
 

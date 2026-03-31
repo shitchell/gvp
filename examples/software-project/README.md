@@ -106,17 +106,17 @@ The following walk through specific elements as teaching moments for categorizat
 
 ```bash
 # Validate the library
-gvp validate --library examples/software-project/
+cairn validate --library examples/software-project/
 
 # Trace the quality/speed trade-off from D3 upward
-gvp inspect --library examples/software-project/ taskflow-v1:D3 --trace
+cairn inspect --library examples/software-project/ taskflow-v1:D3 --trace
 
 # See what traces to sustainable revenue
-gvp inspect --library examples/software-project/ universal:UG1 --trace
+cairn inspect --library examples/software-project/ universal:UG1 --trace
 
 # Query all business-tagged elements
-gvp query --library examples/software-project/ --tag business
+cairn query --library examples/software-project/ --tag business
 
 # Export to markdown
-gvp export --library examples/software-project/ --format markdown
+cairn export --library examples/software-project/ --format markdown
 ```

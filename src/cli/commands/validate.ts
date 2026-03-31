@@ -119,7 +119,7 @@ export function validateCommand(): Command {
         }
 
         if (filteredDiagnostics.length === 0) {
-          console.error('Validation passed. Structural checks OK. Use `gvp export` for semantic review.');
+          console.error('Validation passed. Structural checks OK. Use `cairn export` for semantic review.');
         }
 
         // Exit code (DEC-5.12): 0 for success/warnings, non-zero for errors

@@ -1,11 +1,12 @@
 {
-  "name": "gvp",
-  "version": "1.0.0-alpha.1",
-  "description": "Goals, Values, and Principles — decision traceability framework",
+  "name": "@principled/cairn",
+  "version": "1.0.0-beta",
+  "description": "Cairn — decision traceability framework. Trace every decision back to what drives it.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
+    "cairn": "./dist/cli/index.js",
     "gvp": "./dist/cli/index.js"
   },
   "files": [
@@ -18,7 +19,7 @@
     "test:watch": "vitest",
     "prepublishOnly": "npm run build"
   },
-  "keywords": ["gvp", "goals", "values", "principles", "traceability", "decisions"],
+  "keywords": ["cairn", "gvp", "goals", "values", "principles", "traceability", "decisions", "rationale"],
   "author": "",
   "license": "MIT",
   "engines": {

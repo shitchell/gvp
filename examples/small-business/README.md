@@ -22,14 +22,14 @@ business (organization)
 
 ```bash
 # Validate the library
-gvp validate --library examples/small-business/
+cairn validate --library examples/small-business/
 
 # Query all principles
-gvp query --library examples/small-business/ --category principle
+cairn query --library examples/small-business/ --category principle
 
 # Trace a design choice back to its roots
-gvp inspect --library examples/small-business/ new-location:D1 --trace
+cairn inspect --library examples/small-business/ new-location:D1 --trace
 
 # Export to markdown
-gvp export --library examples/small-business/ --format markdown
+cairn export --library examples/small-business/ --format markdown
 ```

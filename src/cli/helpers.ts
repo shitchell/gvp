@@ -72,7 +72,7 @@ export function buildCatalog(config: GVPConfig, cwd: string = process.cwd()): Ca
   }
 
   if (!libraryDir) {
-    console.error('No GVP library found. Initialize with `gvp init` or create a .gvp/library/ directory.');
+    console.error('No GVP library found. Initialize with `cairn init` or create a .gvp/library/ directory.');
     process.exit(1);
   }
 

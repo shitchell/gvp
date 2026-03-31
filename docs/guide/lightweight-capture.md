@@ -79,9 +79,9 @@ This works because:
 
 After synthesis:
 ```bash
-gvp init
+cairn init
 # Copy the synthesized library into .gvp/library/
-gvp validate
+cairn validate
 ```
 
 ## Step 4: Graduate to the Full Workflow
@@ -108,7 +108,7 @@ library on every commit:
 ln -sf ../../scripts/gvp-hook.sh .git/hooks/pre-commit
 ```
 
-The hook runs `gvp validate`, warns about stale elements, and supports
+The hook runs `cairn validate`, warns about stale elements, and supports
 `--coverage`, `--strict`, and `--ci` flags.
 
 ### Cross-Project Synthesis

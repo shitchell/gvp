@@ -4,7 +4,7 @@ This document tracks architectural flex points — places where the design expli
 
 ## Validation Pass Injection (DEC-5.2)
 
-**Current:** User-defined rules run as a dedicated `user_rules` pass, only during `gvp validate`.
+**Current:** User-defined rules run as a dedicated `user_rules` pass, only during `cairn validate`.
 
 **Flex point:** Each pass has a stable name (schema, structural, traceability, semantic, user_rules). In the future, user rules could be injected into specific passes rather than running as a separate pass. The naming convention enables this.
 
@@ -30,7 +30,7 @@ This document tracks architectural flex points — places where the design expli
 
 **Current:** Similarity-based relationship detection using embeddings only.
 
-**Flex point:** An `AnalysisProvider` interface (similar to `EmbeddingProvider`) could send element pairs to an LLM for deeper contradiction analysis. The `gvp analyze` command is the integration point.
+**Flex point:** An `AnalysisProvider` interface (similar to `EmbeddingProvider`) could send element pairs to an LLM for deeper contradiction analysis. The `cairn analyze` command is the integration point.
 
 ## Git Source Resolution (DEC-1.9)
 

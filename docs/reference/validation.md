@@ -1,6 +1,6 @@
 # Validation Reference
 
-The `gvp validate` command checks a loaded catalog for structural errors and semantic warnings. This document is the canonical reference for all validation rules, warning codes, and configuration options.
+The `cairn validate` command checks a loaded catalog for structural errors and semantic warnings. This document is the canonical reference for all validation rules, warning codes, and configuration options.
 
 ## Traceability Rules
 
@@ -52,7 +52,7 @@ The alternative path is a shortcut, not an escape hatch. The element you map to 
 
 ## Errors
 
-Errors cause `gvp validate` to exit with code 1.
+Errors cause `cairn validate` to exit with code 1.
 
 | Code | Name | Description |
 |------|------|-------------|
@@ -71,7 +71,7 @@ Warnings are printed to stderr but do not cause a non-zero exit code under norma
 | W002 | EMPTY_DOCUMENT | A loaded document contains no elements. |
 | W003 | MAPPING_RULES_VIOLATION | A non-root element does not satisfy its category's mapping rules (see [Traceability Rules](#traceability-rules) above). |
 | W005 | SELF_DOCUMENT_MAPPING | An element in a document that has `inherits` maps only to elements in its own document, never tracing back to an inherited ancestor. Only checked when the element's document has an `inherits` chain. |
-| W006 | STALE_ELEMENT | An ancestor element (reachable through `maps_to`) has an `updated_by` date that is newer than this element's most recent `reviewed_by` date. Use `gvp review` to inspect and acknowledge. |
+| W006 | STALE_ELEMENT | An ancestor element (reachable through `maps_to`) has an `updated_by` date that is newer than this element's most recent `reviewed_by` date. Use `cairn review` to inspect and acknowledge. |
 | W007 | UNDEFINED_TAG | A tag on an element is not defined via `meta.definitions.tags` in any loaded document. |
 | W009 | ID_SEQUENCE_GAP | Element IDs within a category in a single document have gaps (e.g., P1 and P3 but no P2). |
 | W010 | REF_FILE_MISSING | A ref points to a file that does not exist on disk. |
@@ -100,7 +100,7 @@ When `--strict` is passed on the command line (or `strict: true` is set in `conf
 Strict mode is useful in CI pipelines where you want to enforce a zero-warning policy.
 
 ```bash
-gvp validate --strict
+cairn validate --strict
 ```
 
 

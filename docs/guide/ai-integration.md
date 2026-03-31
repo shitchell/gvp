@@ -23,21 +23,21 @@ Once you find `.gvp/`, read all YAML files inside it to build a picture of the p
 
 ### Programmatic Access
 
-The `gvp` CLI provides structured access to the store:
+The `cairn` CLI provides structured access to the store:
 
 ```bash
 # Validate the library for structural errors and warnings
-gvp validate --library .gvp/
+cairn validate --library .gvp/
 
 # Query elements by ID, category, tag, or status
-gvp query --library .gvp/ --category goals
-gvp query --library .gvp/ --id G2
+cairn query --library .gvp/ --category goals
+cairn query --library .gvp/ --id G2
 
 # Trace an element's full mapping chain back to goals and values
-gvp inspect --library .gvp/ D3 --trace
+cairn inspect --library .gvp/ D3 --trace
 ```
 
-Use `gvp query` and `gvp inspect --trace` when you need machine-parseable output rather than reading YAML directly.
+Use `cairn query` and `cairn inspect --trace` when you need machine-parseable output rather than reading YAML directly.
 
 
 ## Conventions
@@ -82,7 +82,7 @@ decisions:
 Before starting substantive work, check whether the library needs attention:
 
 ```bash
-gvp review --library .gvp/
+cairn review --library .gvp/
 ```
 
 This surfaces elements with stale review dates, deprecated items that may still be referenced, and other maintenance issues. Address or acknowledge these before layering new decisions on top.
@@ -102,7 +102,7 @@ Before proposing changes or making design decisions, read the GVP store at `.gvp
 to understand the project's goals, values, and how decisions trace back to them.
 When proposing new decisions, include `maps_to` references to existing elements.
 Reference elements as ID + Name (e.g., G2 "Facilitate easier planning").
-Run `gvp validate --library .gvp/` to check structural correctness.
+Run `cairn validate --library .gvp/` to check structural correctness.
 ```
 
 ### Detailed
@@ -117,7 +117,7 @@ or making design decisions.
 Before starting work:
 - Read the GVP store to understand the project's goals, values, principles,
   and existing design choices.
-- Run `gvp review --library .gvp/` to check for stale or deprecated elements.
+- Run `cairn review --library .gvp/` to check for stale or deprecated elements.
 - Identify which goals and values are relevant to the task at hand.
 - Note any constraints that apply.
 
@@ -127,10 +127,10 @@ When proposing a design decision:
   values. Every design choice must trace to at least one goal AND one value.
 - Explain why each mapping is appropriate.
 - Use the user's own words for rationale -- do not paraphrase.
-- Run `gvp validate --library .gvp/` after adding new elements.
+- Run `cairn validate --library .gvp/` after adding new elements.
 
 When reviewing existing decisions:
-- Use `gvp inspect <ID> --trace` to walk the mapping chain from a decision back to
+- Use `cairn inspect <ID> --trace` to walk the mapping chain from a decision back to
   its goals and values.
 - Check whether upstream elements have changed since the decision was made.
 - Flag decisions whose rationale may no longer hold.
@@ -169,18 +169,18 @@ Instructions for this process can be added to an agent's startup configuration o
 
 1. **Read the library.** Load all YAML files in `.gvp/` and follow `meta.inherits` to read parent documents.
 2. **Identify relevant goals and values.** Determine which existing elements relate to the upcoming work.
-3. **Check for staleness.** Run `gvp review --library .gvp/` and surface any elements that need attention.
+3. **Check for staleness.** Run `cairn review --library .gvp/` and surface any elements that need attention.
 4. **Note constraints.** Constraints are non-negotiable boundaries. Know them before proposing anything.
 
 ```bash
 # Load and validate the store
-gvp validate --library .gvp/
+cairn validate --library .gvp/
 
 # Check for review-worthy items
-gvp review --library .gvp/
+cairn review --library .gvp/
 
 # List all constraints
-gvp query --library .gvp/ --category constraints
+cairn query --library .gvp/ --category constraints
 ```
 
 ### When Proposing a Design Choice
@@ -188,26 +188,26 @@ gvp query --library .gvp/ --category constraints
 1. **State the decision and alternatives.** Name what was considered, not just what was chosen.
 2. **Map to goals and values.** Every design choice must trace to at least one goal AND one value. Include the `maps_to` references and explain why each mapping holds.
 3. **Capture rationale in the user's words.** Quote directly. Do not paraphrase or infer rationale that was not stated.
-4. **Validate.** Run `gvp validate --library .gvp/` to confirm structural correctness after adding the new element.
+4. **Validate.** Run `cairn validate --library .gvp/` to confirm structural correctness after adding the new element.
 
 ```bash
 # After adding a new design choice to a YAML file
-gvp validate --library .gvp/
+cairn validate --library .gvp/
 
 # Verify the trace chain is complete
-gvp inspect D12 --trace
+cairn inspect D12 --trace
 ```
 
 ### During Review
 
-1. **Walk the trace graph.** Use `gvp inspect <ID> --trace` on elements under review to see their full mapping chain.
+1. **Walk the trace graph.** Use `cairn inspect <ID> --trace` on elements under review to see their full mapping chain.
 2. **Check for upstream changes.** If a goal or value has been modified or deprecated since a decision was made, the decision may need revisiting.
 3. **Stamp reviewed elements.** Update the `origin.reviewed` date on elements you have verified are still current.
 
 ```bash
 # Trace a specific element
-gvp inspect D5 --trace
+cairn inspect D5 --trace
 
 # Review all elements for staleness
-gvp review --library .gvp/
+cairn review --library .gvp/
 ```

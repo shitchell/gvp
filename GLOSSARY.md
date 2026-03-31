@@ -24,8 +24,8 @@ Canonical definitions for GVP terminology. For how the framework works, see [REA
 | **Catalog** | The fully loaded, resolved graph of all documents across all libraries. The runtime object built by the loader. |
 | **Ancestry** | The resolved set of ancestor documents reachable from a document's `meta.inherits` references, traversed breadth-first. Forms a DAG when documents inherit from multiple parents. |
 | **Refs** | Links from elements to external files and identifiers. Each ref specifies a `file`, optional `identifier`, and `role` (defines, implements, uses, extends). Used to connect decisions to the code and artifacts they produce. |
-| **Export Options** | Output format choices for the `gvp export` command: json, csv, markdown, dot. Each format renders the catalog in a different representation. |
-| **Diagnostic** | A validation finding (error or warning) emitted by `gvp validate`. Each diagnostic has a code (e.g., E001, W003), a severity level, and a human-readable message. Diagnostics can be suppressed via `suppress_diagnostics` in config. |
+| **Export Options** | Output format choices for the `cairn export` command: json, csv, markdown, dot. Each format renders the catalog in a different representation. |
+| **Diagnostic** | A validation finding (error or warning) emitted by `cairn validate`. Each diagnostic has a code (e.g., E001, W003), a severity level, and a human-readable message. Diagnostics can be suppressed via `suppress_diagnostics` in config. |
 | **RefParser** | A pluggable parser that extracts identifiers from source files. Built-in parsers cover TypeScript, Markdown, and YAML. Custom parsers can be registered for additional file types. |
 
 ## Built-in Categories

@@ -15,7 +15,7 @@ export function initCommand(): Command {
       const projectName = path.basename(process.cwd());
       const starter = `meta:\n  name: ${projectName}\n  scope: project\n\ngoals:\n  - id: G1\n    name: \n    statement: \n    tags: []\n    maps_to: []\n`;
       fs.writeFileSync(path.join(libDir, 'project.yaml'), starter);
-      console.error(`Initialized GVP library at ${libDir}`);
+      console.error(`Initialized GVP library at ${libDir}. Run 'cairn validate' to check it.`);
     });
   return cmd;
 }

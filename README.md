@@ -1,12 +1,14 @@
-# GVP — Goals, Values, and Principles
+# Cairn — Goals, Values, and Principles
 
 A decision traceability framework. Define your goals, values, and principles in YAML. Trace every decision back to what drives it. Link decisions to the code, documents, and artifacts they produce.
 
 ## Install
 
 ```bash
-npm install -g gvp
+npm install -g @principled/cairn
 ```
+
+> **Note:** `gvp` is available as an alias for `cairn`.
 
 ## Quick Start
 
@@ -45,32 +47,32 @@ decisions:
 EOF
 
 # Validate
-gvp validate
+cairn validate
 
 # Export
-gvp export --format json
-gvp export --format markdown
+cairn export --format json
+cairn export --format markdown
 ```
 
 ## Commands
 
 | Command | Description |
 |---------|-------------|
-| `gvp validate` | Validate the GVP library |
-| `gvp validate --coverage` | Include coverage checks (orphan identifiers, decisions without refs) |
-| `gvp validate --scope staged` | Scope validation to staged git changes |
-| `gvp export --format <fmt>` | Export catalog to json, csv, markdown, or dot |
-| `gvp add <category> <name>` | Add a new element with auto-assigned ID |
-| `gvp edit <element> --field key=value` | Modify an existing element |
-| `gvp review` | Find stale elements needing review |
-| `gvp review <element>` | Review a specific element |
-| `gvp inspect <element>` | View element details |
-| `gvp inspect <element> --trace` | Trace element to its goals and values |
-| `gvp inspect --ref file::identifier --trace` | "Why does this code exist?" |
-| `gvp query --category decision` | Filter elements by category, tag, status |
-| `gvp query --refs-file src/foo.ts` | Find elements referencing a file |
-| `gvp diff <commitA> <commitB>` | Trace code changes back to decisions |
-| `gvp analyze` | Detect unmapped relationships via similarity |
+| `cairn validate` | Validate the GVP library |
+| `cairn validate --coverage` | Include coverage checks (orphan identifiers, decisions without refs) |
+| `cairn validate --scope staged` | Scope validation to staged git changes |
+| `cairn export --format <fmt>` | Export catalog to json, csv, markdown, or dot |
+| `cairn add <category> <name>` | Add a new element with auto-assigned ID |
+| `cairn edit <element> --field key=value` | Modify an existing element |
+| `cairn review` | Find stale elements needing review |
+| `cairn review <element>` | Review a specific element |
+| `cairn inspect <element>` | View element details |
+| `cairn inspect <element> --trace` | Trace element to its goals and values |
+| `cairn inspect --ref file::identifier --trace` | "Why does this code exist?" |
+| `cairn query --category decision` | Filter elements by category, tag, status |
+| `cairn query --refs-file src/foo.ts` | Find elements referencing a file |
+| `cairn diff <commitA> <commitB>` | Trace code changes back to decisions |
+| `cairn analyze` | Detect unmapped relationships via similarity |
 
 ## Global Options
 

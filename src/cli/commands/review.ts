@@ -54,13 +54,13 @@ export function reviewCommand(): Command {
         if (opts.approve) {
           // --approve mode: validate hash token (DEC-4.5)
           if (!opts.token) {
-            console.error('--approve requires --token <hash>. Run `gvp review <element>` first to get the hash.');
+            console.error('--approve requires --token <hash>. Run `cairn review <element>` first to get the hash.');
             process.exit(1);
           }
 
           if (!validateReviewHash(opts.token, unreviewedIds)) {
             console.error('Invalid review token. The element may have been updated since you last reviewed it.');
-            console.error('Run `gvp review ' + elementId + '` again to get a fresh token.');
+            console.error('Run `cairn review ' + elementId + '` again to get a fresh token.');
             process.exit(1);
           }
 
