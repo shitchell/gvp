@@ -45,7 +45,7 @@ function getFileAtCommit(filePath: string, commit: string, cwd: string): string 
   try {
     return execSync(
       `git show ${commit}:${filePath}`,
-      { cwd, encoding: 'utf-8' }
+      { cwd, encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] }
     );
   } catch {
     return null; // File doesn't exist at this commit
