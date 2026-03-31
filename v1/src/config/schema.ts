@@ -31,6 +31,13 @@ export const configSchema = z.object({
   // Source identity for local library (DEC-6.6)
   source: z.string().optional(),
 
+  // Coverage settings (W012 exclusions)
+  coverage: z
+    .object({
+      exclude: z.array(z.string()).optional().default([]),
+    })
+    .optional(),
+
   // Validation rules (VAL-6: user-defined)
   validation_rules: z.array(z.unknown()).optional().default([]),
 

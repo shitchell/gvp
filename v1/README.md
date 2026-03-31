@@ -132,6 +132,13 @@ default_timezone: "America/New_York"
 priority:
   elements: ancestor      # ancestor-wins for elements
   definitions: descendant  # descendant-wins for definitions
+
+# Coverage settings
+coverage:
+  exclude:
+    - "README.md"
+    - "GLOSSARY.md"
+    - ".gvp/"
 ```
 
 ## Built-in Categories

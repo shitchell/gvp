@@ -36,6 +36,7 @@ export function coveragePass(catalog: Catalog, config: GVPConfig): Diagnostic[] 
   }
 
   // W012: Orphan identifiers — parser-driven discovery
+  const excludePatterns = config.coverage?.exclude ?? [];
   const projectRoot = findProjectRoot(catalog);
   if (projectRoot) {
     for (const parser of parsers) {
@@ -44,6 +45,7 @@ export function coveragePass(catalog: Catalog, config: GVPConfig): Diagnostic[] 
       for (const absFile of files) {
         const relFile = path.relative(projectRoot, absFile);
         if (EXCLUDE_PATTERNS.some(p => p.test(relFile))) continue;
+        if (excludePatterns.some((pattern: string) => relFile.includes(pattern))) continue;
 
         try {
           const content = fs.readFileSync(absFile, 'utf-8');
