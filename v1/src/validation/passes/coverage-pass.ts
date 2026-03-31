@@ -2,7 +2,9 @@ import type { Catalog } from '../../catalog/catalog.js';
 import type { GVPConfig } from '../../config/schema.js';
 import type { Diagnostic } from '../diagnostic.js';
 import { createDiagnostic } from '../diagnostic.js';
-import { createRefParserRegistry, findParser } from '../../parsers/registry.js';
+import { createRefParserRegistry } from '../../parsers/registry.js';
+import { findProjectRoot } from '../../utils/project-root.js';
+import { minimatch } from 'minimatch';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -45,7 +47,7 @@ export function coveragePass(catalog: Catalog, config: GVPConfig): Diagnostic[] 
       for (const absFile of files) {
         const relFile = path.relative(projectRoot, absFile);
         if (EXCLUDE_PATTERNS.some(p => p.test(relFile))) continue;
-        if (excludePatterns.some((pattern: string) => relFile.includes(pattern))) continue;
+        if (excludePatterns.some(pattern => minimatch(relFile, pattern, { dot: true }))) continue;
 
         try {
           const content = fs.readFileSync(absFile, 'utf-8');
@@ -93,24 +95,6 @@ export function coveragePass(catalog: Catalog, config: GVPConfig): Diagnostic[] 
 }
 
 /**
- * Find the project root by walking up from the catalog's first document filePath.
- */
-function findProjectRoot(catalog: Catalog): string | null {
-  const docs = catalog.documents;
-  if (docs.length === 0) return null;
-
-  let current = path.dirname(path.resolve(docs[0]!.filePath));
-  while (true) {
-    if (fs.existsSync(path.join(current, '.git'))) {
-      return current;
-    }
-    const parent = path.dirname(current);
-    if (parent === current) return null;
-    current = parent;
-  }
-}
-
-/**
  * Recursively collect files matching given extensions, excluding test/dist/node_modules.
  */
 function collectFilesByExtension(dir: string, extensions: string[]): string[] {
@@ -132,3 +116,4 @@ function collectFilesByExtension(dir: string, extensions: string[]): string[] {
   } catch { /* skip unreadable dirs */ }
   return files;
 }
+

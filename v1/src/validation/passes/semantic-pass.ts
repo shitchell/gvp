@@ -4,6 +4,7 @@ import type { Diagnostic } from '../diagnostic.js';
 import { createDiagnostic } from '../diagnostic.js';
 import { isStale } from '../../provenance/staleness.js';
 import { createRefParserRegistry, findParser } from '../../parsers/registry.js';
+import { findProjectRoot } from '../../utils/project-root.js';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -153,21 +154,3 @@ export function semanticPass(catalog: Catalog, _config: GVPConfig): Diagnostic[]
   return diagnostics;
 }
 
-/**
- * Find the project root by walking up from the catalog's first document filePath
- * looking for a .git/ directory.
- */
-function findProjectRoot(catalog: Catalog): string | null {
-  const docs = catalog.documents;
-  if (docs.length === 0) return null;
-
-  let current = path.dirname(path.resolve(docs[0]!.filePath));
-  while (true) {
-    if (fs.existsSync(path.join(current, '.git'))) {
-      return current;
-    }
-    const parent = path.dirname(current);
-    if (parent === current) return null;
-    current = parent;
-  }
-}
