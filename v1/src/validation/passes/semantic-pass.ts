@@ -98,6 +98,36 @@ export function semanticPass(catalog: Catalog, _config: GVPConfig): Diagnostic[]
     }
   }
 
+  // W004: Orphan element — non-root active element that nothing maps TO
+  {
+    // Build a set of all elements that are targets of some maps_to
+    const mappedToSet = new Set<string>();
+    for (const el of catalog.getAllElements()) {
+      for (const ref of el.maps_to) {
+        mappedToSet.add(ref);
+      }
+    }
+
+    for (const element of catalog.getAllElements()) {
+      if (element.status !== 'active') continue;
+      const catDef = catalog.registry.getByName(element.categoryName);
+      if (!catDef || catDef.is_root) continue;
+
+      const libId = element.toLibraryId();
+      const hKey = element.hashKey();
+      if (!mappedToSet.has(libId) && !mappedToSet.has(hKey)) {
+        diagnostics.push(createDiagnostic(
+          'W004',
+          'ORPHAN_ELEMENT',
+          `Element ${libId} is a non-root active element that nothing maps to`,
+          'warning',
+          PASS_NAME,
+          { elementId: element.id, documentPath: element.documentPath, categoryName: element.categoryName },
+        ));
+      }
+    }
+  }
+
   // W010/W011: Ref file/identifier validation (DEC-10.5)
   // Determine project root by walking up from first document's filePath looking for .git/
   const projectRoot = findProjectRoot(catalog);

@@ -5,6 +5,7 @@ import { CategoryRegistry } from '../model/category-registry.js';
 import { parseDocument } from '../model/document-parser.js';
 import { resolveInheritance, type DocumentLoader } from '../inheritance/inheritance-resolver.js';
 import { Catalog } from '../catalog/catalog.js';
+import { setVerbosity, logv } from '../utils/logger.js';
 import type { Command } from 'commander';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -32,6 +33,9 @@ export function parseConfigOptions(cmd: Command): { config: GVPConfig; configOpt
   };
 
   const config = loadConfig(configOptions);
+
+  // Apply verbose level (R9)
+  setVerbosity(opts.verbose ?? 0);
 
   // Apply --strict flag override
   if (opts.strict) {
@@ -71,6 +75,8 @@ export function buildCatalog(config: GVPConfig, cwd: string = process.cwd()): Ca
     console.error('No GVP library found. Initialize with `gvp init` or create a .gvp/library/ directory.');
     process.exit(1);
   }
+
+  logv(`Loading library from ${libraryDir}`);
 
   const source = config.source ?? '@local';
 
@@ -121,9 +127,13 @@ export function buildCatalog(config: GVPConfig, cwd: string = process.cwd()): Ca
     .filter(([docPath]) => !inheritedDocPaths.has(docPath))
     .map(([, doc]) => doc);
 
+  logv(`Found ${yamlFiles.length} documents`);
+
   const entryDoc = leafDocs[0] ?? docCache.values().next().value!;
   const resolved = resolveInheritance(entryDoc, loader);
-  return new Catalog(resolved, config);
+  const catalog = new Catalog(resolved, config);
+  logv(`Catalog built: ${catalog.getAllElements().length} elements`);
+  return catalog;
 }
 
 /**

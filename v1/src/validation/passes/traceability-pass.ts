@@ -40,6 +40,9 @@ export function traceabilityPass(catalog: Catalog, _config: GVPConfig): Diagnost
       andGroup.every(requiredCat => mappedCategories.has(requiredCat)),
     );
 
+    // Note: elements with empty maps_to are handled by W001 (EMPTY_MAPS_TO) in the
+    // semantic pass, not W003 here. This is intentional delegation — W003 only fires
+    // when maps_to is non-empty but doesn't satisfy the mapping_rules for the category.
     if (!satisfiesRules && element.maps_to.length > 0) {
       diagnostics.push(createDiagnostic(
         'W003',
@@ -49,6 +52,60 @@ export function traceabilityPass(catalog: Catalog, _config: GVPConfig): Diagnost
         PASS_NAME,
         { elementId: element.id, documentPath: element.documentPath, categoryName: element.categoryName },
       ));
+    }
+  }
+
+  // W014: Transitive traceability — non-root active elements must trace to at least one root element (R3)
+  {
+    // Identify root categories
+    const rootCategories = new Set<string>();
+    for (const catName of catalog.registry.categoryNames) {
+      const catDef = catalog.registry.getByName(catName);
+      if (catDef?.is_root) rootCategories.add(catName);
+    }
+
+    for (const element of catalog.getAllElements()) {
+      if (element.status === 'deprecated' || element.status === 'rejected') continue;
+      const catDef = catalog.registry.getByName(element.categoryName);
+      if (!catDef || catDef.is_root) continue;
+      if (element.maps_to.length === 0) continue; // W001 handles this
+
+      // BFS/DFS walk through maps_to graph to find a root element
+      const visited = new Set<string>();
+      const queue = [element.hashKey()];
+      let foundRoot = false;
+
+      while (queue.length > 0) {
+        const current = queue.pop()!;
+        if (visited.has(current)) continue;
+        visited.add(current);
+
+        const currentEl = elementLookup.get(current);
+        if (!currentEl) continue;
+
+        if (rootCategories.has(currentEl.categoryName)) {
+          foundRoot = true;
+          break;
+        }
+
+        for (const ref of currentEl.maps_to) {
+          const target = elementLookup.get(ref);
+          if (target && !visited.has(target.hashKey())) {
+            queue.push(target.hashKey());
+          }
+        }
+      }
+
+      if (!foundRoot) {
+        diagnostics.push(createDiagnostic(
+          'W014',
+          'NO_ROOT_TRACE',
+          `Element ${element.toLibraryId()} cannot trace to any root element transitively`,
+          'warning',
+          PASS_NAME,
+          { elementId: element.id, documentPath: element.documentPath, categoryName: element.categoryName },
+        ));
+      }
     }
   }
 

@@ -18,6 +18,9 @@ export class TypeScriptRefParser extends RefParser {
       /(?:export\s+)?(?:const|let|var)\s+(\w+)\s*[=:]/gm,
     ];
 
+    // Destructured imports/requires (T4)
+    const destructuredPattern = /(?:const|let|var)\s*\{([^}]+)\}\s*=\s*require/gm;
+
     const seen = new Set<string>(); // Avoid duplicates
 
     for (const pattern of patterns) {
@@ -30,6 +33,24 @@ export class TypeScriptRefParser extends RefParser {
 
         const block = extractBraceBlock(content, match.index!);
         results.push({ identifier: name, block });
+      }
+    }
+
+    // Extract destructured names from require statements
+    {
+      let match;
+      while ((match = destructuredPattern.exec(content)) !== null) {
+        const names = match[1]!.split(',').map(s => s.trim().split(/\s+as\s+/).pop()!.trim()).filter(Boolean);
+        for (const name of names) {
+          if (seen.has(name)) continue;
+          if (matching && name !== matching) continue;
+          seen.add(name);
+          // Use the full require statement as the block
+          const lineStart = content.lastIndexOf('\n', match.index!) + 1;
+          const lineEnd = content.indexOf('\n', match.index! + match[0].length);
+          const block = content.substring(lineStart, lineEnd === -1 ? content.length : lineEnd);
+          results.push({ identifier: name, block });
+        }
       }
     }
 

@@ -34,15 +34,27 @@ export function structuralPass(catalog: Catalog, _config: GVPConfig): Diagnostic
     }
   }
 
-  // W007: Undefined tags — element uses a tag not defined in any document's meta.definitions.tags
-  const definedTags = new Set<string>(Object.keys(catalog.getTags()));
+  // W007: Undefined tags — element uses a tag not defined in its own library's documents (DEC-2.10: within-library scope)
+  // Group tag definitions by source (library)
+  const tagsBySource = new Map<string, Set<string>>();
+  for (const doc of catalog.documents) {
+    const docTags = doc.getTagDefinitions();
+    if (!tagsBySource.has(doc.source)) {
+      tagsBySource.set(doc.source, new Set());
+    }
+    const sourceTagSet = tagsBySource.get(doc.source)!;
+    for (const tagName of Object.keys(docTags)) {
+      sourceTagSet.add(tagName);
+    }
+  }
   for (const element of catalog.getAllElements()) {
+    const sourceDefinedTags = tagsBySource.get(element.source) ?? new Set<string>();
     for (const tag of element.tags) {
-      if (!definedTags.has(tag)) {
+      if (!sourceDefinedTags.has(tag)) {
         diagnostics.push(createDiagnostic(
           'W007',
           'UNDEFINED_TAG',
-          `Element ${element.toLibraryId()} uses tag '${tag}' which is not defined in any document's tag definitions`,
+          `Element ${element.toLibraryId()} uses tag '${tag}' which is not defined in its library's tag definitions`,
           'warning',
           PASS_NAME,
           { elementId: element.id, documentPath: element.documentPath },
@@ -100,6 +112,54 @@ export function structuralPass(catalog: Catalog, _config: GVPConfig): Diagnostic
             'warning',
             PASS_NAME,
             { documentPath: doc.documentPath, categoryName },
+          ));
+        }
+      }
+    }
+  }
+
+  // E002: Duplicate element ID within a category in a document
+  for (const doc of catalog.documents) {
+    const seenIds = new Map<string, Set<string>>(); // category -> Set<id>
+    for (const el of doc.getAllElements()) {
+      if (!seenIds.has(el.categoryName)) seenIds.set(el.categoryName, new Set());
+      const ids = seenIds.get(el.categoryName)!;
+      if (ids.has(el.id)) {
+        diagnostics.push(createDiagnostic(
+          'E002',
+          'DUPLICATE_ELEMENT_ID',
+          `Document '${doc.name}' has duplicate ${el.categoryName} element ID '${el.id}'`,
+          'error',
+          PASS_NAME,
+          { elementId: el.id, documentPath: doc.documentPath, categoryName: el.categoryName },
+        ));
+      }
+      ids.add(el.id);
+    }
+  }
+
+  // W008: Duplicate category definition within a single library (same source)
+  {
+    const catDefsBySource = new Map<string, Map<string, string[]>>(); // source -> (catName -> docPaths[])
+    for (const doc of catalog.documents) {
+      const docCats = doc.getCategoryDefinitions();
+      for (const catName of Object.keys(docCats)) {
+        if (!catDefsBySource.has(doc.source)) catDefsBySource.set(doc.source, new Map());
+        const sourceCats = catDefsBySource.get(doc.source)!;
+        if (!sourceCats.has(catName)) sourceCats.set(catName, []);
+        sourceCats.get(catName)!.push(doc.documentPath);
+      }
+    }
+    for (const [, sourceCats] of catDefsBySource) {
+      for (const [catName, docPaths] of sourceCats) {
+        if (docPaths.length > 1) {
+          diagnostics.push(createDiagnostic(
+            'W008',
+            'DUPLICATE_CATEGORY_DEF',
+            `Category '${catName}' is defined in multiple documents within the same library: ${docPaths.join(', ')}`,
+            'warning',
+            PASS_NAME,
+            { categoryName: catName, details: docPaths.join(', ') },
           ));
         }
       }
