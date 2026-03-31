@@ -9,6 +9,7 @@ export function diffCommand(): Command {
     .argument('[commitA]', 'Start commit (default: HEAD~1)')
     .argument('[commitB]', 'End commit (default: HEAD)')
     .option('--scope <scope>', 'Scope: staged, working, or commit range')
+    .option('--format <format>', 'Output format: text (default) or json', 'text')
     .action(async (commitA?: string, commitB?: string) => {
       try {
         const { config } = parseConfigOptions(cmd);
@@ -39,13 +40,9 @@ export function diffCommand(): Command {
         }
 
         const result = traceGitDiff(catalog, a, b, root);
-        const output = formatDiffTrace(result, catalog);
 
-        // Output to stderr (diagnostic info)
-        console.error(output);
-
-        // JSON to stdout for programmatic consumption
-        if (result.refChanges.length > 0) {
+        if (opts.format === 'json') {
+          // JSON to stdout for programmatic consumption
           const jsonOutput = result.refChanges.map(c => ({
             element: {
               id: c.element.id,
@@ -56,7 +53,11 @@ export function diffCommand(): Command {
             ref: c.ref,
             changeType: c.changeType,
           }));
-          process.stdout.write(JSON.stringify(jsonOutput, null, 2));
+          process.stdout.write(JSON.stringify(jsonOutput, null, 2) + '\n');
+        } else {
+          // Human-readable output to stderr
+          const output = formatDiffTrace(result, catalog);
+          console.error(output);
         }
 
         process.exit(0);
