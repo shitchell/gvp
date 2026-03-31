@@ -162,7 +162,6 @@ The `refs` system is domain-agnostic — it works with any file type that has a 
 
 ## Documentation
 
-- [Design Decisions](docs/plans/2026-03-02-v1-design-decisions.md) — 110+ decisions across 10 themes
-- [Requirements](docs/plans/2026-02-26-v1-requirements.md) — Behavioral contracts
-- [Flex Points](docs/flex-points.md) — Architectural extension points
-- [Usage Guide](docs/guide/usage.md) — Detailed command reference
+- [Getting Started](docs/guide/getting-started.md) — Set up GVP on a new project
+- [Command Reference](docs/guide/usage.md) — Detailed command documentation
+- [Workflow Guide](docs/guide/workflow.md) — End-to-end design → implementation → review workflow
