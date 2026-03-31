@@ -9,7 +9,7 @@ design_choices:
     rationale: >
       Simplest approach for single-user CLI. No external dependencies, no
       server process, trivially inspectable with any text editor. Scales
-      poorly for large datasets, but CON1 (single-user) means we will not
+      poorly for large datasets, but C1 (single-user) means we will not
       hit that ceiling.
     tags: [code]
     maps_to: [taskflow:G2, personal:V1]
@@ -29,7 +29,7 @@ design_choices:
       Use basic type checks and length limits only. Full validation
       (duplicate detection, rich error messages, suggested corrections)
       is deferred to v1.1. Per UH1, this feature is not safety-critical
-      and the deadline (CON2) is tight -- shipping correct-but-unpolished
+      and the deadline (C2) is tight -- shipping correct-but-unpolished
       is the right call. Invalid input produces a clear error, just not a
       helpful one yet.
     tags: [code, usability, business]

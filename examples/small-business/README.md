@@ -28,8 +28,8 @@ gvp validate --library examples/small-business/
 gvp query --library examples/small-business/ --category principle
 
 # Trace a design choice back to its roots
-gvp trace --library examples/small-business/ new-location:D1
+gvp inspect --library examples/small-business/ new-location:D1 --trace
 
-# Render to markdown
-gvp render --library examples/small-business/ --format markdown --stdout
+# Export to markdown
+gvp export --library examples/small-business/ --format markdown
 ```

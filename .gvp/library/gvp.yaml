@@ -724,7 +724,7 @@ design_choices:
     name: Validate output distinguishes structural from semantic correctness
     rationale: >
       The validate command's success message explicitly notes that only
-      deterministic structural checks passed and suggests using gvp render for
+      deterministic structural checks passed and suggests using gvp export for
       semantic review. This prevents humans and especially AI from reading "OK"
       and assuming full alignment -- structural validity does not guarantee
       semantic coherence. Manual review is still required.

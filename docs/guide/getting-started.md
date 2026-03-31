@@ -120,4 +120,4 @@ Or `.gvp.yaml` (gitignored) for personal settings.
 ## Next Steps
 
 - [Workflow Guide](workflow.md) — End-to-end design → implementation → review workflow
-- [Command Reference](usage.md) — Detailed command documentation
+- [Command Reference](workflow.md#quick-reference) — Command reference

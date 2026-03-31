@@ -17,7 +17,7 @@ milestones:
     description: Lease signed, permits filed.
 
 constraints:
-  - id: CON1
+  - id: C1
     name: Budget cap
     impact: Total buildout must stay under $150k.
     maps_to: []

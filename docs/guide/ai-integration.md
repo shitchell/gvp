@@ -34,10 +34,10 @@ gvp query --library .gvp/ --category goals
 gvp query --library .gvp/ --id G2
 
 # Trace an element's full mapping chain back to goals and values
-gvp trace --library .gvp/ D3
+gvp inspect --library .gvp/ D3 --trace
 ```
 
-Use `gvp query` and `gvp trace` when you need machine-parseable output rather than reading YAML directly.
+Use `gvp query` and `gvp inspect --trace` when you need machine-parseable output rather than reading YAML directly.
 
 
 ## Conventions
@@ -62,10 +62,10 @@ Each category has specific traceability requirements. See [Traceability Rules](.
 Example of a well-formed proposal:
 
 ```yaml
-design_choices:
+decisions:
   - id: D12
     name: Use streaming JSON output
-    statement: >
+    rationale: >
       CLI output uses newline-delimited JSON for machine consumption.
     maps_to: [G2, V3, P1]
     status: proposed
@@ -130,7 +130,7 @@ When proposing a design decision:
 - Run `gvp validate --library .gvp/` after adding new elements.
 
 When reviewing existing decisions:
-- Use `gvp trace <ID>` to walk the mapping chain from a decision back to
+- Use `gvp inspect <ID> --trace` to walk the mapping chain from a decision back to
   its goals and values.
 - Check whether upstream elements have changed since the decision was made.
 - Flag decisions whose rationale may no longer hold.
@@ -195,18 +195,18 @@ gvp query --library .gvp/ --category constraints
 gvp validate --library .gvp/
 
 # Verify the trace chain is complete
-gvp trace D12
+gvp inspect D12 --trace
 ```
 
 ### During Review
 
-1. **Walk the trace graph.** Use `gvp trace` on elements under review to see their full mapping chain.
+1. **Walk the trace graph.** Use `gvp inspect <ID> --trace` on elements under review to see their full mapping chain.
 2. **Check for upstream changes.** If a goal or value has been modified or deprecated since a decision was made, the decision may need revisiting.
 3. **Stamp reviewed elements.** Update the `origin.reviewed` date on elements you have verified are still current.
 
 ```bash
 # Trace a specific element
-gvp trace D5
+gvp inspect D5 --trace
 
 # Review all elements for staleness
 gvp review --library .gvp/

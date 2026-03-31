@@ -146,7 +146,7 @@ rules:
     maps_to: [universal:UG2, universal:UV1]
 
 constraints:
-  - id: UCON1
+  - id: UC1
     name: People optimize for minimal effort
     impact: >
       Humans and AI alike tend toward the path of least resistance. Any

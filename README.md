@@ -89,6 +89,7 @@ gvp export --format markdown
 | Code | Name | Description |
 |------|------|-------------|
 | E001 | BROKEN_REFERENCE | `maps_to` target not found |
+| E002 | DUPLICATE_ELEMENT_ID | Duplicate element ID within a document |
 | E003 | BROKEN_INHERITANCE | Inherited document not found |
 | E004 | SCHEMA_VALIDATION | Element fails schema validation |
 
@@ -99,14 +100,17 @@ gvp export --format markdown
 | W001 | EMPTY_MAPS_TO | Non-root active element has no `maps_to` |
 | W002 | EMPTY_DOCUMENT | Document has no active elements |
 | W003 | MAPPING_RULES_VIOLATION | Element doesn't satisfy category mapping rules |
+| W004 | ORPHAN_ELEMENT | Isolated element (no incoming or outgoing edges) |
 | W005 | SELF_DOCUMENT_MAPPING | Element maps only within its own document |
 | W006 | STALE_ELEMENT | Element has unreviewed updates |
 | W007 | UNDEFINED_TAG | Element uses tag not in definitions |
+| W008 | DUPLICATE_CATEGORY_DEF | Duplicate category definition within library siblings |
 | W009 | ID_SEQUENCE_GAP | Gap in element ID sequence |
 | W010 | REF_FILE_MISSING | Ref points to nonexistent file |
 | W011 | REF_IDENTIFIER_MISSING | Ref identifier not found in file |
 | W012 | ORPHAN_IDENTIFIER | Identifier not referenced by any element (coverage pass) |
 | W013 | DECISION_NO_REFS | Decision has no refs (coverage pass) |
+| W014 | NO_ROOT_TRACE | Element cannot trace to any root element transitively |
 
 ## Config
 
@@ -171,6 +175,6 @@ The `refs` system is domain-agnostic — it works with any file type that has a 
 ## Documentation
 
 - [Getting Started](docs/guide/getting-started.md) — Set up GVP on a new project
-- [Command Reference](docs/guide/usage.md) — Detailed command documentation
+- [Command Reference](docs/guide/workflow.md#quick-reference) — Command reference
 - [Workflow Guide](docs/guide/workflow.md) — End-to-end design → implementation → review workflow
 - [Lightweight Capture](docs/guide/lightweight-capture.md) — ~5 min decision capture after brainstorming sessions

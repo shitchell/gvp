@@ -27,7 +27,7 @@ universal (organization)
 
 This is the most important structural distinction in this example.
 
-**Project scope** (`taskflow.yaml`) contains goals, constraints, and milestones -- things that would survive if you rewrote the implementation from scratch. G1 "Manage tasks from the command line" is a project goal regardless of whether you use Python or Go, JSON or SQLite. G2 "Reliable task storage" is a project goal regardless of the storage backend. CON2 "Ship v1 by end of March" is a deadline that applies to any implementation.
+**Project scope** (`taskflow.yaml`) contains goals, constraints, and milestones -- things that would survive if you rewrote the implementation from scratch. G1 "Manage tasks from the command line" is a project goal regardless of whether you use Python or Go, JSON or SQLite. G2 "Reliable task storage" is a project goal regardless of the storage backend. C2 "Ship v1 by end of March" is a deadline that applies to any implementation.
 
 **Implementation scope** (`v1.yaml`) contains design choices, implementation rules, and coding principles -- things tied to the current tech stack. D1 "JSON file storage" is a v1 choice; a v2 might switch to SQLite without changing the project goals. IR1 "Atomic file writes" is an implementation rule that exists because of D1; if the storage backend changed, this rule might not apply. CP1 "One Click command per file" is a coding principle tied to the Click framework choice in D2.
 
@@ -86,7 +86,7 @@ D3 "Skip comprehensive input validation in v1"
   maps_to → V1 "Simplicity"
 ```
 
-This is coherent, not contradictory. UH1 does not say "ignore quality" -- it says "when deadline pressure is high and the feature is not safety-critical, prefer shipping correct-but-unpolished over delaying for elegance." D3 applies exactly this logic: input validation is not safety-critical, the deadline CON2 is tight, so basic type checks ship now and rich error messages are deferred to v1.1.
+This is coherent, not contradictory. UH1 does not say "ignore quality" -- it says "when deadline pressure is high and the feature is not safety-critical, prefer shipping correct-but-unpolished over delaying for elegance." D3 applies exactly this logic: input validation is not safety-critical, the deadline C2 is tight, so basic type checks ship now and rich error messages are deferred to v1.1.
 
 The trade-off traces upward to both UG1 "Sustainable revenue" (the business needs shipping software) and UV2 "Craftsmanship" (the quality standard is maintained by documenting what was deferred and why, per UP1 "Capture rationale always"). Revenue and craftsmanship are not in tension -- sustainable revenue requires shipping, and shipping garbage destroys the trust that drives revenue.
 
@@ -100,7 +100,7 @@ The following walk through specific elements as teaching moments for categorizat
 
 **Why is D1 "JSON file storage" at implementation scope?** Because it would change if you switched storage backends. The project goal G2 "Reliable task storage" would not -- you would still want reliable storage whether you use JSON, SQLite, or a remote database. D1 is a specific technical decision for this build; G2 is the enduring requirement that D1 serves.
 
-**Why is CON2 "Ship v1 by end of March" a constraint and not a goal?** Because it is a fact about the environment -- an imposed deadline driven by a client demo -- not a target state you chose. You do not "value" shipping by March; you are constrained by it. A goal is something you work toward because it aligns with your values. A constraint is something you work within because you have no choice.
+**Why is C2 "Ship v1 by end of March" a constraint and not a goal?** Because it is a fact about the environment -- an imposed deadline driven by a client demo -- not a target state you chose. You do not "value" shipping by March; you are constrained by it. A goal is something you work toward because it aligns with your values. A constraint is something you work within because you have no choice.
 
 ## Try It
 
@@ -109,14 +109,14 @@ The following walk through specific elements as teaching moments for categorizat
 gvp validate --library examples/software-project/
 
 # Trace the quality/speed trade-off from D3 upward
-gvp trace --library examples/software-project/ taskflow-v1:D3
+gvp inspect --library examples/software-project/ taskflow-v1:D3 --trace
 
 # See what traces to sustainable revenue
-gvp trace --library examples/software-project/ universal:UG1 --maps-to
+gvp inspect --library examples/software-project/ universal:UG1 --trace
 
 # Query all business-tagged elements
 gvp query --library examples/software-project/ --tag business
 
-# Render to markdown
-gvp render --library examples/software-project/ --format markdown --stdout
+# Export to markdown
+gvp export --library examples/software-project/ --format markdown
 ```
