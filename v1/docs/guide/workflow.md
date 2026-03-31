@@ -5,84 +5,85 @@ How to use GVP for end-to-end design traceability — from initial design discus
 ## The Flow
 
 ```
-Design Discussion
+1. Design Discussion (interactive, capture decisions in a design doc)
     ↓
-Document GVPs (goals, values, principles, decisions)
+2. Review the Design Doc (nothing missed?)
     ↓
-Create Implementation Plan (referencing GVP decisions)
+3. Translate Design Doc → GVP Library (every decision becomes a YAML element)
     ↓
-Implement in Chunks (with periodic GVP reviews)
+4. Deterministic Check: design doc → library (grep for every decision ID)
     ↓
-Trace Code ↔ Decisions (refs on every decision)
+5. Create Implementation Plan (every chunk references GVP decision IDs)
     ↓
-Validate Coverage (every decision maps to code, every code maps to a decision)
+6. Deterministic Check: library → plan (grep for every decision ID)
     ↓
-Maintain via Git Hooks + PR Reviews
+7. Implement in Chunks (with periodic reviews)
+    ↓
+8. Add Refs (link decisions ↔ code bidirectionally)
+    ↓
+9. Validate Coverage (gvp validate --coverage)
+    ↓
+10. Ongoing Maintenance (edits → reviews → approvals, git hooks, PR rules)
 ```
+
+Things get missed. That's normal — attention is finite. The deterministic checks
+at steps 4 and 6 exist specifically because humans (and AI) drift. The checks
+are cheap; the cost of a missed decision surfacing late is not.
 
 ---
 
-## Step 1: Start a Design Discussion
+## Step 1: Design Discussion
 
-Before writing code, discuss the project's goals, values, and guiding principles. These can start fuzzy — GVP embraces fuzzy boundaries. Capture what matters and why.
+Before writing code, have an interactive design discussion. This can be with a
+team, a collaborator, or an AI assistant. The goal is to surface decisions and
+capture them in a **design document** — not YAML yet, just prose.
 
-Questions to ask:
-- What are we trying to achieve? → **Goals**
-- What do we care about? → **Values**
-- What constraints are we working within? → **Constraints**
-- How should we approach decisions? → **Principles**
+The design doc should capture:
+- **Goals**: What are we trying to achieve?
+- **Values**: What do we care about? What guides tradeoffs?
+- **Constraints**: What limitations are we working within?
+- **Decisions**: Every architectural choice, with rationale and alternatives considered
 
-## Step 2: Initialize the GVP Library
+Write the design doc to `docs/design.md` or similar. Be thorough — every
+"we should..." or "let's use..." in the discussion is a decision worth capturing.
 
-```bash
-mkdir -p .gvp/library
+```markdown
+## Architecture
 
-cat > .gvp/library/project.yaml << 'EOF'
-meta:
-  name: my-project
-  scope: project
-  definitions:
-    tags:
-      backend:
-        description: Server-side concerns
-      frontend:
-        description: Client-side concerns
-      security:
-        description: Security and access control
+### D1: Use PostgreSQL
+We'll use PostgreSQL for the database.
+- **Rationale**: Mature, reliable, team has experience.
+- **Considered**: MySQL (less feature-rich), MongoDB (schema flexibility not needed)
 
-goals:
-  - id: G1
-    name: Ship a working MVP
-    statement: Deliver a functional product users can rely on.
-    tags: []
-    maps_to: []
-
-values:
-  - id: V1
-    name: Simplicity
-    statement: Complexity must earn its place.
-    tags: []
-    maps_to: [my-project:G1]
-EOF
+### D2: REST API with Express
+...
 ```
 
-Validate immediately:
+Label decisions with IDs (D1, D2, ...) in the design doc. These IDs will carry
+through to the GVP library and implementation plan.
+
+## Step 2: Review the Design Doc
+
+Before translating to GVP, review the design doc for completeness. Ask:
+- Did we capture every decision from the discussion?
+- Does every decision have rationale?
+- Did we note what alternatives were considered and why they were rejected?
+- Are there implicit decisions we made without discussing? (e.g., "we'll use
+  TypeScript" — was that a conscious choice or an assumption?)
+
+This review catches gaps while the discussion is fresh.
+
+## Step 3: Initialize and Populate the GVP Library
+
+Initialize the library:
 
 ```bash
-gvp validate
+gvp init
 ```
 
-## Step 3: Document Decisions Comprehensively
-
-As design discussions produce decisions, capture each one with rationale and considered alternatives. Every decision should map to at least one goal and one value.
-
-```bash
-gvp add decision "Use PostgreSQL" \
-  --field rationale="Mature, reliable, team has experience" \
-  --field maps_to='["my-project:G1","my-project:V1"]'
-```
-
-Or edit the YAML directly — decisions support a `considered` field for rejected alternatives:
+Then translate every element from the design doc into the GVP YAML. Every
+goal, value, constraint, principle, and decision from the design doc becomes a
+YAML element with proper `maps_to` traceability.
 
 ```yaml
 decisions:
@@ -98,32 +99,85 @@ decisions:
         rationale: Schema flexibility not needed; relational model fits better.
 ```
 
-## Step 4: Create an Implementation Plan with Decision References
+Validate as you go:
 
-When creating the implementation plan, reference GVP decisions in each task. This creates the first half of the traceability link.
+```bash
+gvp validate
+```
+
+## Step 4: Deterministic Check — Design Doc → Library
+
+Verify that every decision from the design doc made it into the GVP library.
+This is a mechanical check, not a judgment call:
+
+```bash
+# Extract decision IDs from the design doc
+grep -oP 'D\d+' docs/design.md | sort -u > /tmp/design-ids.txt
+
+# Extract decision IDs from the GVP library
+grep -oP 'id: D\d+' .gvp/library/*.yaml | grep -oP 'D\d+' | sort -u > /tmp/library-ids.txt
+
+# Find any in the design doc but missing from the library
+comm -23 /tmp/design-ids.txt /tmp/library-ids.txt
+```
+
+If `comm` outputs anything, those decisions were missed. Go back and add them.
+
+This check is cheap and catches the most common failure mode: "we discussed it,
+wrote it down, then forgot to translate it."
+
+## Step 5: Create Implementation Plan
+
+Write an implementation plan where every chunk explicitly references the GVP
+decision IDs it implements:
 
 ```markdown
-### Task 3: Set up database schema
-
-**Implements:** D1 (Use PostgreSQL), D3 (Normalize user data)
+### Task 1: Set up database schema [D1, D3, D5]
 
 Steps:
 1. Create migration files
 2. Define User, Project, Task tables
-3. Add indexes per D5 (Query performance targets)
+3. Add indexes per D5
+
+### Task 2: Implement REST API [D2, D4, D6]
+...
 ```
 
-## Step 5: Implement with Refs
+The `[D1, D3, D5]` annotations are not decoration — they are the traceability
+link between the plan and the library.
 
-As you implement, add `refs` to your decisions linking them to the code they produced:
+## Step 6: Deterministic Check — Library → Plan
+
+Verify that every decision in the GVP library appears in the implementation
+plan:
+
+```bash
+# Extract decision IDs from the library
+grep -oP 'id: D\d+' .gvp/library/*.yaml | grep -oP 'D\d+' | sort -u > /tmp/library-ids.txt
+
+# Extract decision IDs referenced in the plan
+grep -oP 'D\d+' docs/implementation-plan.md | sort -u > /tmp/plan-ids.txt
+
+# Find any in the library but missing from the plan
+comm -23 /tmp/library-ids.txt /tmp/plan-ids.txt
+```
+
+If anything shows up, a decision exists but no implementation task covers it.
+Either add it to a task or confirm it's intentionally deferred.
+
+## Step 7: Implement in Chunks
+
+Implement following the plan. After each chunk:
+
+1. Add `refs` to decisions linking them to the code you just wrote
+2. Commit
+3. Run `gvp validate`
 
 ```yaml
+# After implementing D1's code, add refs:
 decisions:
   - id: D1
     name: Use PostgreSQL
-    rationale: Mature, reliable, team has experience.
-    tags: [backend]
-    maps_to: [my-project:G1, my-project:V1]
     refs:
       - file: src/db/connection.ts
         identifier: createPool
@@ -131,14 +185,11 @@ decisions:
       - file: src/db/migrations/001-initial.sql
         identifier: users
         role: defines
-      - file: docs/architecture.md
-        identifier: Database Layer
-        role: documents
 ```
 
-## Step 6: Periodic Reviews During Implementation
+## Step 8: Periodic Reviews During Implementation
 
-After each implementation chunk, check alignment:
+After each chunk or at natural milestones, check alignment:
 
 ```bash
 # What decisions are affected by recent changes?
@@ -156,45 +207,114 @@ If `gvp diff` shows decisions were affected by code changes, review them:
 ```bash
 # See the full trace for an affected decision
 gvp inspect D1 --trace --refs
-
-# If the decision is still valid after the code change, approve the review
-gvp review D1
-# (follow the approval flow with the hash token)
 ```
 
-## Step 7: Validate Coverage
+## Step 9: Validate Coverage
 
-Before considering a milestone complete, run coverage validation:
+Before considering a milestone complete:
 
 ```bash
 gvp validate --coverage
 ```
 
 This checks two directions:
-- **W012 (Orphan Identifier):** Code identifiers (classes, functions, headings) not referenced by any decision
-- **W013 (Decision No Refs):** Decisions that don't link to any code or artifacts
+- **W012 (Orphan Identifier)**: Identifiers in parseable files not referenced
+  by any decision
+- **W013 (Decision No Refs)**: Decisions that don't link to any artifacts
 
-Fix gaps by adding refs to decisions or creating new decisions for undocumented code.
+Fix gaps by adding refs to decisions or creating new decisions for
+undocumented code.
 
-## Step 8: "Why Does This Code Exist?"
+## Step 10: "Why Does This Code Exist?"
 
 At any point, trace from code back to goals:
 
 ```bash
-# From a specific function to its justifying goals and values
 gvp inspect --ref src/db/connection.ts::createPool --trace
 ```
 
 Output shows the full chain: code → decision → principles → goals/values.
 
-## Step 9: Ongoing Maintenance
+---
+
+## Making Changes After Initial Implementation
+
+Once the project is built and traced, changes follow a lighter cycle:
+
+### Adding a New Feature
+
+1. Discuss the change and decide on approach
+2. Add a new decision to the GVP library (or update an existing one):
+   ```bash
+   gvp add decision "Add caching layer" \
+     --field rationale="Reduce database load for read-heavy endpoints"
+   ```
+3. Implement the feature
+4. Add refs linking the new decision to the new code
+5. Commit and validate:
+   ```bash
+   gvp validate --coverage
+   ```
+
+### Changing an Existing Decision
+
+When you change your mind about a previous decision (e.g., switching from
+throwing errors to returning null):
+
+1. Update the decision with rationale for the change:
+   ```bash
+   gvp edit D3 \
+     --field rationale="Return null instead of throwing — callers handle missing data more gracefully" \
+     --rationale "Changed approach after discovering most callers wrap in try/catch anyway"
+   ```
+2. Update the code to match
+3. Commit both changes
+4. Check what's stale:
+   ```bash
+   gvp review
+   ```
+5. Review and approve:
+   ```bash
+   # See what changed
+   gvp review D3
+
+   # Approve with the provided hash token
+   gvp review D3 --approve --token <hash>
+   ```
+
+### The Edit → Review → Approve Cycle
+
+Every `gvp edit` automatically creates an `updated_by` provenance entry with
+a UUID, timestamp, and your rationale. This entry starts as "unreviewed."
+
+`gvp review` finds all elements with unreviewed updates. For each one, it
+shows what changed and provides a one-time hash token. The token proves you
+actually looked at the pending changes before approving — preventing
+rubber-stamp reviews.
+
+```bash
+# Find stale elements
+gvp review
+#  → gvp:D3 "Handle null responses" (1 unreviewed update)
+
+# See details and get approval token
+gvp review D3
+#  → Unreviewed updates: 1
+#  → To approve: gvp review D3 --approve --token a1b2c3d4
+
+# Approve
+gvp review D3 --approve --token a1b2c3d4
+```
+
+---
+
+## Ongoing Maintenance
 
 ### Git Pre-Commit Hook
 
-Add to `.git/hooks/pre-commit`:
-
 ```bash
 #!/bin/bash
+# .git/hooks/pre-commit
 gvp validate --scope staged
 if [ $? -ne 0 ]; then
   echo "GVP validation failed. Fix issues before committing."
@@ -203,8 +323,6 @@ fi
 ```
 
 ### PR Review Checklist
-
-In your PR template, add:
 
 ```markdown
 ## GVP Traceability
@@ -236,11 +354,15 @@ gvp analyze
 
 | Task | Command |
 |------|---------|
+| Initialize a new project | `gvp init` |
 | Add a new decision | `gvp add decision "Name" --field rationale="Why"` |
+| Edit a decision | `gvp edit D1 --field rationale="Updated" --rationale "Why we changed"` |
 | Validate the library | `gvp validate` |
-| Check code coverage | `gvp validate --coverage` |
+| Check coverage | `gvp validate --coverage` |
+| Scope to staged changes | `gvp validate --scope staged` |
 | What changed? | `gvp diff HEAD~5 HEAD` |
 | Why does this code exist? | `gvp inspect --ref file::id --trace` |
 | What needs review? | `gvp review` |
+| Approve a review | `gvp review D1 --approve --token <hash>` |
 | Find unmapped relationships | `gvp analyze` |
 | Export for documentation | `gvp export --format markdown` |
