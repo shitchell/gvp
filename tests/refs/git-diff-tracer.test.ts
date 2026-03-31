@@ -9,7 +9,7 @@ import { parseDocument } from '../../src/model/document-parser.js';
 import { resolveInheritance } from '../../src/inheritance/inheritance-resolver.js';
 import * as fs from 'fs';
 
-const WORKTREE_ROOT = path.resolve(__dirname, '../../..');
+const WORKTREE_ROOT = path.resolve(__dirname, '../..');
 
 function buildCatalogFromLibrary(): Catalog {
   const defaults = loadDefaults();
