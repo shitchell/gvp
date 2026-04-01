@@ -117,6 +117,33 @@ suppress_diagnostics: []
 
 Or `.gvp.yaml` (gitignored) for personal settings.
 
+## Inherit from Other Libraries
+
+Your project can inherit goals, values, and principles from shared libraries
+hosted in git repositories:
+
+```yaml
+meta:
+  name: my-project
+  inherits:
+    - source: "@github:company/org-gvp@v1.0.0"
+      as: org
+```
+
+This gives your project access to the org's GVP elements. Your decisions can
+map to inherited goals and values using the alias:
+
+```yaml
+decisions:
+  - id: D1
+    name: Use approved tech stack
+    rationale: Aligns with org standards.
+    maps_to: [org:values:V1, my-project:G1]
+```
+
+Supported providers: `@github`, `@azure`, `@gitlab`, `@bitbucket`. The
+reference must use an immutable tag or SHA (not a branch).
+
 ## Next Steps
 
 - [Workflow Guide](workflow.md) — End-to-end design → implementation → review workflow

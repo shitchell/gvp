@@ -161,6 +161,42 @@ coverage:
 | decision | D | no | rationale |
 | milestone | M | no | description |
 
+## Cross-Repo Inheritance
+
+GVP libraries can inherit from other libraries hosted in git repositories.
+Documents reference external sources in `meta.inherits`:
+
+```yaml
+meta:
+  name: my-project
+  inherits:
+    - source: "@github:company/org-gvp@v1.0.0"
+      as: org
+    - source: "@azure:myorg/myproject/shared-gvp@v2.1.0"
+      as: shared
+```
+
+Supported providers:
+
+| Provider | Format | Resolves to |
+|----------|--------|-------------|
+| GitHub | `@github:user/repo@tag` | `https://github.com/user/repo.git` |
+| Azure DevOps | `@azure:org/project/repo@tag` | `https://dev.azure.com/org/project/_git/repo` |
+| GitLab | `@gitlab:user/repo@tag` | `https://gitlab.com/user/repo.git` |
+| Bitbucket | `@bitbucket:user/repo@tag` | `https://bitbucket.org/user/repo.git` |
+
+The commit-ish must be an immutable reference (tag or SHA) — branches are not
+allowed. Sources are cached at `~/.cache/cairn/sources/` and only cloned once.
+
+Elements in inherited libraries are accessible via aliased references:
+
+```yaml
+decisions:
+  - id: D1
+    name: Follow org coding standards
+    maps_to: [org:values:V1, my-project:G1]
+```
+
 ## Refs — Linking Decisions to Artifacts
 
 Any element can have `refs` linking it to external files:
