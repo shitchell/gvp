@@ -13,7 +13,6 @@ describe('LocalSourceResolver (DEC-1.2, DEC-1.7, DEC-1.10)', () => {
   });
 
   it('resolves @local to base directory', () => {
-    // Create a directory that looks like a library
     fs.mkdirSync(path.join(tmpDir, 'test.yaml'), { recursive: true });
     const resolver = new LocalSourceResolver(tmpDir);
     expect(resolver.resolve('@local')).toBe(tmpDir);
@@ -66,12 +65,46 @@ describe('GitSourceResolver (DEC-1.9)', () => {
     expect(() => resolver.resolve('foo/bar@v1')).toThrow(InheritanceError);
   });
 
-  it('throws not-implemented for valid git source (alpha stub)', () => {
-    expect(() => resolver.resolve('@github:foo/bar@v1.0.0')).toThrow(/not yet implemented/);
+  it('throws InheritanceError for nonexistent repo', () => {
+    expect(() => resolver.resolve('@github:nonexistent/repo-does-not-exist@v99.0.0')).toThrow(InheritanceError);
   });
 
-  it('throws not-implemented for SHA commit-ish', () => {
-    expect(() => resolver.resolve('@github:foo/bar@abc1234')).toThrow(/not yet implemented/);
+  it('throws for unknown provider', () => {
+    expect(() => resolver.resolve('@unknownprovider:foo/bar@v1')).toThrow(/Unknown git provider/);
+  });
+
+  it('constructs correct GitHub URL in error message', () => {
+    try {
+      resolver.resolve('@github:nonexistent/repo@v999');
+    } catch (e) {
+      expect((e as Error).message).toContain('https://github.com/nonexistent/repo.git');
+    }
+  });
+
+  it('constructs correct Azure DevOps URL in error message', () => {
+    try {
+      resolver.resolve('@azure:myorg/myproject/myrepo@v1');
+    } catch (e) {
+      expect((e as Error).message).toContain('https://dev.azure.com/myorg/myproject/_git/myrepo');
+    }
+  });
+
+  it('rejects Azure source with insufficient path segments', () => {
+    expect(() => resolver.resolve('@azure:org/repo@v1')).toThrow(/org\/project\/repo format/);
+  });
+
+  it('uses cache on second resolve', () => {
+    const tmpCache = fs.mkdtempSync(path.join(os.tmpdir(), 'cairn-cache-'));
+    const cachedResolver = new GitSourceResolver(tmpCache);
+
+    // Create a fake cached clone with .gvp/library/
+    const cacheKey = 'github/test--repo/v1.0.0';
+    const fakeCachePath = path.join(tmpCache, cacheKey);
+    fs.mkdirSync(path.join(fakeCachePath, '.gvp', 'library'), { recursive: true });
+
+    // Should return cached path without attempting to clone
+    const result = cachedResolver.resolve('@github:test/repo@v1.0.0');
+    expect(result).toBe(path.join(fakeCachePath, '.gvp', 'library'));
   });
 });
 
@@ -89,6 +122,6 @@ describe('createSourceResolver', () => {
 
   it('routes git sources to GitSourceResolver', () => {
     const resolver = createSourceResolver(tmpDir);
-    expect(() => resolver.resolve('@github:foo/bar@v1')).toThrow(/not yet implemented/);
+    expect(() => resolver.resolve('@github:nonexistent/repo@v1')).toThrow(InheritanceError);
   });
 });
