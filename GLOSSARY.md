@@ -19,6 +19,7 @@ Canonical definitions for GVP terminology. For how the framework works, see [REA
 | **Provenance** | The tracked history of where an element was first inferred (origin), how it has been modified (updated_by), and when it was last confirmed as still accurate (reviewed_by). |
 | **Traceability** | The property that every element (except goals, values, and constraints) traces its justification to at least one goal and one value. |
 | **Element** | A single GVP entry of any category, stored as a YAML mapping with an ID, name, and category-specific fields. |
+| **Guiding Element** | The Elements which guide decisions: goals, values, principles, constraints, heuristics, and rules. |
 | **Document** | A YAML file containing a `meta` block and one or more elements. |
 | **Library** | A directory containing GVP documents, optionally with dedicated definition files for tags and schema. |
 | **Catalog** | The fully loaded, resolved graph of all documents across all libraries. The runtime object built by the loader. |
