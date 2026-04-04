@@ -1,6 +1,6 @@
 {
   "name": "@principled/cairn",
-  "version": "1.0.4-beta",
+  "version": "1.0.5-beta",
   "description": "Cairn — decision traceability framework. Trace every decision back to what drives it.",
   "type": "module",
   "main": "./dist/index.js",
@@ -47,6 +47,7 @@
   "dependencies": {
     "commander": "^14.0.3",
     "js-yaml": "^4.1.1",
+    "minimatch": "^10.2.5",
     "zod": "^4.3.6"
   }
 }
