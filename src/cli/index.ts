@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
+import { createRequire } from 'module';
 import { validateCommand } from './commands/validate.js';
+
+const require = createRequire(import.meta.url);
+const { version } = require('../../package.json') as { version: string };
 import { exportCommand } from './commands/export.js';
 import { diffCommand } from './commands/diff.js';
 import { addCommand } from './commands/add.js';
@@ -16,7 +20,7 @@ const program = new Command();
 program
   .name('cairn')
   .description('Cairn — decision traceability framework (Goals, Values, and Principles)')
-  .version('1.0.0-beta')
+  .version(version)
   .option('--config <path>', 'Load specific config file (replaces discovery)')
   .option('--no-config', 'Skip all config files')
   .option('-c, --override <key=value...>', 'Inline config override (highest precedence)')
