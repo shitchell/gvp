@@ -61,11 +61,6 @@ export function buildCatalog(config: GVPConfig, cwd: string = process.cwd()): Ca
       libraryDir = gvpLib;
       break;
     }
-    const gvpDir = path.join(current, 'gvp');
-    if (fs.existsSync(gvpDir) && fs.statSync(gvpDir).isDirectory()) {
-      libraryDir = gvpDir;
-      break;
-    }
     const parent = path.dirname(current);
     if (parent === current) break;
     current = parent;
