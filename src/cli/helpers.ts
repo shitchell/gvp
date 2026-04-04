@@ -3,7 +3,7 @@ import type { GVPConfig } from '../config/schema.js';
 import { loadDefaults } from '../schema/defaults-loader.js';
 import { CategoryRegistry } from '../model/category-registry.js';
 import { parseDocument } from '../model/document-parser.js';
-import { resolveInheritance, type DocumentLoader } from '../inheritance/inheritance-resolver.js';
+import { resolveInheritance, type DocumentLoader, type ResolvedInheritance } from '../inheritance/inheritance-resolver.js';
 import { Catalog } from '../catalog/catalog.js';
 import { setVerbosity, logv } from '../utils/logger.js';
 import type { Command } from 'commander';
@@ -117,15 +117,34 @@ export function buildCatalog(config: GVPConfig, cwd: string = process.cwd()): Ca
     }
   }
 
-  // Use the deepest leaf as the entry point (it will pull in all ancestors)
+  // Find leaf documents (ones not inherited by any other document)
   const leafDocs = [...docCache.entries()]
     .filter(([docPath]) => !inheritedDocPaths.has(docPath))
     .map(([, doc]) => doc);
 
-  logv(`Found ${yamlFiles.length} documents`);
+  logv(`Found ${yamlFiles.length} documents, ${leafDocs.length} leaves`);
 
-  const entryDoc = leafDocs[0] ?? docCache.values().next().value!;
-  const resolved = resolveInheritance(entryDoc, loader);
+  // Resolve all leaf documents and merge their inheritance trees
+  const allOrderedDocs: ResolvedInheritance['orderedDocuments'] = [];
+  const seen = new Set<string>();
+  let mergedAliasMap: ResolvedInheritance['aliasMap'] = new Map();
+  let mergedSccs: ResolvedInheritance['sccs'] = [];
+
+  const entries = leafDocs.length > 0 ? leafDocs : [docCache.values().next().value!];
+  for (const leaf of entries) {
+    const resolved = resolveInheritance(leaf, loader);
+    for (const doc of resolved.orderedDocuments) {
+      const key = `${doc.source}:${doc.documentPath}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        allOrderedDocs.push(doc);
+      }
+    }
+    mergedAliasMap = resolved.aliasMap;
+    mergedSccs.push(...resolved.sccs);
+  }
+
+  const resolved: ResolvedInheritance = { orderedDocuments: allOrderedDocs, aliasMap: mergedAliasMap, sccs: mergedSccs };
   const catalog = new Catalog(resolved, config);
   logv(`Catalog built: ${catalog.getAllElements().length} elements`);
   return catalog;

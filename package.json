@@ -1,6 +1,6 @@
 {
   "name": "@principled/cairn",
-  "version": "1.0.7-beta",
+  "version": "1.0.8-beta",
   "description": "Cairn — decision traceability framework. Trace every decision back to what drives it.",
   "type": "module",
   "main": "./dist/index.js",
