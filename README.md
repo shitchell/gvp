@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/cairn.png" alt="Cairn" width="200" />
+  <img src="docs/cairn.png" alt="Cairn" width="300" />
 </p>
 
 # Cairn — Goals, Values, and Principles
