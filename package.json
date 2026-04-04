@@ -1,6 +1,6 @@
 {
   "name": "@principled/cairn",
-  "version": "1.0.3-beta",
+  "version": "1.0.4-beta",
   "description": "Cairn — decision traceability framework. Trace every decision back to what drives it.",
   "type": "module",
   "main": "./dist/index.js",
@@ -19,7 +19,16 @@
     "test:watch": "vitest",
     "prepublishOnly": "npm run build"
   },
-  "keywords": ["cairn", "gvp", "goals", "values", "principles", "traceability", "decisions", "rationale"],
+  "keywords": [
+    "cairn",
+    "gvp",
+    "goals",
+    "values",
+    "principles",
+    "traceability",
+    "decisions",
+    "rationale"
+  ],
   "author": "",
   "license": "MIT",
   "engines": {

@@ -90,13 +90,15 @@ export function validateCommand(): Command {
         // Build the passes map
         const allPasses = new Map<string, ValidationPass>([...builtinPasses, ...optionalPasses]);
 
-        // Determine which pass names to run
-        let passNames: string[] | undefined;
+        // Determine which pass names to run.
+        // Default to builtin passes only — optional passes (like coverage) require explicit opt-in.
+        let passNames: string[];
         if (opts.passes) {
           passNames = (opts.passes as string).split(',').map(s => s.trim());
         } else if (opts.coverage) {
-          // Add coverage to the default passes
           passNames = [...builtinPasses.keys(), 'coverage'];
+        } else {
+          passNames = [...builtinPasses.keys()];
         }
 
         const diagnostics = runValidation(catalog, config, allPasses, passNames);

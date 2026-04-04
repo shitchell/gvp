@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/cairn.png" alt="Cairn" width="200" />
+</p>
+
 # Cairn — Goals, Values, and Principles
 
 A decision traceability framework. Define your goals, values, and principles in YAML. Trace every decision back to what drives it. Link decisions to the code, documents, and artifacts they produce.
