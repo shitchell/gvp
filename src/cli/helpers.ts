@@ -84,14 +84,22 @@ export function buildCatalog(config: GVPConfig, cwd: string = process.cwd()): Ca
 
   // Load all documents in the library
   const docCache = new Map<string, ReturnType<typeof loadDocumentFile>>();
+  // Index documents by meta.name so `inherits:` can reference them by name
+  // even when meta.name differs from the filesystem-relative docPath (e.g.
+  // a doc at code/common.yaml with meta.name: code-common).
+  const nameIndex = new Map<string, ReturnType<typeof loadDocumentFile>>();
   for (const file of yamlFiles) {
     const docPath = path.relative(libraryDir!, file).replace(/\.ya?ml$/, '');
     const doc = loadDocumentFile(file, docPath, source, registry);
     docCache.set(docPath, doc);
+    if (doc.meta.name && !nameIndex.has(doc.meta.name)) {
+      nameIndex.set(doc.meta.name, doc);
+    }
   }
 
   const loader: DocumentLoader = (_src, docPath) => {
-    const cached = docCache.get(docPath);
+    // Cache lookup: try docPath first (existing behavior), then meta.name.
+    const cached = docCache.get(docPath) ?? nameIndex.get(docPath);
     if (cached) return cached;
     const filePath = path.join(libraryDir!, docPath + '.yaml');
     if (!fs.existsSync(filePath)) {
@@ -104,14 +112,24 @@ export function buildCatalog(config: GVPConfig, cwd: string = process.cwd()): Ca
     return loadDocumentFile(filePath, docPath, source, registry);
   };
 
-  // Find leaf documents (ones not inherited by any other document)
+  // Find leaf documents (ones not inherited by any other document).
+  // Inherits entries may reference parents by docPath OR by meta.name, so
+  // normalize each entry to its canonical docPath before tracking it.
   const inheritedDocPaths = new Set<string>();
   for (const doc of docCache.values()) {
     const inherits = doc.meta.inherits;
     if (inherits && Array.isArray(inherits)) {
       for (const entry of inherits) {
         if (typeof entry === 'string') {
-          inheritedDocPaths.add(entry);
+          const parentDoc = docCache.get(entry) ?? nameIndex.get(entry);
+          if (parentDoc) {
+            inheritedDocPaths.add(parentDoc.documentPath);
+          } else {
+            // Unknown reference — record it literally so leaf detection
+            // still excludes it; resolveInheritance will surface the
+            // missing-document error with full context.
+            inheritedDocPaths.add(entry);
+          }
         }
       }
     }

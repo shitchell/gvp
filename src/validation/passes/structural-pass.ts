@@ -166,12 +166,9 @@ export function structuralPass(catalog: Catalog, _config: GVPConfig): Diagnostic
     }
   }
 
-  // E003: Broken inheritance — document references a parent that doesn't exist
-  const knownDocPaths = new Set<string>();
-  for (const doc of catalog.documents) {
-    knownDocPaths.add(doc.documentPath);
-    knownDocPaths.add(doc.source + ':' + doc.documentPath);
-  }
+  // E003: Broken inheritance — document references a parent that doesn't exist.
+  // Inherits entries may reference parents by docPath, by source:docPath, or
+  // by meta.name (the canonical convention). All three forms must resolve.
   for (const doc of catalog.documents) {
     if (!doc.meta.inherits) continue;
     const inherits = doc.meta.inherits as Array<string | { source: string; as?: string }>;
@@ -181,7 +178,8 @@ export function structuralPass(catalog: Catalog, _config: GVPConfig): Diagnostic
       // If it's listed but not found, it's a broken reference.
       const found = catalog.documents.some(d =>
         d.documentPath === parentPath ||
-        d.source + ':' + d.documentPath === parentPath
+        d.source + ':' + d.documentPath === parentPath ||
+        d.meta.name === parentPath
       );
       if (!found) {
         diagnostics.push(createDiagnostic(
