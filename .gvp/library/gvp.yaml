@@ -731,6 +731,37 @@ design_choices:
     tags: [tooling, integrity, alignment]
     maps_to: [gvp:G5, gvp:P9, gvp:V6, gvp:V1, gvp:H5]
 
+  - id: D15
+    name: Inherits references documents by meta.name
+    rationale: >
+      The `inherits:` field in document meta references parent documents by
+      their `meta.name`, not by their filesystem-relative `docPath`. The name
+      is the document's stable identity; the path is an organizational
+      convenience that may change as a library is reshaped (subdirectories
+      added, files moved between groups). Referencing by name lets users
+      organize files however suits them without rewriting every inherits
+      entry, and aligns with the same principle that drives qualified IDs
+      (D6) -- references should be stable across reorganization. The CLI
+      catalog loader and the structural validation pass both look up parents
+      by name first, falling back to docPath for backward compatibility, so
+      existing libraries that happen to use path-based references continue
+      to work. This was surfaced by a bug where a doc at `code/common.yaml`
+      with `meta.name: code-common` could not be inherited by sibling docs
+      using `inherits: code-common` because the loader only matched against
+      docPath -- it now matches both, with name as the canonical form.
+    tags: [framework, tooling, integrity]
+    maps_to: [gvp:G6, gvp:G8, gvp:V2, gvp:V6, gvp:V7, gvp:P7, gvp:P14, gvp:D6]
+    refs:
+      - file: src/cli/helpers.ts
+        identifier: buildCatalog
+        role: implements
+      - file: src/validation/passes/structural-pass.ts
+        identifier: structuralPass
+        role: implements
+      - file: tests/cli/build-catalog.test.ts
+        identifier: CLI buildCatalog — nested-directory inheritance
+        role: implements
+
 constraints:
   - id: CON1
     name: Agents optimize for minimal effort
