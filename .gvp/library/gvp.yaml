@@ -758,9 +758,6 @@ design_choices:
       - file: src/validation/passes/structural-pass.ts
         identifier: structuralPass
         role: implements
-      - file: tests/cli/build-catalog.test.ts
-        identifier: CLI buildCatalog — nested-directory inheritance
-        role: implements
 
 constraints:
   - id: CON1
