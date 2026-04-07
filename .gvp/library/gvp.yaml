@@ -246,7 +246,7 @@ principles:
       friction where attention matters, to hard stops where violation is
       destructive or irreversible.
     tags: [framework, integrity, usability]
-    maps_to: [gvp:G3, gvp:G4, gvp:V2, gvp:V1, gvp:CON1]
+    maps_to: [gvp:G3, gvp:G4, gvp:V2, gvp:V1, gvp:C1]
 
   - id: P5
     name: Design around flex points
@@ -267,7 +267,7 @@ principles:
       rather than making the wrong thing hard. But where coherency demands
       friction, friction wins.
     tags: [framework, usability, integrity]
-    maps_to: [gvp:G5, gvp:V2, gvp:V4, gvp:V5, gvp:CON1]
+    maps_to: [gvp:G5, gvp:V2, gvp:V4, gvp:V5, gvp:C1]
 
   - id: P7
     name: Respect the user's environment
@@ -343,7 +343,7 @@ principles:
       - file: docs/philosophy.md
         identifier: "The Framework Serves Alignment, Not People"
         role: defines
-      - file: v1/src/analysis/analyzer.ts
+      - file: src/analysis/analyzer.ts
         identifier: findUnmappedRelationships
         role: implements
     origin:
@@ -362,13 +362,13 @@ principles:
     tags: [framework, integrity, tooling]
     maps_to: [gvp:G5, gvp:V10, gvp:V2, gvp:V3, gvp:P4]
     refs:
-      - file: v1/src/catalog/post-merge-validation.ts
+      - file: src/catalog/post-merge-validation.ts
         identifier: validateMergedCategories
         role: implements
-      - file: v1/src/catalog/catalog.ts
+      - file: src/catalog/catalog.ts
         identifier: Catalog
         role: implements
-      - file: v1/src/config/loader.ts
+      - file: src/config/loader.ts
         identifier: loadConfig
         role: implements
     origin:
@@ -386,13 +386,13 @@ principles:
     tags: [framework, tooling, integrity]
     maps_to: [gvp:G5, gvp:V6, gvp:V10, gvp:P3]
     refs:
-      - file: v1/src/schema/reserved-fields.ts
+      - file: src/schema/reserved-fields.ts
         identifier: checkReservedFieldCollision
         role: implements
-      - file: v1/src/validation/runner.ts
+      - file: src/validation/runner.ts
         identifier: runValidation
         role: implements
-      - file: v1/src/inheritance/source-resolver.ts
+      - file: src/inheritance/source-resolver.ts
         identifier: GitSourceResolver
         role: implements
     origin:
@@ -411,10 +411,10 @@ principles:
     tags: [framework, tooling, integrity]
     maps_to: [gvp:V10, gvp:V2, gvp:G8]
     refs:
-      - file: v1/src/schema/defaults-loader.ts
+      - file: src/schema/defaults-loader.ts
         identifier: loadDefaults
         role: implements
-      - file: v1/src/data/defaults.yaml
+      - file: src/data/defaults.yaml
         identifier: categories
         role: defines
     origin:
@@ -463,7 +463,7 @@ heuristics:
       action destructive, irreversible, or a direct violation of a rule? Block
       it entirely.
     tags: [framework, integrity]
-    maps_to: [gvp:P4, gvp:P6, gvp:CON1]
+    maps_to: [gvp:P4, gvp:P6, gvp:C1]
 
   - id: H5
     name: Friction proportionality check
@@ -473,7 +473,7 @@ heuristics:
       that feels unjustified breeds resentment and undermines adoption. If
       no, the friction is appropriate.
     tags: [framework, usability, integrity]
-    maps_to: [gvp:P4, gvp:P6, gvp:CON1]
+    maps_to: [gvp:P4, gvp:P6, gvp:C1]
 
   - id: H6
     name: Evaluate collapse by layer
@@ -503,16 +503,16 @@ heuristics:
     tags: [tooling, code, integrity]
     maps_to: [gvp:P13, gvp:V10, gvp:P4, gvp:P10]
     refs:
-      - file: v1/src/catalog/catalog.ts
+      - file: src/catalog/catalog.ts
         identifier: Catalog
         role: implements
-      - file: v1/src/validation/runner.ts
+      - file: src/validation/runner.ts
         identifier: runValidation
         role: implements
-      - file: v1/src/errors.ts
+      - file: src/errors.ts
         identifier: CatalogError
         role: defines
-      - file: v1/src/validation/diagnostic.ts
+      - file: src/validation/diagnostic.ts
         identifier: Diagnostic
         role: defines
     origin:
@@ -575,7 +575,7 @@ rules:
     tags: [framework, extensibility]
     maps_to: [gvp:G6, gvp:V5, gvp:V7]
 
-design_choices:
+decisions:
   - id: D1
     name: Walk-backwards config discovery
     rationale: >
@@ -715,7 +715,7 @@ design_choices:
       change is recorded, but trivial changes don't trigger downstream
       review. Opting out is explicit, not silent, and nothing is lost.
     tags: [tooling, integrity]
-    maps_to: [gvp:G8, gvp:P8, gvp:H2, gvp:H5, gvp:V4, gvp:P9, gvp:V9, gvp:CON1]
+    maps_to: [gvp:G8, gvp:P8, gvp:H2, gvp:H5, gvp:V4, gvp:P9, gvp:V9, gvp:C1]
     updated_by:
       - date: "2026-03-19"
         rationale: "Updated to reflect v1 design decision DEC-4.6 -- renamed from --no-provenance, now records full provenance"
@@ -760,7 +760,7 @@ design_choices:
         role: implements
 
 constraints:
-  - id: CON1
+  - id: C1
     name: Agents optimize for minimal effort
     impact: >
       Humans and AI alike tend toward the path of least resistance. Any
