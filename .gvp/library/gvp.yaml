@@ -604,6 +604,73 @@ rules:
       - date: "2026-04-08"
         note: "Requested by the human as a persistent release-procedure rule after diagnosing an ancient broken dist-tag during TAStest consumer debugging"
 
+  - id: R6
+    name: Subcommands and renderers dispatch on schema, not field names
+    statement: >
+      CLI subcommands, exporters, renderers, and validation passes must
+      remain dynamic: they iterate over schema definitions (category
+      field_schemas, registered category names, declared field types
+      from the shape engine) rather than hard-coding specific field
+      names or element category names. If a renderer needs to know that
+      the procedure category has a `steps` field, or that the decision
+      category has a `considered` field, that is a design failure --
+      the code should instead recognize `list<model>` or `dict<model>`
+      as generic shapes and dispatch on the declared type. The same
+      code path must handle any future field of the same shape without
+      modification.
+
+      The only permitted exception is the set of reserved fields
+      declared in src/schema/reserved-fields.ts (RESERVED_FIELD_NAMES):
+      id, name, status, tags, maps_to, priority, origin, updated_by,
+      reviewed_by. These are load-bearing core framework fields that
+      every element is guaranteed to have (they're part of
+      reservedFieldsSchema in combined-schema.ts), and referencing
+      them directly in CLI/renderer/validator code is permitted and
+      expected. Fields declared in `_all.field_schemas` (e.g. `refs`)
+      are NOT part of this exception surface yet, though they are
+      candidates for promotion if a future decision tightens the
+      universality guarantee.
+
+      This rule is the hard-stop version of P15 (dogfood your own
+      abstractions) and R4 (core stays domain-agnostic). The shape
+      renderer added in C.1 is the canonical example of correct
+      implementation -- its renderFieldByShape function dispatches
+      on schema.type with no field names or category names in the
+      switch. Its test suite includes a source-grep assertion
+      (tests/exporters/shape-renderer.test.ts) that fails if anyone
+      reintroduces field name string literals in the renderer code.
+      Similar source-grep guards should be added when refactoring
+      other generic code paths to comply with this rule.
+
+      **Known violations at the time this rule was written
+      (2026-04-08):** the structural-pass E001/E005 extensions for
+      procedure steps, the semantic-pass W010/W011 extensions for
+      step refs, and the parser's maybeAutoAssignStepIds function
+      all hard-code `steps` and in one case `procedure` directly.
+      These were added in Phase B before the generic shape-based
+      approach was established in Phase C, and they need refactoring
+      to iterate field_schemas generically. Tracked in
+      .claude-worker-pm/BACKLOG.md #6 and obligated by this rule --
+      surfacing the debt is intentional.
+
+      Does NOT apply to: src/data/defaults.yaml itself (that file IS
+      the schema), src/schema/reserved-fields.ts (it DEFINES the
+      exception surface), category-specific test files that exercise
+      generic behavior against concrete shapes, or consumer libraries
+      that declare their own user-specific categories.
+    tags: [framework, tooling, extensibility]
+    maps_to: [gvp:G6, gvp:V7, gvp:P15, gvp:R4]
+    refs:
+      - file: src/exporters/shape-renderer.ts
+        identifier: renderFieldByShape
+        role: implements
+      - file: src/schema/reserved-fields.ts
+        identifier: RESERVED_FIELD_NAMES
+        role: defines
+    origin:
+      - date: "2026-04-08"
+        note: "Requested by the human after observing the PM correctly push back on a TAStest frontmatter feature request that implied hard-coded field knowledge. Guy's words: 'we want to make sure all GVP subcommands remain dynamic, never favoring specific fields or elements (except sometimes the... [reserved fields], those are fine to reference).' Landed under the autonomous-scope standing guidance from earlier in the same session."
+
 decisions:
   - id: D1
     name: Walk-backwards config discovery
