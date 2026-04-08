@@ -102,7 +102,7 @@ categories:
 
   procedure:
     yaml_key: procedures
-    id_prefix: Q
+    id_prefix: S
     primary_field: description
     mapping_rules:
       - [goal, value]

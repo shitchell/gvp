@@ -166,7 +166,7 @@ coverage:
 | heuristic | H | no | statement |
 | decision | D | no | rationale |
 | milestone | M | no | description |
-| procedure | Q | no | description |
+| procedure | S | no | description |
 
 ## Cross-Repo Inheritance
 

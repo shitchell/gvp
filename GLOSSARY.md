@@ -15,7 +15,7 @@ Canonical definitions for GVP terminology. For how the framework works, see [REA
 | **Constraint** | A fact about the system or environment you don't control. Descriptive, not prescriptive. |
 | **Milestone** | A concrete, achievable waypoint on the path to goals. Ordered near-term to long-term. |
 | **Procedure** | A sequence of ordered steps for performing a task. Each step can be governed by its own guiding elements (via `maps_to`) and linked to artifacts (via `refs`). Captures procedural knowledge — the "how" — separately from stative guiding elements like principles and rules. |
-| **Step** | A single ordered entry within a procedure. Has a unique ID within its parent procedure (dotted form, e.g., `Q1.1`), a name, an optional description, and optional `maps_to` and `refs` for per-step traceability. |
+| **Step** | A single ordered entry within a procedure. Has a unique ID within its parent procedure (dotted form, e.g., `S1.1`), a name, an optional description, and optional `maps_to` and `refs` for per-step traceability. |
 | **Scope** | A human-readable label for a level in the hierarchy (e.g., "universal", "personal", "project"). User-defined granularity. |
 | **Tag** | A classification label applied to elements, defined in a document's `meta.definitions.tags` block. How tags are organized (e.g., by domain vs. concern) is a user convention, not a structural requirement. |
 | **Provenance** | The tracked history of where an element was first inferred (origin), how it has been modified (updated_by), and when it was last confirmed as still accurate (reviewed_by). |
@@ -45,7 +45,7 @@ The framework ships with 9 core categories:
 | Heuristic | `heuristics` | H | no | statement |
 | Decision | `decisions` | D | no | rationale |
 | Milestone | `milestones` | M | no | description |
-| Procedure | `procedures` | Q | no | description |
+| Procedure | `procedures` | S | no | description |
 
 Additional categories (e.g., `implementation_rule`, `coding_principle`) can be defined via `meta.definitions.categories` in any GVP document. The `software-project` example demonstrates this with domain-specific categories.
 

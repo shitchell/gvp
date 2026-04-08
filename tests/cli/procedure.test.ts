@@ -84,7 +84,7 @@ meta:
   scope: project
 
 procedures:
-  - id: Q1
+  - id: S1
     name: Example procedure
     description: A minimal procedure.
     tags: []
@@ -96,7 +96,7 @@ procedures:
         .getAllElements()
         .filter((e) => e.categoryName === 'procedure');
       expect(procs).toHaveLength(1);
-      expect(procs[0]!.id).toBe('Q1');
+      expect(procs[0]!.id).toBe('S1');
       expect(procs[0]!.name).toBe('Example procedure');
     });
 
@@ -110,7 +110,7 @@ meta:
   scope: project
 
 procedures:
-  - id: Q1
+  - id: S1
     name: Example
     description: The description text.
     tags: []
@@ -118,7 +118,7 @@ procedures:
 `,
       );
       const catalog = buildCatalog(defaultConfig, tmpDir);
-      const el = catalog.getAllElements().find((e) => e.id === 'Q1')!;
+      const el = catalog.getAllElements().find((e) => e.id === 'S1')!;
       const catDef = catalog.registry.getByName('procedure');
       expect(catDef?.primary_field).toBe('description');
       expect(el.get('description')).toBe('The description text.');
@@ -136,7 +136,7 @@ meta:
   scope: project
 
 procedures:
-  - id: Q1
+  - id: S1
     name: With unnamed steps
     description: Procedure with steps lacking ids.
     tags: []
@@ -148,11 +148,11 @@ procedures:
 `,
       );
       const catalog = buildCatalog(defaultConfig, tmpDir);
-      const el = catalog.getAllElements().find((e) => e.id === 'Q1')!;
+      const el = catalog.getAllElements().find((e) => e.id === 'S1')!;
       const steps = el.get('steps') as Array<Record<string, unknown>>;
-      expect(steps[0]!.id).toBe('Q1.1');
-      expect(steps[1]!.id).toBe('Q1.2');
-      expect(steps[2]!.id).toBe('Q1.3');
+      expect(steps[0]!.id).toBe('S1.1');
+      expect(steps[1]!.id).toBe('S1.2');
+      expect(steps[2]!.id).toBe('S1.3');
     });
 
     it('preserves explicit step ids without renumbering', () => {
@@ -165,23 +165,23 @@ meta:
   scope: project
 
 procedures:
-  - id: Q1
+  - id: S1
     name: With explicit step ids
     description: R1 preservation — survivor keeps original slot.
     tags: []
     maps_to: [root:G1, root:V1]
     steps:
-      - id: Q1.1
+      - id: S1.1
         name: First step
-      - id: Q1.3
+      - id: S1.3
         name: Third step (second was deleted)
 `,
       );
       const catalog = buildCatalog(defaultConfig, tmpDir);
-      const el = catalog.getAllElements().find((e) => e.id === 'Q1')!;
+      const el = catalog.getAllElements().find((e) => e.id === 'S1')!;
       const steps = el.get('steps') as Array<Record<string, unknown>>;
-      expect(steps[0]!.id).toBe('Q1.1');
-      expect(steps[1]!.id).toBe('Q1.3');
+      expect(steps[0]!.id).toBe('S1.1');
+      expect(steps[1]!.id).toBe('S1.3');
     });
 
     it('mixes explicit and implicit ids: only the missing ones get filled', () => {
@@ -194,7 +194,7 @@ meta:
   scope: project
 
 procedures:
-  - id: Q1
+  - id: S1
     name: Mixed
     description: First step has explicit id, others do not.
     tags: []
@@ -207,14 +207,14 @@ procedures:
 `,
       );
       const catalog = buildCatalog(defaultConfig, tmpDir);
-      const el = catalog.getAllElements().find((e) => e.id === 'Q1')!;
+      const el = catalog.getAllElements().find((e) => e.id === 'S1')!;
       const steps = el.get('steps') as Array<Record<string, unknown>>;
       expect(steps[0]!.id).toBe('custom-first');
       // Note: auto-assigned slots use list position, so index-1 and
-      // index-2 become Q1.2 and Q1.3 (the R1 warning W015 nudges
+      // index-2 become S1.2 and S1.3 (the R1 warning W015 nudges
       // users to persist these).
-      expect(steps[1]!.id).toBe('Q1.2');
-      expect(steps[2]!.id).toBe('Q1.3');
+      expect(steps[1]!.id).toBe('S1.2');
+      expect(steps[2]!.id).toBe('S1.3');
     });
   });
 
@@ -229,7 +229,7 @@ meta:
   scope: project
 
 procedures:
-  - id: Q1
+  - id: S1
     name: Auto-numbered
     description: Auto.
     tags: []
@@ -248,7 +248,7 @@ procedures:
       );
       const w015 = diagnostics.filter((d) => d.code === 'W015');
       expect(w015).toHaveLength(1);
-      expect(w015[0]!.context.elementId).toBe('Q1');
+      expect(w015[0]!.context.elementId).toBe('S1');
     });
 
     it('does NOT fire when all step ids are explicit', () => {
@@ -261,15 +261,15 @@ meta:
   scope: project
 
 procedures:
-  - id: Q1
+  - id: S1
     name: All explicit
     description: All persisted.
     tags: []
     maps_to: [root:G1, root:V1]
     steps:
-      - id: Q1.1
+      - id: S1.1
         name: one
-      - id: Q1.2
+      - id: S1.2
         name: two
 `,
       );
@@ -296,16 +296,16 @@ meta:
   scope: project
 
 procedures:
-  - id: Q1
+  - id: S1
     name: With a typo
     description: One step has a broken reference.
     tags: []
     maps_to: [root:G1, root:V1]
     steps:
-      - id: Q1.1
+      - id: S1.1
         name: Good step
         maps_to: [root:V1]
-      - id: Q1.2
+      - id: S1.2
         name: Bad step
         maps_to: [root:V99]
 `,
@@ -321,8 +321,8 @@ procedures:
         (d) => d.code === 'E001' && d.description.includes('V99'),
       );
       expect(e001).toHaveLength(1);
-      expect(e001[0]!.context.elementId).toBe('Q1');
-      expect(e001[0]!.context.details).toBe('step:Q1.2');
+      expect(e001[0]!.context.elementId).toBe('S1');
+      expect(e001[0]!.context.details).toBe('step:S1.2');
     });
   });
 
@@ -337,15 +337,15 @@ meta:
   scope: project
 
 procedures:
-  - id: Q1
+  - id: S1
     name: With duplicate step ids
     description: dup.
     tags: []
     maps_to: [root:G1, root:V1]
     steps:
-      - id: Q1.1
+      - id: S1.1
         name: First
-      - id: Q1.1
+      - id: S1.1
         name: Also first (BAD)
 `,
       );
@@ -358,7 +358,7 @@ procedures:
       );
       const e005 = diagnostics.filter((d) => d.code === 'E005');
       expect(e005).toHaveLength(1);
-      expect(e005[0]!.description).toContain('Q1.1');
+      expect(e005[0]!.description).toContain('S1.1');
     });
 
     it('does NOT fire for auto-assigned step ids (unique by construction)', () => {
@@ -371,7 +371,7 @@ meta:
   scope: project
 
 procedures:
-  - id: Q1
+  - id: S1
     name: Auto-numbered
     description: Auto.
     tags: []
@@ -405,7 +405,7 @@ meta:
   scope: project
 
 procedures:
-  - id: Q1
+  - id: S1
     name: With broken related
     description: broken.
     tags: []
@@ -440,7 +440,7 @@ meta:
   scope: project
 
 procedures:
-  - id: Q1
+  - id: S1
     name: With when
     description: Has when.
     when: Starting a new test or migrating a v1 test
@@ -449,7 +449,7 @@ procedures:
 `,
       );
       const catalog = buildCatalog(defaultConfig, tmpDir);
-      const el = catalog.getAllElements().find((e) => e.id === 'Q1')!;
+      const el = catalog.getAllElements().find((e) => e.id === 'S1')!;
       expect(el.get('when')).toBe(
         'Starting a new test or migrating a v1 test',
       );

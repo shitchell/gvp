@@ -77,7 +77,7 @@ describe('Defaults (DEC-9.1-9.6, DEC-10.1)', () => {
     const categories = parsed.categories as Record<string, Record<string, unknown>>;
     const prefixes = Object.values(categories).map(c => c.id_prefix as string);
     // Order matches the order categories are declared in defaults.yaml.
-    expect(prefixes).toEqual(['G', 'V', 'C', 'P', 'R', 'H', 'D', 'M', 'Q']);
+    expect(prefixes).toEqual(['G', 'V', 'C', 'P', 'R', 'H', 'D', 'M', 'S']);
   });
 
   it('constraint uses C prefix, not CON (DEC-9.2)', () => {

@@ -902,16 +902,44 @@ decisions:
       consumer's words: "keeps step IDs purely structural identifiers
       and avoids two ways to say the same thing").
 
-      The category id_prefix is `Q`, a single character, per DEC-9.2
-      (all core category id prefixes are single characters; keep it
-      simple and use 2+ chars only where required for uniqueness). All
-      single letters with a stronger semantic link to "procedure" (P
-      for principle, T for task, W for workflow, O for operation) were
-      either taken or had connotation drift. Q was chosen as
-      semantically neutral and maximally distinct -- the trade-off is
-      no mnemonic, but id prefixes are opaque identifiers to users in
-      practice. Users who want a mnemonic prefix can override via a
-      user-defined category in their own library.
+      The category id_prefix is `S` (for Step / Sequence), a single
+      character, per DEC-9.2 (all core category id prefixes are single
+      characters; keep it simple and use 2+ chars only where required
+      for uniqueness). The mnemonic points directly at the defining
+      structural feature of a procedure -- the `steps` field -- so
+      anyone who reads `S1.1` once understands what the letter stands
+      for. The full ID form (`S1`, `S1.1`, `S1.2`) is visually
+      unambiguous in every font, avoiding letter/numeral confusion.
+      The category name itself stays `procedure`; `S` is strictly the
+      ID prefix mnemonic.
+
+      Considered alternatives for the id_prefix:
+      - `P` (procedure): collides with principle. Rejected.
+      - `T` (task): "task" is narrower than "procedure"; a procedure
+        can contain multiple tasks, not the other way around. Rejected
+        for semantic drift.
+      - `W` (workflow): cleaner than Q, but "workflow" implies a
+        cross-actor orchestration concept that a cairn procedure does
+        not require. Still a reasonable fallback.
+      - `O` (operation): similar semantic drift to task.
+      - `Q` (initially chosen for neutrality): rejected post-review
+        because it reads strongly as "question" and creates cognitive
+        friction every time it appears in IDs and queries. Originally
+        committed in 08bb667 and corrected in a follow-up commit
+        before any procedures were authored.
+      - `I` (for "instruction"): rejected for three reasons -- (a)
+        visual ambiguity between capital-I, lowercase-l, and numeral-1
+        in terminals and chat, where cairn IDs get quoted and pasted
+        constantly; (b) "instruction" is weaker than it looks (an
+        instruction is a single directive, a procedure is a sequenced
+        guide); (c) natural-language collision -- "look at I3" reads
+        awkwardly because I is a personal pronoun.
+
+      S was chosen because the mnemonic matches the field, the
+      character is visually unambiguous in every font, and it reads
+      naturally in spoken and written English. Users who want a
+      different mnemonic can override via a user-defined category in
+      their own library.
 
       Validation: E001 (BROKEN_REFERENCE) is extended to walk step
       maps_to; E005 (DUPLICATE_STEP_ID) fires on explicit step id
