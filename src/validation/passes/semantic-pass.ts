@@ -132,55 +132,119 @@ export function semanticPass(catalog: Catalog, _config: GVPConfig): Diagnostic[]
     }
   }
 
-  // W010/W011: Ref file/identifier validation (DEC-10.5)
+  // W010/W011: Ref file/identifier validation (DEC-10.5).
+  // Also applies to procedure step refs — same structural rules, no
+  // new relationship type (D19).
   // Determine project root by walking up from first document's filePath looking for .git/
   const projectRoot = findProjectRoot(catalog);
   if (projectRoot) {
     const parsers = createRefParserRegistry();
 
-    for (const element of catalog.getAllElements()) {
-      const refs = element.get('refs') as Array<{ file: string; identifier: string; role: string }> | undefined;
-      if (!refs || !Array.isArray(refs)) continue;
+    const checkRef = (
+      element: import('../../model/element.js').Element,
+      ref: { file: string; identifier: string; role: string },
+      stepId?: string,
+    ): void => {
+      const absPath = path.resolve(projectRoot, ref.file);
+      const refOwnerLabel = stepId
+        ? `${element.toLibraryId()} step '${stepId}'`
+        : `Element ${element.toLibraryId()}`;
 
-      for (const ref of refs) {
-        const absPath = path.resolve(projectRoot, ref.file);
+      // W010: Ref file does not exist on disk
+      if (!fs.existsSync(absPath)) {
+        diagnostics.push(createDiagnostic(
+          'W010',
+          'REF_FILE_MISSING',
+          `${refOwnerLabel} ref file does not exist: ${ref.file}`,
+          'warning',
+          PASS_NAME,
+          {
+            elementId: element.id,
+            documentPath: element.documentPath,
+            details: ref.file,
+          },
+        ));
+        return;
+      }
 
-        // W010: Ref file does not exist on disk
-        if (!fs.existsSync(absPath)) {
-          diagnostics.push(createDiagnostic(
-            'W010',
-            'REF_FILE_MISSING',
-            `Element ${element.toLibraryId()} ref file does not exist: ${ref.file}`,
-            'warning',
-            PASS_NAME,
-            { elementId: element.id, documentPath: element.documentPath, details: ref.file },
-          ));
-          continue;
-        }
-
-        // W011: Ref identifier not found in file
-        if (ref.identifier) {
-          const ext = path.extname(ref.file);
-          const parser = findParser(ext, parsers);
-          if (parser) {
-            try {
-              const content = fs.readFileSync(absPath, 'utf-8');
-              const block = parser.extractBlock(content, ref.identifier);
-              if (block === null) {
-                diagnostics.push(createDiagnostic(
-                  'W011',
-                  'REF_IDENTIFIER_MISSING',
-                  `Element ${element.toLibraryId()} ref identifier not found in ${ref.file}: ${ref.identifier}`,
-                  'warning',
-                  PASS_NAME,
-                  { elementId: element.id, documentPath: element.documentPath, details: `${ref.file}::${ref.identifier}` },
-                ));
-              }
-            } catch {
-              // File read error — skip silently (W010 would have caught non-existent files)
+      // W011: Ref identifier not found in file
+      if (ref.identifier) {
+        const ext = path.extname(ref.file);
+        const parser = findParser(ext, parsers);
+        if (parser) {
+          try {
+            const content = fs.readFileSync(absPath, 'utf-8');
+            const block = parser.extractBlock(content, ref.identifier);
+            if (block === null) {
+              diagnostics.push(createDiagnostic(
+                'W011',
+                'REF_IDENTIFIER_MISSING',
+                `${refOwnerLabel} ref identifier not found in ${ref.file}: ${ref.identifier}`,
+                'warning',
+                PASS_NAME,
+                {
+                  elementId: element.id,
+                  documentPath: element.documentPath,
+                  details: `${ref.file}::${ref.identifier}`,
+                },
+              ));
             }
+          } catch {
+            // File read error — skip silently (W010 would have caught non-existent files)
           }
         }
+      }
+    };
+
+    for (const element of catalog.getAllElements()) {
+      // Element-level refs
+      const refs = element.get('refs') as Array<{ file: string; identifier: string; role: string }> | undefined;
+      if (Array.isArray(refs)) {
+        for (const ref of refs) {
+          checkRef(element, ref);
+        }
+      }
+
+      // Procedure step refs (D19)
+      const steps = element.get('steps') as
+        | Array<Record<string, unknown>>
+        | undefined;
+      if (Array.isArray(steps)) {
+        for (const step of steps) {
+          if (!step || typeof step !== 'object') continue;
+          const stepRefs = step.refs;
+          if (!Array.isArray(stepRefs)) continue;
+          const stepLabel = (step.id as string) ?? (step.name as string) ?? '?';
+          for (const ref of stepRefs) {
+            if (!ref || typeof ref !== 'object') continue;
+            checkRef(
+              element,
+              ref as { file: string; identifier: string; role: string },
+              stepLabel,
+            );
+          }
+        }
+      }
+    }
+  }
+
+  // W015: Auto-assigned step ids (D19). Emitted by the semantic pass
+  // when the parser filled in missing step ids at load time. The
+  // warning tells the user that R1 preservation across step deletions
+  // requires persisting explicit ids — auto-numbering based on list
+  // position will silently renumber surviving steps if a step is
+  // removed without persisted ids.
+  for (const doc of catalog.documents) {
+    for (const element of doc.getAllElements()) {
+      if (doc.hasAutoAssignedStepIds(element.id)) {
+        diagnostics.push(createDiagnostic(
+          'W015',
+          'AUTO_ASSIGNED_STEP_ID',
+          `Element ${element.toLibraryId()} has procedure steps without explicit ids; auto-numbered at load time. Persist explicit ids (e.g., '${element.id}.1', '${element.id}.2', ...) to preserve R1 across step deletions`,
+          'warning',
+          PASS_NAME,
+          { elementId: element.id, documentPath: element.documentPath },
+        ));
       }
     }
   }

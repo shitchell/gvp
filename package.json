@@ -14,7 +14,7 @@
     "src/data/**/*"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node scripts/copy-data.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "prepublishOnly": "npm run build"

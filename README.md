@@ -98,6 +98,7 @@ cairn export --format markdown
 | E002 | DUPLICATE_ELEMENT_ID | Duplicate element ID within a document |
 | E003 | BROKEN_INHERITANCE | Inherited document not found |
 | E004 | SCHEMA_VALIDATION | Element fails schema validation |
+| E005 | DUPLICATE_STEP_ID | Duplicate step ID within a procedure |
 
 ### Warnings
 
@@ -117,6 +118,7 @@ cairn export --format markdown
 | W012 | ORPHAN_IDENTIFIER | Identifier not referenced by any element (coverage pass) |
 | W013 | DECISION_NO_REFS | Decision has no refs (coverage pass) |
 | W014 | NO_ROOT_TRACE | Element cannot trace to any root element transitively |
+| W015 | AUTO_ASSIGNED_STEP_ID | Procedure has steps without explicit IDs; auto-numbered at load time |
 
 ## Config
 
@@ -164,6 +166,7 @@ coverage:
 | heuristic | H | no | statement |
 | decision | D | no | rationale |
 | milestone | M | no | description |
+| procedure | Q | no | description |
 
 ## Cross-Repo Inheritance
 

@@ -140,7 +140,7 @@ describe('Catalog', () => {
     expect(catalog.getElement('nonexistent:key:X1')).toBeUndefined();
   });
 
-  it('registry has all 8 core categories', () => {
+  it('registry has all 9 core categories', () => {
     const doc = makeDoc('main');
     const catalog = new Catalog(singleDocResolved(doc), defaultConfig);
     const names = catalog.registry.categoryNames;
@@ -152,7 +152,8 @@ describe('Catalog', () => {
     expect(names).toContain('heuristic');
     expect(names).toContain('decision');
     expect(names).toContain('milestone');
-    expect(names).toHaveLength(8);
+    expect(names).toContain('procedure');
+    expect(names).toHaveLength(9);
   });
 
   it('registry includes user-defined categories merged from documents', () => {
@@ -171,7 +172,7 @@ describe('Catalog', () => {
     const catalog = new Catalog(singleDocResolved(doc), defaultConfig);
     const names = catalog.registry.categoryNames;
     expect(names).toContain('custom');
-    expect(names.length).toBe(9); // 8 core + 1 user-defined
+    expect(names.length).toBe(10); // 9 core + 1 user-defined
   });
 
   it('merges tag definitions from documents', () => {

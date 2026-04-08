@@ -10,7 +10,7 @@ describe('Defaults Loader (DEC-9.4)', () => {
   describe('loadDefaults', () => {
     it('loads and validates defaults.yaml', () => {
       const defaults = loadDefaults();
-      expect(Object.keys(defaults.categories)).toHaveLength(8);
+      expect(Object.keys(defaults.categories)).toHaveLength(9);
       expect(defaults._all?.field_schemas).toHaveProperty('priority');
       expect(defaults._all?.field_schemas).toHaveProperty('refs');
     });

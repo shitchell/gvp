@@ -18,7 +18,7 @@ export function structuralPass(catalog: Catalog, _config: GVPConfig): Diagnostic
     knownIds.add(element.hashKey());
   }
 
-  // E001: Broken maps_to references
+  // E001: Broken maps_to references (element-level)
   for (const element of catalog.getAllElements()) {
     for (const ref of element.maps_to) {
       if (!knownIds.has(ref)) {
@@ -31,6 +31,91 @@ export function structuralPass(catalog: Catalog, _config: GVPConfig): Diagnostic
           { elementId: element.id, documentPath: element.documentPath },
         ));
       }
+    }
+
+    // E001 (extended): broken maps_to inside procedure steps. Step
+    // maps_to uses the same traceability mechanism as element-level
+    // maps_to — no new relationship type (D19). A typo in a step's
+    // maps_to is just as much a broken reference as one at the
+    // element level.
+    const steps = element.get('steps') as
+      | Array<Record<string, unknown>>
+      | undefined;
+    if (Array.isArray(steps)) {
+      for (const step of steps) {
+        if (!step || typeof step !== 'object') continue;
+        const stepMapsTo = step.maps_to;
+        if (!Array.isArray(stepMapsTo)) continue;
+        for (const ref of stepMapsTo) {
+          if (typeof ref !== 'string') continue;
+          if (!knownIds.has(ref)) {
+            diagnostics.push(createDiagnostic(
+              'E001',
+              'BROKEN_REFERENCE',
+              `Element ${element.toLibraryId()} step '${step.id ?? step.name ?? '?'}' references '${ref}' in maps_to, but no matching element was found`,
+              'error',
+              PASS_NAME,
+              {
+                elementId: element.id,
+                documentPath: element.documentPath,
+                details: `step:${step.id ?? step.name ?? '?'}`,
+              },
+            ));
+          }
+        }
+      }
+    }
+
+    // E001 (extended): broken references in procedure element-level
+    // `related` — a list of element ids that apply to the procedure
+    // as a whole but aren't specific steps.
+    const related = element.get('related') as string[] | undefined;
+    if (Array.isArray(related)) {
+      for (const ref of related) {
+        if (typeof ref !== 'string') continue;
+        if (!knownIds.has(ref)) {
+          diagnostics.push(createDiagnostic(
+            'E001',
+            'BROKEN_REFERENCE',
+            `Element ${element.toLibraryId()} references '${ref}' in related, but no matching element was found`,
+            'error',
+            PASS_NAME,
+            { elementId: element.id, documentPath: element.documentPath },
+          ));
+        }
+      }
+    }
+  }
+
+  // E005: Duplicate step id within a procedure (R1 precondition — ids
+  // must be unique within their parent scope). Only fires on explicit
+  // duplicates; auto-assigned ids are sequential and unique by
+  // construction.
+  for (const element of catalog.getAllElements()) {
+    const steps = element.get('steps') as
+      | Array<Record<string, unknown>>
+      | undefined;
+    if (!Array.isArray(steps)) continue;
+    const seen = new Set<string>();
+    for (const step of steps) {
+      if (!step || typeof step !== 'object') continue;
+      const id = step.id;
+      if (typeof id !== 'string' || id.length === 0) continue;
+      if (seen.has(id)) {
+        diagnostics.push(createDiagnostic(
+          'E005',
+          'DUPLICATE_STEP_ID',
+          `Element ${element.toLibraryId()} has duplicate step id '${id}'; step ids must be unique within their parent (R1 within procedure scope)`,
+          'error',
+          PASS_NAME,
+          {
+            elementId: element.id,
+            documentPath: element.documentPath,
+            details: `step:${id}`,
+          },
+        ));
+      }
+      seen.add(id);
     }
   }
 

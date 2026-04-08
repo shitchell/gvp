@@ -69,7 +69,7 @@ describe('DefaultsFile schema', () => {
     const parsed = yaml.load(content) as Record<string, unknown>;
 
     const result = defaultsFileSchema.parse(parsed);
-    expect(Object.keys(result.categories)).toHaveLength(8);
+    expect(Object.keys(result.categories)).toHaveLength(9);
     expect(result._all?.field_schemas).toHaveProperty('priority');
     expect(result._all?.field_schemas).toHaveProperty('refs');
   });

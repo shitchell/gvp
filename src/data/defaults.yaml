@@ -99,3 +99,56 @@ categories:
     mapping_rules:
       - [goal, value]
     color: "#607D8B"
+
+  procedure:
+    yaml_key: procedures
+    id_prefix: Q
+    primary_field: description
+    mapping_rules:
+      - [goal, value]
+    field_schemas:
+      when:
+        type: string
+        required: false
+      related:
+        type: list
+        required: false
+        items:
+          type: string
+      steps:
+        type: list
+        required: false
+        items:
+          type: model
+          fields:
+            id:
+              type: string
+              required: false
+            name:
+              type: string
+              required: true
+            description:
+              type: string
+              required: false
+            maps_to:
+              type: list
+              required: false
+              items:
+                type: string
+            refs:
+              type: list
+              required: false
+              items:
+                type: model
+                fields:
+                  file:
+                    type: string
+                    required: true
+                  identifier:
+                    type: string
+                    required: true
+                  role:
+                    type: enum
+                    values: ["defines", "implements", "uses", "extends"]
+                    required: true
+    color: "#8BC34A"

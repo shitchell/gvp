@@ -759,6 +759,196 @@ decisions:
         identifier: structuralPass
         role: implements
 
+  - id: D16
+    name: --document filter is consistent across subcommands with exact matching
+    rationale: >
+      The `query` subcommand had a `--document` filter using substring
+      matching (`documentPath.includes(opts.document)`), while `inspect`,
+      `export`, and `validate` had no equivalent filter at all. Both facts
+      are wrong under P14 (explicit over implicit) and P11 (collapse
+      redundant mechanisms) -- a filter that exists on one subcommand but
+      not others is inconsistent UX, and substring matching silently
+      succeeds on typos or overlapping names. `--document <name>` now
+      exists on all four subcommands (query, inspect, export, validate)
+      and matches by exact `meta.name` or exact `documentPath` only. A
+      filter that matches nothing exits 1 with a loud error instead of
+      silently returning zero results. This also aligns with D15 -- the
+      inherits-by-name convention -- so that the same identifier resolves
+      a document whether it appears in `inherits:` or `--document`. The
+      original substring behavior in `query` was intentionally removed,
+      not preserved for backward compatibility, because substring matching
+      was a latent footgun rather than a documented feature.
+    tags: [tooling, usability, integrity]
+    maps_to: [gvp:G5, gvp:V6, gvp:V10, gvp:P11, gvp:P14, gvp:D15]
+    refs:
+      - file: src/cli/helpers.ts
+        identifier: resolveDocumentFilter
+        role: implements
+      - file: src/cli/commands/query.ts
+        identifier: queryCommand
+        role: implements
+      - file: src/cli/commands/inspect.ts
+        identifier: inspectCommand
+        role: implements
+      - file: src/cli/commands/export.ts
+        identifier: exportCommand
+        role: implements
+      - file: src/cli/commands/validate.ts
+        identifier: validateCommand
+        role: implements
+    origin:
+      - date: "2026-04-08"
+        note: "Requested by TAStest project during PM Phase A -- generic filter plumbing to support upcoming procedure element rendering"
+
+  - id: D17
+    name: --hops <n> bounds maps_to expansion for readable inline rendering
+    rationale: >
+      The existing `cairn inspect` text output shows `maps_to` as bare
+      IDs, and `--trace` walks the full ancestor DAG. Neither is ideal for
+      rendering a guide with meaningful context: bare IDs force the reader
+      to cross-reference the library to understand what each mapping
+      means, and a full trace drowns the element being inspected in
+      transitive ancestors that rarely matter at the point of reading.
+      `--hops <n>` is a bounded middle ground: `--hops 1` expands the
+      element's direct maps_to inline with the parent's id, name,
+      category, and a truncated preview of its primary field;
+      `--hops 2` recurses one more level; etc. This keeps the reader's
+      context window focused on the hops that matter while still linking
+      each mapping to enough content that it is self-explanatory. The
+      renderer reads `primary_field` from the category registry and does
+      not branch on `element.categoryName`, so the same expansion shape
+      works for goals, values, principles, rules, heuristics, decisions,
+      and any future category -- consistent with P15 (dogfood your own
+      abstractions) and R4 (core stays domain-agnostic). The hop count is
+      an integer, bounded by natural graph depth; cycles are broken by a
+      seen-set keyed on element hashKey.
+    tags: [tooling, usability]
+    maps_to: [gvp:G1, gvp:G2, gvp:P9, gvp:P15, gvp:R4, gvp:V6]
+    refs:
+      - file: src/cli/commands/inspect.ts
+        identifier: renderHops
+        role: implements
+      - file: src/cli/commands/inspect.ts
+        identifier: renderInlineElement
+        role: implements
+    origin:
+      - date: "2026-04-08"
+        note: "Requested by TAStest project during PM Phase A -- part of the bridge that unblocks prose-first procedural guides while the procedure element is being designed"
+
+  - id: D18
+    name: meta.description as first-class document field
+    rationale: >
+      Documents need a short human-readable "what is this about" string
+      that renderers, hook indexers, and CLI listings can surface without
+      reading every element. This was previously available via
+      `.passthrough()` on documentMetaSchema but was not a declared field
+      and could not be relied upon by consumers. Promoting it to an
+      explicit optional field is a small application of P14 (explicit
+      over implicit) and V2 (Transparency): the shape is now documented
+      in the schema, validated like every other meta field, and visible
+      to anyone reading the type. The TAStest team's specific motivation
+      was a SessionStart hook that builds an index of available procedure
+      guides without parsing every YAML file -- `meta.description` is
+      the obvious home for that string because it's universal across all
+      document types, not a process-specific field. Process-level trigger
+      context (the "when to use this guide" string) stays on the element,
+      not on meta, because it describes element-specific data rather than
+      document-level metadata.
+    tags: [framework, integrity]
+    maps_to: [gvp:G1, gvp:G7, gvp:V2, gvp:V6, gvp:V10, gvp:P14]
+    refs:
+      - file: src/model/document-meta.ts
+        identifier: documentMetaSchema
+        role: defines
+    origin:
+      - date: "2026-04-08"
+        note: "Requested by TAStest project during PM Phase A -- part of the bridge to their planned SessionStart guide index"
+
+  - id: D19
+    name: Procedure category for ordered step-governed workflows
+    rationale: >
+      The existing eight core categories (goal, value, constraint,
+      principle, rule, heuristic, decision, milestone) are all stative --
+      they describe what is or should be true. None cleanly expresses
+      procedural knowledge: a sequence of ordered steps, each governed
+      by its own guiding elements. Heuristics are if/then decision
+      procedures, but they lose ordering and per-step traceability.
+      Rules are unconditional hard stops, also no ordering. Modeling a
+      guide like "writing a Phase 2 cross-platform test" as a sequence
+      of decisions or as a heuristic loses both the sequence and the
+      step-local `maps_to` that connect each step back to the rules and
+      principles that govern it specifically.
+
+      The procedure category fills this gap. It is structurally
+      domain-agnostic (R4): any cairn user needs a way to capture
+      procedural knowledge, and the shape -- ordered steps with per-step
+      traceability -- is universal even though any individual procedure
+      is domain-specific. Steps use the same `maps_to` and `refs`
+      mechanisms as element-level maps_to and refs -- no new
+      relationship type, no new graph concept. A process-level `when`
+      field captures runtime trigger context ("starting a new test or
+      migrating a v1 test"), a process-level `related` list groups
+      decisions/rules/heuristics that apply throughout rather than to a
+      specific step.
+
+      Step IDs follow dotted form: `{parent.id}.{N}` (1-indexed). They
+      are auto-assigned at parse time when missing, with W015 emitted
+      to nudge the user toward persisting explicit IDs. R1 preservation
+      across step deletions requires persisted IDs, since load-time
+      numbering is position-based and would silently renumber
+      survivors. The `name` attribute carries the human-readability
+      burden; no separate slug override exists, because two identity
+      mechanisms for the same thing would violate V1 simplicity (the
+      consumer's words: "keeps step IDs purely structural identifiers
+      and avoids two ways to say the same thing").
+
+      The category id_prefix is `Q`, a single character, per DEC-9.2
+      (all core category id prefixes are single characters; keep it
+      simple and use 2+ chars only where required for uniqueness). All
+      single letters with a stronger semantic link to "procedure" (P
+      for principle, T for task, W for workflow, O for operation) were
+      either taken or had connotation drift. Q was chosen as
+      semantically neutral and maximally distinct -- the trade-off is
+      no mnemonic, but id prefixes are opaque identifiers to users in
+      practice. Users who want a mnemonic prefix can override via a
+      user-defined category in their own library.
+
+      Validation: E001 (BROKEN_REFERENCE) is extended to walk step
+      maps_to; E005 (DUPLICATE_STEP_ID) fires on explicit step id
+      collisions within a procedure; W010/W011 are extended to step
+      refs; W015 (AUTO_ASSIGNED_STEP_ID) nudges toward persisted IDs.
+      All diagnostics reuse existing codes where the semantic is the
+      same; E005 and W015 are the only new codes.
+
+      Phase B deliberately does NOT add a `cairn add procedure` or
+      `cairn add step` CLI command, a procedure-aware renderer, or a
+      step-level graph node. Those belong to later phases (add command
+      is out-of-scope; renderer is phase C). Phase B is the structural
+      foundation that makes procedures parseable, queryable, exportable
+      (as structured JSON), and validatable. Pretty rendering comes in
+      phase C.
+    tags: [framework, tooling, extensibility]
+    maps_to: [gvp:G1, gvp:G2, gvp:G6, gvp:G7, gvp:V2, gvp:V4, gvp:V7, gvp:P2, gvp:P14, gvp:R4]
+    refs:
+      - file: src/data/defaults.yaml
+        identifier: categories
+        role: defines
+      - file: src/model/document-parser.ts
+        identifier: maybeAutoAssignStepIds
+        role: implements
+      - file: src/model/document.ts
+        identifier: Document
+        role: implements
+      - file: src/validation/passes/structural-pass.ts
+        identifier: structuralPass
+        role: implements
+      - file: src/validation/passes/semantic-pass.ts
+        identifier: semanticPass
+        role: implements
+    origin:
+      - date: "2026-04-08"
+        note: "Requested by TAStest project during PM Phase B -- motivated by their need to migrate procedural prose guides (writing tests, debugging, updating helpers) into traceable GVP elements so the underlying rules and principles governing each step remain visible"
+
 constraints:
   - id: C1
     name: Agents optimize for minimal effort

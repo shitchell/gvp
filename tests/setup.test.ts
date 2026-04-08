@@ -62,21 +62,22 @@ describe('Defaults (DEC-9.1-9.6, DEC-10.1)', () => {
     expect(parsed).toHaveProperty('categories');
   });
 
-  it('has exactly 8 core categories (DEC-9.3)', () => {
+  it('has exactly 9 core categories (DEC-9.3, D19)', () => {
     const categories = parsed.categories as Record<string, unknown>;
-    expect(Object.keys(categories)).toHaveLength(8);
+    expect(Object.keys(categories)).toHaveLength(9);
   });
 
-  it('has the correct 8 categories', () => {
+  it('has the correct 9 categories', () => {
     const categories = parsed.categories as Record<string, unknown>;
-    const expected = ['goal', 'value', 'constraint', 'principle', 'rule', 'heuristic', 'decision', 'milestone'];
+    const expected = ['goal', 'value', 'constraint', 'principle', 'rule', 'heuristic', 'decision', 'milestone', 'procedure'];
     expect(Object.keys(categories).sort()).toEqual(expected.sort());
   });
 
   it('uses single-char prefixes (DEC-9.2)', () => {
     const categories = parsed.categories as Record<string, Record<string, unknown>>;
     const prefixes = Object.values(categories).map(c => c.id_prefix as string);
-    expect(prefixes).toEqual(['G', 'V', 'C', 'P', 'R', 'H', 'D', 'M']);
+    // Order matches the order categories are declared in defaults.yaml.
+    expect(prefixes).toEqual(['G', 'V', 'C', 'P', 'R', 'H', 'D', 'M', 'Q']);
   });
 
   it('constraint uses C prefix, not CON (DEC-9.2)', () => {
