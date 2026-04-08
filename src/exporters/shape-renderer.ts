@@ -1,6 +1,5 @@
 import type { Element } from '../model/element.js';
 import type { Catalog } from '../catalog/catalog.js';
-import type { CategoryDefinition } from '../schema/category-definition.js';
 import type { FieldSchemaEntry } from '../schema/field-schema.js';
 import { RESERVED_FIELD_NAMES } from '../schema/reserved-fields.js';
 
@@ -84,9 +83,18 @@ export function renderElementMarkdown(
   }
 
   // 5. Dynamic fields in declared order, dispatched by shape.
-  const fieldSchemas = mergedFieldSchemasFor(catDef, catalog);
-  for (const [fieldName, schema] of Object.entries(fieldSchemas)) {
+  // Per-category fields only — fields declared in `_all` (refs,
+  // priority, etc.) are universal across categories and get fixed
+  // handling (priority is already in the reserved preamble; refs is
+  // currently not rendered by the markdown exporter and will be
+  // surfaced via a dedicated generic preamble step in a future
+  // phase). Skipping `_all` fields here preserves byte-for-byte
+  // parity with the pre-shape-renderer markdown output.
+  const allFieldNames = new Set(Object.keys(catalog.registry.allFieldSchemas));
+  const perCategoryFieldSchemas = catDef.field_schemas ?? {};
+  for (const [fieldName, schema] of Object.entries(perCategoryFieldSchemas)) {
     if (RESERVED_FIELD_NAMES.has(fieldName)) continue;
+    if (allFieldNames.has(fieldName)) continue;
     if (fieldName === primaryField) continue;
     const value = element.get(fieldName);
     if (value === undefined || value === null) continue;
@@ -94,7 +102,7 @@ export function renderElementMarkdown(
     if (typeof value === 'object' && !Array.isArray(value) && Object.keys(value as object).length === 0) continue;
 
     const rendered = renderFieldByShape(
-      fieldName,
+      displayLabel(fieldName, schema),
       value,
       schema,
       catalog,
@@ -114,27 +122,14 @@ export function renderElementMarkdown(
 }
 
 /**
- * Merge _all field_schemas with per-category field_schemas, preserving
- * per-category's field order on top of _all's order. This matches how
- * buildCategoryElementSchema merges them for validation but keeps the
- * original insertion order for rendering.
- */
-function mergedFieldSchemasFor(
-  catDef: CategoryDefinition,
-  catalog: Catalog,
-): Record<string, FieldSchemaEntry> {
-  const allFieldSchemas = catalog.registry.allFieldSchemas;
-  // Per-category wins on collision (DEC-2.8).
-  return { ...allFieldSchemas, ...(catDef.field_schemas ?? {}) };
-}
-
-/**
- * Dispatch one element field to the appropriate shape handler. Returns
- * an empty string if the shape is unrenderable at the current depth or
- * the value is vacuous.
+ * Dispatch one element field to the appropriate shape handler.
+ * `label` is the resolved display label (already takes display_name
+ * into account, falling back to the title-cased field name).
+ * Returns an empty string if the shape is unrenderable at the current
+ * depth or the value is vacuous.
  */
 function renderFieldByShape(
-  fieldName: string,
+  label: string,
   value: unknown,
   schema: FieldSchemaEntry,
   catalog: Catalog,
@@ -147,19 +142,19 @@ function renderFieldByShape(
     case 'boolean':
     case 'enum':
     case 'datetime':
-      return renderScalarField(fieldName, value);
+      return renderScalarField(label, value);
 
     case 'reference':
-      return renderReferenceField(fieldName, value, catalog);
+      return renderReferenceField(label, value, catalog);
 
     case 'list':
-      return renderListField(fieldName, value, schema, catalog, depth, maxDepth);
+      return renderListField(label, value, schema, catalog, depth, maxDepth);
 
     case 'dict':
-      return renderDictField(fieldName, value, schema, catalog, depth, maxDepth);
+      return renderDictField(label, value, schema, catalog, depth, maxDepth);
 
     case 'model':
-      return renderNestedModel(fieldName, value, schema, catalog, depth, maxDepth);
+      return renderNestedModel(label, value, schema, catalog, depth, maxDepth);
 
     default:
       return '';
@@ -168,27 +163,41 @@ function renderFieldByShape(
 
 // -- Scalar handlers --
 
-function renderScalarField(fieldName: string, value: unknown): string {
-  return `**${titleCaseFieldName(fieldName)}:** ${String(value)}`;
+/**
+ * Resolve the display label for a field. Prefers `display_name` from
+ * the schema if set, otherwise title-cases the raw field name. Lets
+ * libraries override pretty labels (e.g., decision.considered ->
+ * "Considered alternatives") without any field-name branches in the
+ * renderer.
+ */
+function displayLabel(fieldName: string, schema: FieldSchemaEntry): string {
+  if (schema.display_name && schema.display_name.length > 0) {
+    return schema.display_name;
+  }
+  return titleCaseFieldName(fieldName);
+}
+
+function renderScalarField(label: string, value: unknown): string {
+  return `**${label}:** ${String(value)}`;
 }
 
 function renderReferenceField(
-  fieldName: string,
+  label: string,
   value: unknown,
   catalog: Catalog,
 ): string {
   if (typeof value !== 'string') return '';
   const resolved = resolveElementRef(value, catalog);
   if (resolved) {
-    return `**${titleCaseFieldName(fieldName)}:** ${value}  *(${resolved.name})*`;
+    return `**${label}:** ${value}  *(${resolved.name})*`;
   }
-  return `**${titleCaseFieldName(fieldName)}:** ${value}`;
+  return `**${label}:** ${value}`;
 }
 
 // -- List handlers --
 
 function renderListField(
-  fieldName: string,
+  label: string,
   value: unknown,
   schema: FieldSchemaEntry,
   catalog: Catalog,
@@ -201,12 +210,12 @@ function renderListField(
   // Untyped list or typed list of primitives → inline summary
   if (!items || items.type === 'string' || items.type === 'number' || items.type === 'boolean' || items.type === 'enum' || items.type === 'datetime') {
     const formatted = value.map((v) => String(v)).join(', ');
-    return `**${titleCaseFieldName(fieldName)}:** ${formatted}`;
+    return `**${label}:** ${formatted}`;
   }
 
   // list<reference> → subsection with each id + resolved name preview
   if (items.type === 'reference') {
-    const lines: string[] = [`**${titleCaseFieldName(fieldName)}:**`];
+    const lines: string[] = [`**${label}:**`];
     for (const ref of value) {
       if (typeof ref !== 'string') continue;
       const resolved = resolveElementRef(ref, catalog);
@@ -223,9 +232,9 @@ function renderListField(
   // named block via the model-block handler
   if (items.type === 'model') {
     if (depth >= maxDepth) {
-      return `**${titleCaseFieldName(fieldName)}:** *(${value.length} item${value.length === 1 ? '' : 's'}; nested depth limit reached)*`;
+      return `**${label}:** *(${value.length} item${value.length === 1 ? '' : 's'}; nested depth limit reached)*`;
     }
-    const lines: string[] = [`**${titleCaseFieldName(fieldName)}:**`, ''];
+    const lines: string[] = [`**${label}:**`, ''];
     let index = 1;
     for (const item of value) {
       if (!item || typeof item !== 'object') {
@@ -244,13 +253,13 @@ function renderListField(
 
   // list<list> or list<dict> — unusual, render as fenced JSON for
   // visibility; this is a structural fallback, not a primary shape
-  return renderJsonFallback(fieldName, value);
+  return renderJsonFallback(label, value);
 }
 
 // -- Dict handlers --
 
 function renderDictField(
-  fieldName: string,
+  label: string,
   value: unknown,
   schema: FieldSchemaEntry,
   catalog: Catalog,
@@ -268,9 +277,9 @@ function renderDictField(
   // keyed by the entry's name
   if (values && !Array.isArray(values) && values.type === 'model') {
     if (depth >= maxDepth) {
-      return `**${titleCaseFieldName(fieldName)}:** *(${entries.length} entr${entries.length === 1 ? 'y' : 'ies'}; nested depth limit reached)*`;
+      return `**${label}:** *(${entries.length} entr${entries.length === 1 ? 'y' : 'ies'}; nested depth limit reached)*`;
     }
-    const lines: string[] = [`**${titleCaseFieldName(fieldName)}:**`, ''];
+    const lines: string[] = [`**${label}:**`, ''];
     for (const [entryName, entryValue] of entries) {
       if (!entryValue || typeof entryValue !== 'object') continue;
       const displayName = titleCaseDictKey(entryName);
@@ -295,16 +304,16 @@ function renderDictField(
   // dict<scalar> → compact inline summary
   if (values && !Array.isArray(values) && (values.type === 'string' || values.type === 'number' || values.type === 'boolean' || values.type === 'enum')) {
     const parts = entries.map(([k, v]) => `${k}=${String(v)}`).join(', ');
-    return `**${titleCaseFieldName(fieldName)}:** ${parts}`;
+    return `**${label}:** ${parts}`;
   }
 
-  return renderJsonFallback(fieldName, value);
+  return renderJsonFallback(label, value);
 }
 
 // -- Nested model handler --
 
 function renderNestedModel(
-  fieldName: string,
+  label: string,
   value: unknown,
   schema: FieldSchemaEntry,
   catalog: Catalog,
@@ -313,14 +322,14 @@ function renderNestedModel(
 ): string {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return '';
   if (depth >= maxDepth) {
-    return `**${titleCaseFieldName(fieldName)}:** *(nested depth limit reached)*`;
+    return `**${label}:** *(nested depth limit reached)*`;
   }
-  const lines: string[] = [`**${titleCaseFieldName(fieldName)}:**`, ''];
+  const lines: string[] = [`**${label}:**`, ''];
   const fields = schema.fields ?? {};
   for (const [subField, subSchema] of Object.entries(fields)) {
     const subValue = (value as Record<string, unknown>)[subField];
     if (subValue === undefined || subValue === null) continue;
-    const rendered = renderFieldByShape(subField, subValue, subSchema, catalog, depth + 1, maxDepth);
+    const rendered = renderFieldByShape(displayLabel(subField, subSchema), subValue, subSchema, catalog, depth + 1, maxDepth);
     if (rendered) lines.push(rendered);
   }
   return lines.join('\n');
@@ -379,7 +388,7 @@ function renderModelBlock(
     const subValue = model[subField];
     if (subValue === undefined || subValue === null) continue;
     if (Array.isArray(subValue) && subValue.length === 0) continue;
-    const rendered = renderFieldByShape(subField, subValue, subSchema, catalog, depth + 1, maxDepth);
+    const rendered = renderFieldByShape(displayLabel(subField, subSchema), subValue, subSchema, catalog, depth + 1, maxDepth);
     if (rendered) {
       lines.push(`   ${rendered.split('\n').join('\n   ')}`);
     }
@@ -412,7 +421,7 @@ function renderNamedDictEntry(
   for (const [subField, subSchema] of Object.entries(fields)) {
     const subValue = model[subField];
     if (subValue === undefined || subValue === null) continue;
-    const rendered = renderFieldByShape(subField, subValue, subSchema, catalog, depth + 1, maxDepth);
+    const rendered = renderFieldByShape(displayLabel(subField, subSchema), subValue, subSchema, catalog, depth + 1, maxDepth);
     if (rendered) lines.push(`  ${rendered}`);
   }
   return lines.join('\n');
@@ -471,8 +480,8 @@ function resolveElementRef(ref: string, catalog: Catalog): Element | undefined {
   return undefined;
 }
 
-function renderJsonFallback(fieldName: string, value: unknown): string {
-  return `**${titleCaseFieldName(fieldName)}:**\n\n\`\`\`json\n${JSON.stringify(value, null, 2)}\n\`\`\``;
+function renderJsonFallback(label: string, value: unknown): string {
+  return `**${label}:**\n\n\`\`\`json\n${JSON.stringify(value, null, 2)}\n\`\`\``;
 }
 
 /** Truncate a string for preview contexts. */

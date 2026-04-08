@@ -1,10 +1,16 @@
 import { z } from 'zod';
 import type { Catalog } from '../catalog/catalog.js';
 import { Exporter, type ExportOptions } from './base.js';
+import { renderElementMarkdown } from './shape-renderer.js';
 
 /**
  * Per-document Markdown exporter.
- * Groups elements by document and category, rendering human-readable markdown.
+ *
+ * Groups elements by document and category. Per-element rendering is
+ * delegated to the shape-based renderer (D20a, C.1) so the exporter
+ * itself contains zero category-specific or field-name-specific
+ * branches: it walks documents → categories → elements, and asks the
+ * shape renderer to format each element.
  */
 export class MarkdownExporter extends Exporter {
   readonly key = 'markdown';
@@ -36,44 +42,8 @@ export class MarkdownExporter extends Exporter {
         sections.push(`## ${displayLabel}\n`);
 
         for (const el of elements) {
-          sections.push(`### ${el.id}: ${el.name}\n`);
-
-          if (el.status !== 'active') {
-            sections.push(`**Status:** ${el.status}\n`);
-          }
-
-          // Primary field
-          const primaryField = catDef.primary_field ?? 'statement';
-          const primaryValue = el.get(primaryField);
-          if (primaryValue) {
-            sections.push(`${String(primaryValue).trim()}\n`);
-          }
-
-          // Tags
-          if (el.tags.length > 0) {
-            sections.push(`**Tags:** ${el.tags.join(', ')}\n`);
-          }
-
-          // Maps to
-          if (el.maps_to.length > 0) {
-            sections.push(`**Maps to:** ${el.maps_to.join(', ')}\n`);
-          }
-
-          // Considered alternatives (for decisions)
-          const considered = el.get('considered');
-          if (considered && typeof considered === 'object') {
-            sections.push(`**Considered alternatives:**\n`);
-            for (const [altName, altDef] of Object.entries(
-              considered as Record<string, Record<string, unknown>>,
-            )) {
-              const displayName = altName
-                .replace(/_/g, ' ')
-                .replace(/\b\w/g, c => c.toUpperCase());
-              const rationale = altDef?.rationale ?? '';
-              sections.push(`- **${displayName}** — *${rationale}*`);
-            }
-            sections.push('');
-          }
+          sections.push(renderElementMarkdown(el, catalog));
+          sections.push('');
         }
       }
     }

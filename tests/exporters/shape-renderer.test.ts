@@ -163,7 +163,12 @@ decisions:
       const catalog = buildCatalog(defaultConfig, tmpDir);
       const d1 = catalog.getAllElements().find((e) => e.id === 'D1')!;
       const md = renderElementMarkdown(d1, catalog);
-      expect(md).toContain('**Considered:**');
+      // The decision category's considered field has
+      // display_name: "Considered alternatives" in defaults.yaml,
+      // so the renderer uses that label. This is generic — any
+      // field with display_name set gets the override; no
+      // field-name branching in the renderer.
+      expect(md).toContain('**Considered alternatives:**');
       expect(md).toContain('Plain Javascript');
       expect(md).toContain('Faster but less safe');
       expect(md).toContain('Rust Wasm');

@@ -81,6 +81,7 @@ categories:
       considered:
         type: dict
         required: false
+        display_name: "Considered alternatives"
         values:
           type: model
           fields:
