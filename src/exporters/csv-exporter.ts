@@ -13,8 +13,10 @@ export class CsvExporter extends Exporter {
 
   export(catalog: Catalog, options?: ExportOptions): string {
     const includeDeprecated = options?.includeDeprecated ?? false;
+    const documentFilter = options?.documentFilter;
     const elements = catalog.getAllElements()
-      .filter(e => includeDeprecated || e.status !== 'deprecated');
+      .filter(e => includeDeprecated || e.status !== 'deprecated')
+      .filter(e => !documentFilter || documentFilter.has(e.documentPath));
 
     if (elements.length === 0) return '';
 

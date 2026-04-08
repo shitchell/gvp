@@ -4,6 +4,12 @@ import type { Catalog } from '../catalog/catalog.js';
 export interface ExportOptions {
   outputDir?: string;
   includeDeprecated?: boolean;
+  /**
+   * Restrict export to documents whose documentPath appears in this set.
+   * When undefined, all documents are exported. Resolved from the CLI
+   * `--document <name>` filter by resolveDocumentFilter() in cli/helpers.
+   */
+  documentFilter?: Set<string>;
 }
 
 /**

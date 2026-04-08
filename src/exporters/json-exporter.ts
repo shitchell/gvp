@@ -13,9 +13,14 @@ export class JsonExporter extends Exporter {
 
   export(catalog: Catalog, options?: ExportOptions): string {
     const includeDeprecated = options?.includeDeprecated ?? false;
+    const documentFilter = options?.documentFilter;
+
+    const filteredDocs = documentFilter
+      ? catalog.documents.filter(d => documentFilter.has(d.documentPath))
+      : catalog.documents;
 
     const output = {
-      documents: catalog.documents.map(doc => ({
+      documents: filteredDocs.map(doc => ({
         name: doc.name,
         documentPath: doc.documentPath,
         source: doc.source,

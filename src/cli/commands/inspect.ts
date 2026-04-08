@@ -1,6 +1,71 @@
 import { Command } from 'commander';
-import { parseConfigOptions, buildCatalog } from '../helpers.js';
+import { parseConfigOptions, buildCatalog, resolveDocumentFilter } from '../helpers.js';
 import { isStale, getUnreviewedUpdates } from '../../provenance/staleness.js';
+import type { Element } from '../../model/element.js';
+import type { Catalog } from '../../catalog/catalog.js';
+
+/** Truncate a string to maxLen characters with ellipsis. */
+function truncate(s: string, maxLen = 100): string {
+  const clean = s.trim().replace(/\s+/g, ' ');
+  if (clean.length <= maxLen) return clean;
+  return clean.slice(0, maxLen - 1) + '…';
+}
+
+/**
+ * Render a single element inline at a given indent depth, showing its id,
+ * name, category, and a truncated preview of its primary field content.
+ * Generic over category — reads primary_field from the registry.
+ */
+function renderInlineElement(
+  el: Element,
+  catalog: Catalog,
+  indent: string,
+): string[] {
+  const lines: string[] = [];
+  lines.push(
+    `${indent}→ ${el.toLibraryId()}  "${el.name}"  (${el.categoryName})`,
+  );
+  const catDef = catalog.registry.getByName(el.categoryName);
+  const primaryField = catDef?.primary_field ?? 'statement';
+  const primaryValue = el.get(primaryField);
+  if (primaryValue) {
+    lines.push(`${indent}  ${truncate(String(primaryValue))}`);
+  }
+  return lines;
+}
+
+/**
+ * Walk maps_to outward from `element` to a bounded depth, emitting
+ * renderInlineElement() at each hop. hops=1 shows direct parents;
+ * hops=2 shows parents of parents; etc. Generic over category —
+ * the renderer does not branch on element.categoryName.
+ */
+function renderHops(
+  element: Element,
+  catalog: Catalog,
+  hops: number,
+): string[] {
+  const lines: string[] = [];
+  const seen = new Set<string>([element.hashKey()]);
+  const allElements = catalog.getAllElements();
+
+  function walk(current: Element, depth: number, indent: string): void {
+    if (depth > hops) return;
+    for (const ref of current.maps_to) {
+      const target = allElements.find(
+        (e) => e.toLibraryId() === ref || e.hashKey() === ref,
+      );
+      if (!target) continue;
+      if (seen.has(target.hashKey())) continue;
+      seen.add(target.hashKey());
+      lines.push(...renderInlineElement(target, catalog, indent));
+      walk(target, depth + 1, indent + '  ');
+    }
+  }
+
+  walk(element, 1, '  ');
+  return lines;
+}
 
 export function inspectCommand(): Command {
   const cmd = new Command('inspect')
@@ -12,6 +77,8 @@ export function inspectCommand(): Command {
     .option('--reviews', 'Show review history')
     .option('--updates', 'Show update history')
     .option('--ref <file::id>', 'Find elements referencing a file/identifier and trace')
+    .option('-d, --document <name>', 'Restrict element lookup to a single document (matched by meta.name or documentPath)')
+    .option('--hops <n>', 'Expand maps_to N levels deep inline with id, name, and content preview', (v) => parseInt(v, 10))
     .option('--format <format>', 'Output format (text, json)', 'text')
     .action(async (elementArg: string | undefined) => {
       try {
@@ -58,17 +125,37 @@ export function inspectCommand(): Command {
           process.exit(0);
         }
 
-        // Find element
-        const element = catalog.getAllElements().find(e =>
-          e.id === elementArg ||
-          e.toLibraryId() === elementArg ||
-          e.hashKey() === elementArg
+        // Resolve --document filter if provided
+        let allowedDocs: Set<string> | undefined;
+        if (opts.document) {
+          allowedDocs = resolveDocumentFilter(catalog, opts.document as string);
+          if (allowedDocs.size === 0) {
+            console.error(`No document matches '${opts.document}'. Check meta.name or documentPath.`);
+            process.exit(1);
+          }
+        }
+
+        // Find element (optionally scoped to --document)
+        const candidates = catalog.getAllElements().filter(e =>
+          (!allowedDocs || allowedDocs.has(e.documentPath)) &&
+          (e.id === elementArg ||
+           e.toLibraryId() === elementArg ||
+           e.hashKey() === elementArg)
         );
 
-        if (!element) {
+        if (candidates.length === 0) {
           console.error(`Element '${elementArg}' not found`);
           process.exit(1);
         }
+        if (candidates.length > 1) {
+          console.error(`Element '${elementArg}' is ambiguous across ${candidates.length} documents:`);
+          for (const c of candidates) {
+            console.error(`  ${c.toLibraryId()}`);
+          }
+          console.error(`Use --document <name> or a qualified id (document:id) to disambiguate.`);
+          process.exit(1);
+        }
+        const element = candidates[0]!;
 
         if (opts.format === 'json') {
           const output: Record<string, unknown> = {
@@ -99,6 +186,22 @@ export function inspectCommand(): Command {
         if (isStale(element)) {
           const unreviewed = getUnreviewedUpdates(element);
           console.error(`\n⚠ STALE: ${unreviewed.length} unreviewed update(s)`);
+        }
+
+        // --hops: bounded maps_to expansion with content previews
+        if (typeof opts.hops === 'number' && opts.hops > 0) {
+          if (Number.isNaN(opts.hops) || opts.hops < 0) {
+            console.error(`Invalid --hops value: ${opts.hops}`);
+            process.exit(1);
+          }
+          const hopLines = renderHops(element, catalog, opts.hops as number);
+          if (hopLines.length > 0) {
+            console.error(`\n--- Maps to (${opts.hops} hop${opts.hops === 1 ? '' : 's'}) ---`);
+            for (const line of hopLines) console.error(line);
+          } else {
+            console.error(`\n--- Maps to (${opts.hops} hop${opts.hops === 1 ? '' : 's'}) ---`);
+            console.error('  (no outgoing mappings)');
+          }
         }
 
         // --trace: show ancestor graph

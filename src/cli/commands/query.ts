@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { parseConfigOptions, buildCatalog } from '../helpers.js';
+import { parseConfigOptions, buildCatalog, resolveDocumentFilter, filterElementsByDocument } from '../helpers.js';
 import { createExporterRegistry } from '../../exporters/registry.js';
 
 export function queryCommand(): Command {
@@ -36,9 +36,12 @@ export function queryCommand(): Command {
         }
 
         if (opts.document) {
-          elements = elements.filter(e =>
-            e.documentPath === opts.document || e.documentPath.includes(opts.document as string)
-          );
+          const allowed = resolveDocumentFilter(catalog, opts.document as string);
+          if (allowed.size === 0) {
+            console.error(`No document matches '${opts.document}'. Check meta.name or documentPath.`);
+            process.exit(1);
+          }
+          elements = filterElementsByDocument(elements, allowed);
         }
 
         // Ref filters (DEC-10.6)

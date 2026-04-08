@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import * as fs from 'fs';
 import * as path from 'path';
-import { parseConfigOptions, buildCatalog } from '../helpers.js';
+import { parseConfigOptions, buildCatalog, resolveDocumentFilter } from '../helpers.js';
 import { createExporterRegistry } from '../../exporters/registry.js';
 
 export function exportCommand(): Command {
@@ -9,6 +9,7 @@ export function exportCommand(): Command {
     .description('Export the GVP catalog to a format')
     .option('-f, --format <format>', 'Output format (json, csv, markdown)', 'json')
     .option('-o, --output <path>', 'Output file path (default: stdout)')
+    .option('-d, --document <name>', 'Restrict export to a single document (matched by meta.name or documentPath)')
     .option('--include-deprecated', 'Include deprecated/rejected elements')
     .action(async () => {
       try {
@@ -26,8 +27,18 @@ export function exportCommand(): Command {
           process.exit(1);
         }
 
+        let documentFilter: Set<string> | undefined;
+        if (opts.document) {
+          documentFilter = resolveDocumentFilter(catalog, opts.document as string);
+          if (documentFilter.size === 0) {
+            console.error(`No document matches '${opts.document}'. Check meta.name or documentPath.`);
+            process.exit(1);
+          }
+        }
+
         const output = exporter.export(catalog, {
           includeDeprecated: opts.includeDeprecated as boolean,
+          documentFilter,
         });
 
         if (opts.output) {

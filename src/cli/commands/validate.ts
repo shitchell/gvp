@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import { execSync } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
-import { parseConfigOptions, buildCatalog } from '../helpers.js';
+import { parseConfigOptions, buildCatalog, resolveDocumentFilter } from '../helpers.js';
 import { runValidation, hasErrors, builtinPasses, optionalPasses } from '../../validation/index.js';
 import type { Diagnostic, ValidationPass } from '../../validation/index.js';
 
@@ -79,6 +79,7 @@ export function validateCommand(): Command {
   const cmd = new Command('validate')
     .description('Validate the GVP library')
     .option('--scope <scope>', 'Scope validation to: staged, working, or <commit>..<commit> (DEC-10.5)')
+    .option('-d, --document <name>', 'Restrict diagnostics to a single document (matched by meta.name or documentPath)')
     .option('--coverage', 'Enable the coverage pass (W012, W013)')
     .option('--passes <passes>', 'Comma-separated list of passes to run (e.g., schema,structural,semantic,coverage)')
     .action(async () => {
@@ -86,6 +87,15 @@ export function validateCommand(): Command {
         const { config } = parseConfigOptions(cmd);
         const catalog = buildCatalog(config);
         const opts = cmd.opts();
+
+        let documentFilter: Set<string> | undefined;
+        if (opts.document) {
+          documentFilter = resolveDocumentFilter(catalog, opts.document as string);
+          if (documentFilter.size === 0) {
+            console.error(`No document matches '${opts.document}'. Check meta.name or documentPath.`);
+            process.exit(1);
+          }
+        }
 
         // Build the passes map
         const allPasses = new Map<string, ValidationPass>([...builtinPasses, ...optionalPasses]);
@@ -109,6 +119,18 @@ export function validateCommand(): Command {
           const changedFiles = getChangedFiles(opts.scope as string, process.cwd());
           const changedSet = new Set(changedFiles);
           filteredDiagnostics = diagnostics.filter(d => isDiagnosticInScope(d, changedSet));
+        }
+
+        // Apply --document filter: keep only diagnostics whose documentPath
+        // context is in the allowed set. Diagnostics without a documentPath
+        // context (library-wide structural checks) pass through.
+        if (documentFilter) {
+          const allowed = documentFilter;
+          filteredDiagnostics = filteredDiagnostics.filter(d => {
+            const docPath = d.context.documentPath;
+            if (!docPath) return true;
+            return allowed.has(docPath);
+          });
         }
 
         // Print diagnostics to stderr (DEC-5.12)

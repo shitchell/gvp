@@ -13,9 +13,11 @@ export class DotExporter extends Exporter {
 
   export(catalog: Catalog, options?: ExportOptions): string {
     const includeDeprecated = options?.includeDeprecated ?? false;
+    const documentFilter = options?.documentFilter;
     const elements = catalog
       .getAllElements()
-      .filter((e) => includeDeprecated || e.status === 'active');
+      .filter((e) => includeDeprecated || e.status === 'active')
+      .filter((e) => !documentFilter || documentFilter.has(e.documentPath));
 
     // Generate DOT format (basic implementation — PNG rendering deferred until WASM dep available)
     const lines: string[] = ['digraph gvp {', '  rankdir=BT;'];

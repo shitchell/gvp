@@ -13,9 +13,14 @@ export class MarkdownExporter extends Exporter {
 
   export(catalog: Catalog, options?: ExportOptions): string {
     const includeDeprecated = options?.includeDeprecated ?? false;
+    const documentFilter = options?.documentFilter;
     const sections: string[] = [];
 
-    for (const doc of catalog.documents) {
+    const docs = documentFilter
+      ? catalog.documents.filter(d => documentFilter.has(d.documentPath))
+      : catalog.documents;
+
+    for (const doc of docs) {
       sections.push(`# ${doc.name}\n`);
 
       for (const catName of catalog.registry.categoryNames) {

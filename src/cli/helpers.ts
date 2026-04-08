@@ -5,6 +5,7 @@ import { CategoryRegistry } from '../model/category-registry.js';
 import { parseDocument } from '../model/document-parser.js';
 import { resolveInheritance, type DocumentLoader, type ResolvedInheritance } from '../inheritance/inheritance-resolver.js';
 import { Catalog } from '../catalog/catalog.js';
+import type { Element } from '../model/element.js';
 import { setVerbosity, logv } from '../utils/logger.js';
 import type { Command } from 'commander';
 import * as fs from 'fs';
@@ -184,6 +185,42 @@ export function requireUserIdentity(config: GVPConfig): { name: string; email: s
     process.exit(1);
   }
   return config.user;
+}
+
+/**
+ * Resolve a `--document <filter>` CLI argument to the set of documentPaths
+ * it matches. A document matches if the filter equals either its `meta.name`
+ * or its filesystem-relative `documentPath` (exact match, no substring or
+ * prefix fuzziness — P14 explicit over implicit).
+ *
+ * Returns an empty set if the filter does not match any document. Callers
+ * should surface an error in that case so the user sees the typo rather
+ * than silently getting zero results.
+ */
+export function resolveDocumentFilter(
+  catalog: Catalog,
+  filter: string,
+): Set<string> {
+  const paths = new Set<string>();
+  for (const doc of catalog.documents) {
+    if (doc.meta.name === filter || doc.documentPath === filter) {
+      paths.add(doc.documentPath);
+    }
+  }
+  return paths;
+}
+
+/**
+ * Filter an element list to those belonging to documents matched by the
+ * given `--document` filter. If the filter matches nothing, the empty list
+ * is returned (the caller should have already detected the zero-match case
+ * via resolveDocumentFilter for error reporting).
+ */
+export function filterElementsByDocument(
+  elements: Element[],
+  allowedDocPaths: Set<string>,
+): Element[] {
+  return elements.filter((e) => allowedDocPaths.has(e.documentPath));
 }
 
 function loadDocumentFile(filePath: string, docPath: string, source: string, registry: CategoryRegistry) {

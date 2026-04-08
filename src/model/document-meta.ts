@@ -45,6 +45,7 @@ export const configOverrideEntrySchema = z.object({
 /** Document meta schema */
 export const documentMetaSchema = z.object({
   name: z.string().optional(),
+  description: z.string().optional(), // DEC-3.X: human-readable "what is this document about" string, surfaced by renderers and discoverable by hook indexers
   id_prefix: z.string().optional(), // DOM-2: per-document id prefix
   inherits: z.union([
     z.string().transform(s => [s]),  // bare string -> array
