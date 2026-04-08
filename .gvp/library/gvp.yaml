@@ -1240,6 +1240,128 @@ decisions:
       - date: "2026-04-08"
         note: "Requested by the claude-worker PM to support PM-identity state that's stable across cloned/moved/renamed projects. Design locked in a two-round evaluation with multiple location options considered; .gvp/config.yaml chosen over meta.project_id and .gvp/.uuid sidecar per human's recommendation to Guy."
 
+  - id: D22
+    name: Opt-in global project registry at ~/.gvp/registry/by-id
+    rationale: >
+      Builds on D21 (project_id) to enable cross-project discovery:
+      a global directory where cairn maintains one YAML file per
+      known project, keyed by the project's stable UUID. PMs and
+      other consumers can walk the registry to answer questions
+      like "what projects exist on this machine" and "when was
+      project X last touched" without knowing where those projects
+      live on disk.
+
+      **Opt-in via config flag:** `registry.enabled: true` in any
+      config layer (system, global, project, local) turns on the
+      registry upsert. Default is disabled. The claude-worker PM
+      and the PM's initial evaluation of this feature both
+      independently landed on opt-in as the right default because:
+
+      - Read commands (query, validate, export, inspect) are
+        filesystem-read-only today. Adding unconditional write side
+        effects would break CI sandboxes, multi-user environments,
+        and auditability expectations.
+      - Users who don't want the feature should never see any
+        registry file appear in their home directory.
+      - Users who DO want cross-project discovery can enable it
+        once in `~/.config/gvp/config.yaml` and every subsequent
+        cairn command on any project will upsert transparently.
+
+      The earlier "explicit `cairn project register` command"
+      design was considered and rejected in favor of transparent
+      auto-upsert because (1) the claude-worker PM's use case
+      needs the registry to stay fresh automatically as PMs move
+      between projects, and (2) the explicit command has the same
+      discoverability problem that D21's preflight already solves
+      for identity backfill — users who don't know the command
+      exists would never run it.
+
+      **"Registry" naming, not "cache":** the data is persistent
+      state that can't be regenerated without re-running cairn in
+      every project that has ever been touched. The word "cache"
+      implies "safe to delete, tool will rebuild" which is not
+      true here.
+
+      **Location: `~/.gvp/registry/by-id/`:** chosen over XDG
+      (`$XDG_STATE_HOME/gvp/registry/`) for simplicity and to
+      match the existing `~/.gvp/` convention used for personal
+      libraries. Overridable via `GVP_REGISTRY_ROOT` env var for
+      test isolation and custom setups. If a strict XDG user
+      wants proper $XDG_STATE_HOME support later, it's a
+      surface-level addition that doesn't require a decision
+      change.
+
+      **Entry schema (minimal, additive-extensible):**
+
+          project_id: <uuid>
+          project_name: <string>
+          locations:
+            - path: <absolute path>
+              last_seen: <ISO 8601>
+            - path: <absolute path>
+              last_seen: <ISO 8601>
+
+      project_name is derived from the project directory
+      basename. locations is a list so the same project moved
+      between machines or cloned to multiple directories on one
+      machine shows up with multiple entries under the same
+      project_id. last_seen is updated on every upsert for the
+      location that matches the current path; a new path produces
+      a new locations entry. Future fields can be added to the
+      entry schema without breaking older readers, because the
+      upsert code reads the existing entry, merges the new data,
+      and writes back without enforcing an exhaustive schema.
+
+      **Auto-prune on access:** when the registry upsert runs, it
+      also walks the registry dir and removes any entry whose
+      recorded locations are ALL gone from disk. Entries with at
+      least one still-valid location are kept (with the gone
+      locations trimmed). Simpler than a separate
+      `cairn registry prune` command and keeps the registry tidy
+      without user action.
+
+      **Preflight integration:** the registry upsert is Phase 2
+      of the D21 preflight. Phase 1 (identity backfill) runs
+      before loadConfig so the backfilled project_id is visible
+      to the loaded config. Phase 2 runs after loadConfig because
+      it needs to check the merged `registry.enabled` flag. Both
+      phases are no-ops when there's no project context
+      (`.gvp/` not found walking back from cwd).
+
+      **Resilience:** all registry file operations are wrapped
+      in try/catch and return silently on failure. Registry
+      errors never block the main cairn command — the feature
+      is non-load-bearing for correctness, and a read-only home
+      directory or a full disk should not cause `cairn query`
+      to fail. Corrupt registry entries are replaced on upsert
+      and removed on prune.
+
+      **Out of scope for this decision:**
+      - A `cairn registry query` command to inspect/search the
+        registry. Consumers walk the directory themselves via
+        filesystem tools; cairn just maintains the data. A
+        dedicated query command can be added as a separate
+        decision if the surface grows.
+      - Cross-user registry (shared team state). The registry is
+        strictly per-user ($HOME-scoped).
+      - Integration with external project indexers (IDEs,
+        launchers). That's a consumer concern.
+    tags: [framework, tooling, integrity]
+    maps_to: [gvp:G2, gvp:G5, gvp:V2, gvp:V8, gvp:P4, gvp:P8, gvp:D21]
+    refs:
+      - file: src/config/registry.ts
+        identifier: upsertRegistryEntry
+        role: implements
+      - file: src/config/preflight.ts
+        identifier: runRegistryPreflight
+        role: implements
+      - file: src/config/schema.ts
+        identifier: configSchema
+        role: defines
+    origin:
+      - date: "2026-04-08"
+        note: "Requested by the claude-worker PM as feature 2 of the PM lifecycle architecture, building on D21 project_id as the registry key. Landed in the same session as D21 since the two features are tightly coupled; registry is useless without stable identity, and D21 is nearly useless without a way to correlate IDs across projects."
+
 constraints:
   - id: C1
     name: Agents optimize for minimal effort

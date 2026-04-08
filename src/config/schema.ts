@@ -73,6 +73,17 @@ export const configSchema = z.object({
       definitions: z.enum(['ancestor', 'descendant']).optional().default('descendant'),
     })
     .optional(),
+
+  // Global project registry (D22): opt-in cross-project discovery
+  // via ~/.gvp/registry/by-id/<uuid>.yml entries. Off by default
+  // because it introduces write side effects on every read command.
+  // When enabled, the preflight upserts the current project's entry
+  // with its path and timestamp after the project_id backfill.
+  registry: z
+    .object({
+      enabled: z.boolean().optional().default(false),
+    })
+    .optional(),
 }).passthrough(); // Allow unknown keys for forward compat
 
 export type GVPConfig = z.infer<typeof configSchema>;

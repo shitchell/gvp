@@ -2,6 +2,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
 import { randomUUID } from 'crypto';
+import type { GVPConfig } from './schema.js';
+import { upsertRegistryEntry, pruneStaleRegistryEntries } from './registry.js';
 
 /**
  * Project preflight — runs before every catalog-building cairn
@@ -137,4 +139,42 @@ export function runProjectPreflight(cwd: string = process.cwd()): PreflightResul
     projectId: newId,
     backfilled: true,
   };
+}
+
+/**
+ * Phase 2 of the preflight (D22): registry upsert. Called AFTER
+ * loadConfig has merged all config layers, so we can check
+ * `registry.enabled` and act on it without double-loading config.
+ *
+ * Opt-in: this function is a no-op unless `config.registry?.enabled`
+ * is explicitly true. When enabled, it upserts the current project's
+ * entry at ~/.gvp/registry/by-id/<project_id>.yml with the current
+ * path and timestamp, then prunes any stale entries whose locations
+ * have all disappeared from disk.
+ *
+ * Requires a PreflightResult from runProjectPreflight: if there's no
+ * project context (no .gvp/ dir) or no project_id, the function is
+ * a no-op — there's nothing meaningful to register.
+ */
+export function runRegistryPreflight(
+  preflightResult: PreflightResult,
+  config: GVPConfig,
+): void {
+  // Opt-in gate: registry disabled by default
+  if (!config.registry?.enabled) return;
+
+  // Must have project context to register anything
+  if (!preflightResult.gvpDir || !preflightResult.projectId) return;
+
+  // The project's "path" is the parent of .gvp/, not .gvp/ itself
+  const projectPath = path.dirname(preflightResult.gvpDir);
+
+  // Derive project_name from the config if available, else from the
+  // project directory basename. Falling back to dirname keeps the
+  // registry entries human-readable even if the project hasn't
+  // set a display name yet.
+  const projectName = path.basename(projectPath);
+
+  upsertRegistryEntry(preflightResult.projectId, projectName, projectPath);
+  pruneStaleRegistryEntries();
 }

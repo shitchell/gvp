@@ -1,6 +1,6 @@
 import { loadConfig, type LoadConfigOptions } from '../config/loader.js';
 import type { GVPConfig } from '../config/schema.js';
-import { runProjectPreflight } from '../config/preflight.js';
+import { runProjectPreflight, runRegistryPreflight } from '../config/preflight.js';
 import { loadDefaults } from '../schema/defaults-loader.js';
 import { CategoryRegistry } from '../model/category-registry.js';
 import { parseDocument } from '../model/document-parser.js';
@@ -33,9 +33,11 @@ import * as path from 'path';
 export function parseConfigOptions(cmd: Command): { config: GVPConfig; configOptions: LoadConfigOptions } {
   const opts = cmd.optsWithGlobals();
 
-  // Run preflight before config loading so a freshly backfilled
-  // project_id is visible to the config we're about to load.
-  runProjectPreflight(process.cwd());
+  // Phase 1 of preflight: project_id identity backfill. Runs BEFORE
+  // loadConfig so a freshly backfilled project_id is visible to the
+  // config we're about to load. No-op when no .gvp/ exists in cwd's
+  // ancestry. Idempotent when project_id already exists.
+  const preflight = runProjectPreflight(process.cwd());
 
   const inlineOverrides: Record<string, string> = {};
   if (opts.override) {
@@ -62,6 +64,11 @@ export function parseConfigOptions(cmd: Command): { config: GVPConfig; configOpt
   if (opts.strict) {
     (config as Record<string, unknown>).strict = true;
   }
+
+  // Phase 2 of preflight: registry upsert. Runs AFTER loadConfig so
+  // we can check the merged `registry.enabled` flag. Opt-in: no-op
+  // unless the user explicitly enables the registry in their config.
+  runRegistryPreflight(preflight, config);
 
   return { config, configOptions };
 }
