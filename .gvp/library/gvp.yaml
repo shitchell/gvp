@@ -575,6 +575,35 @@ rules:
     tags: [framework, extensibility]
     maps_to: [gvp:G6, gvp:V5, gvp:V7]
 
+  - id: R5
+    name: Manually tag 1.0.X-beta publishes with --tag latest
+    statement: >
+      While the cairn package is in the 1.0.X-beta prerelease series
+      (no stable 1.0.0 release yet), every `npm publish` MUST
+      manually advance the `latest` dist-tag. npm's default behavior
+      is to NOT update `latest` for prerelease versions, so the tag
+      stays pinned wherever it was last set. This is either
+      `npm publish --tag latest` during the publish or
+      `npm dist-tag add @principled/cairn@<version> latest` as a
+      post-publish step. Verify with `npm view @principled/cairn
+      version` which should return the newly published version.
+      This rule is a hard stop in the release procedure — skipping
+      it has concrete consequences: `latest` was stuck at 1.0.3-beta
+      for an extended period, a fatally broken version that crashed
+      on start because minimatch was in devDependencies
+      (fixed in commit 9d65ce4). Fresh `npm install
+      @principled/cairn` users got a non-functional package as
+      their default. Discovered 2026-04-08 while diagnosing a
+      TAStest consumer. This rule is superseded if a `postpublish`
+      script automation lands in package.json (flagged in
+      BACKLOG.md #5a as a follow-up); until then, the manual step
+      is mandatory on every publish.
+    tags: [tooling, integrity]
+    maps_to: [gvp:G8, gvp:V2, gvp:V10, gvp:P4, gvp:P13]
+    origin:
+      - date: "2026-04-08"
+        note: "Requested by the human as a persistent release-procedure rule after diagnosing an ancient broken dist-tag during TAStest consumer debugging"
+
 decisions:
   - id: D1
     name: Walk-backwards config discovery
