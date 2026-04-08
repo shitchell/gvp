@@ -250,6 +250,117 @@ procedures:
       expect(betaIdx).toBeGreaterThan(alphaIdx);
       expect(gammaIdx).toBeGreaterThan(betaIdx);
     });
+
+    it('indents every line of a multi-paragraph step body with the list continuation indent', () => {
+      // Regression for an asymmetric-indent bug in renderModelBlock:
+      // the body-field emission only prefixed the FIRST line of a
+      // multi-line body with the 3-space list continuation indent,
+      // leaving subsequent paragraphs flush-left at column 0. Per
+      // CommonMark, unindented lines inside a numbered list item
+      // escape the list, turning every continuation paragraph into
+      // an orphan block between items. The sibling emission site
+      // for "remaining fields" (maps_to, refs, etc.) already did
+      // the right thing, which is what made the asymmetry
+      // self-diagnosing — **Maps To:** rejoined the list item while
+      // the body paragraphs did not.
+      writeRoot();
+      writeLib(
+        'guides.yaml',
+        `
+meta:
+  name: guides
+  scope: project
+procedures:
+  - id: S1
+    name: Multi-paragraph test
+    description: Top-level description.
+    tags: []
+    maps_to: [root:G1, root:V1]
+    steps:
+      - id: S1.1
+        name: First step
+        description: |
+          First paragraph of body.
+
+          Second paragraph after a blank line.
+
+          Third paragraph before the next field.
+        maps_to: [root:V1]
+`,
+      );
+      const catalog = buildCatalog(defaultConfig, tmpDir);
+      const s1 = catalog.getAllElements().find((e) => e.id === 'S1')!;
+      const md = renderElementMarkdown(s1, catalog);
+
+      // Every paragraph of the step body must be indented with the
+      // 3-space list continuation indent.
+      expect(md).toContain('1. **S1.1** — First step');
+      expect(md).toContain('   First paragraph of body.');
+      expect(md).toContain('   Second paragraph after a blank line.');
+      expect(md).toContain('   Third paragraph before the next field.');
+      // Regression guards: the buggy output emitted the second and
+      // third paragraphs at column 0. A multiline regex match with ^
+      // would succeed on the bug and fail after the fix.
+      expect(md).not.toMatch(/^Second paragraph/m);
+      expect(md).not.toMatch(/^Third paragraph/m);
+      // The Maps To field should still be indented correctly — this
+      // site was never broken but assert it here so the test also
+      // guards against someone "fixing" the wrong side of the
+      // asymmetry by removing continuation indent elsewhere.
+      expect(md).toContain('   **Maps To:**');
+    });
+
+    it('indents code fences inside a step body so the closing fence stays in the list item', () => {
+      // Per CommonMark, a fenced code block nested inside a list item
+      // must have its opening and closing fences at (or beyond) the
+      // item's content indent, and the INTERIOR lines of the code
+      // block receive the same indent prefix (which is stripped by
+      // the parser, leaving the verbatim content). Without the
+      // indent, the closing ``` lands at column 0 and breaks out of
+      // the list item, producing a broken code block with the list
+      // item's trailing content as orphan text.
+      writeRoot();
+      writeLib(
+        'guides.yaml',
+        `
+meta:
+  name: guides
+  scope: project
+procedures:
+  - id: S1
+    name: Code fence test
+    description: Top.
+    tags: []
+    maps_to: [root:G1, root:V1]
+    steps:
+      - id: S1.1
+        name: Step with code fence
+        description: |
+          Intro paragraph before the fence.
+
+          \`\`\`json
+          {"key": "value"}
+          \`\`\`
+
+          Outro paragraph after the fence.
+`,
+      );
+      const catalog = buildCatalog(defaultConfig, tmpDir);
+      const s1 = catalog.getAllElements().find((e) => e.id === 'S1')!;
+      const md = renderElementMarkdown(s1, catalog);
+
+      // All fence lines + interior must be prefixed with the 3-space
+      // continuation indent so they render as a proper code block
+      // inside the list item.
+      expect(md).toContain('   \`\`\`json');
+      expect(md).toContain('   {"key": "value"}');
+      expect(md).toContain('   Intro paragraph before the fence.');
+      expect(md).toContain('   Outro paragraph after the fence.');
+      // Regression guards: fence markers at column 0 break out of
+      // the list item.
+      expect(md).not.toMatch(/^\`\`\`json/m);
+      expect(md).not.toMatch(/^\`\`\`$/m);
+    });
   });
 
   describe('list<reference> shape (procedure related)', () => {

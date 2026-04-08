@@ -370,15 +370,27 @@ function renderModelBlock(
   }
   lines.push(heading);
 
+  // Continuation indent matches the visual width of the list marker
+  // (`${index}. `) — 3 for indices 1-9, 4 for 10-99, etc. Per
+  // CommonMark, continuation content inside a list item must be
+  // indented at least this much or it escapes the item.
+  const indent = ' '.repeat(`${index}. `.length);
+
   // Body: the first scalar field after id/name, if declared
   // (typically `description` on a step; `rationale` on a considered
   // alternative). This is shape-driven: we walk the declared fields
   // in order and pick the first string-type value.
+  //
+  // Multi-line bodies (block scalars, embedded code fences,
+  // paragraph breaks) must have the continuation indent applied to
+  // EVERY line, not just the first — otherwise subsequent lines at
+  // column 0 break out of the list item per CommonMark, and nested
+  // code fences' closing markers end up escaping the item entirely.
   const bodyField = pickBodyField(fields, model);
   if (bodyField) {
     const bodyValue = model[bodyField];
     if (typeof bodyValue === 'string' && bodyValue.trim() !== '') {
-      lines.push(`   ${bodyValue.trim()}`);
+      lines.push(indentContinuation(bodyValue.trim(), indent));
     }
   }
 
@@ -390,11 +402,24 @@ function renderModelBlock(
     if (Array.isArray(subValue) && subValue.length === 0) continue;
     const rendered = renderFieldByShape(displayLabel(subField, subSchema), subValue, subSchema, catalog, depth + 1, maxDepth);
     if (rendered) {
-      lines.push(`   ${rendered.split('\n').join('\n   ')}`);
+      lines.push(indentContinuation(rendered, indent));
     }
   }
 
   return lines.join('\n');
+}
+
+/**
+ * Prefix every line of `text` with `indent`, so that multi-line
+ * content (paragraphs, code fences, nested lists) preserves the
+ * caller's indentation on continuation lines. Used by
+ * renderModelBlock so a step body with embedded paragraphs or a
+ * code fence stays inside its list item per CommonMark, rather
+ * than having subsequent lines flush-left at column 0 and
+ * escaping the list.
+ */
+function indentContinuation(text: string, indent: string): string {
+  return indent + text.split('\n').join('\n' + indent);
 }
 
 /**
