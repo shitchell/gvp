@@ -977,6 +977,80 @@ decisions:
       - date: "2026-04-08"
         note: "Requested by TAStest project during PM Phase B -- motivated by their need to migrate procedural prose guides (writing tests, debugging, updating helpers) into traceable GVP elements so the underlying rules and principles governing each step remain visible"
 
+  - id: D20a
+    name: Reference field type for semantic element-id annotation
+    rationale: >
+      Extends the field_schemas type enum with a `reference` type,
+      structurally equivalent to `string` (accepts any valid string at
+      the Zod level) but semantically annotated as "this string is a
+      qualified element id". Replaces the alternative approach of
+      sniffing the data at runtime to decide whether a list of strings
+      should be rendered as a reference-expansion list or a plain
+      string list.
+
+      The data-sniffing approach -- "try to resolve each string value
+      as an element ID and dispatch based on whether any resolve" --
+      was considered and rejected. It is clever but data-sensitive:
+      a typo in an ID would silently change rendering behavior for
+      the whole field (one broken ref flips the list from
+      "references" to "plain strings"), and renderer output would
+      depend on catalog state at render time rather than on the
+      schema. Both are V2 transparency violations (the user cannot
+      tell what rendering they will get without running the tool).
+
+      The reference type fixes this with one small schema engine
+      addition: `FieldType` gains a new `reference` variant,
+      `fieldEntryToZod` dispatches it to `z.string()` (same structure
+      as string), and `FIELD_TYPES` + `isFieldType` + the Zod field
+      schema validator pick it up automatically because they derive
+      from the same enum. The existing `procedure.related` and
+      `procedure.steps[].maps_to` fields in defaults.yaml are
+      migrated from `list<string>` to `list<reference>` -- no user
+      visible change today (both still validate the same YAML), but
+      renderers and graph tooling now have explicit annotation to
+      dispatch on.
+
+      Design notes:
+      - Backwards compatible: any existing `list<string>` field that
+        happens to hold element ids continues to validate. Opting in
+        to `reference` is a per-field choice; it is not enforced on
+        existing user libraries.
+      - Future graph exporters can enumerate reference-typed fields
+        as edge sources without a separate field-name allowlist.
+      - Future validation passes can check that reference values
+        actually resolve to elements, using the declared type as the
+        trigger. (Today E001 does this for `maps_to`; extending it
+        to generic reference fields is a separate future decision.)
+      - The alternative of embedding reference semantics in a
+        metadata sidecar (e.g., `items: {type: string, is_reference: true}`)
+        was considered and rejected for verbosity: a new first-class
+        type is simpler to declare, simpler to dispatch on, and
+        matches how `enum` already adds semantic annotation on top of
+        a structural string.
+
+      This decision lands in phase C.0 of the renderer refactor
+      sequence (C.0 = reference type, C.1 = shape-renderer module,
+      C.2 = markdown-exporter swap, C.3 = inspect swap). Landing it
+      first means the shape renderer in C.1 can dispatch on the
+      declared type from the start without data-sniffing fallback
+      logic, and the procedure category already models the new type
+      at the moment C.0 ships.
+    tags: [framework, tooling, integrity]
+    maps_to: [gvp:G5, gvp:V2, gvp:V6, gvp:V10, gvp:P3, gvp:P11, gvp:P14, gvp:D19]
+    refs:
+      - file: src/schema/types.ts
+        identifier: FIELD_TYPES
+        role: defines
+      - file: src/schema/build-schema.ts
+        identifier: buildZodSchema
+        role: implements
+      - file: src/data/defaults.yaml
+        identifier: categories
+        role: uses
+    origin:
+      - date: "2026-04-08"
+        note: "Requested by TAStest project during PM Phase C.0 investigation -- preferred over data-sniffing for reference-list detection to avoid silent behavior changes on typo'd ids; aligns with P14 explicit over implicit"
+
 constraints:
   - id: C1
     name: Agents optimize for minimal effort

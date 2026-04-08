@@ -114,7 +114,7 @@ categories:
         type: list
         required: false
         items:
-          type: string
+          type: reference
       steps:
         type: list
         required: false
@@ -134,7 +134,7 @@ categories:
               type: list
               required: false
               items:
-                type: string
+                type: reference
             refs:
               type: list
               required: false

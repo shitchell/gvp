@@ -2,15 +2,20 @@ import { describe, it, expect } from 'vitest';
 import { FIELD_TYPES, isFieldType, FieldType } from '../../src/schema/types.js';
 
 describe('Type Map (DEC-3.4, DEC-10.11)', () => {
-  it('contains exactly 8 field types', () => {
-    expect(FIELD_TYPES).toHaveLength(8);
+  it('contains exactly 9 field types', () => {
+    expect(FIELD_TYPES).toHaveLength(9);
   });
 
   it('contains all required types', () => {
-    const expected: FieldType[] = ['string', 'number', 'boolean', 'list', 'dict', 'model', 'datetime', 'enum'];
+    const expected: FieldType[] = ['string', 'number', 'boolean', 'list', 'dict', 'model', 'datetime', 'enum', 'reference'];
     for (const type of expected) {
       expect(FIELD_TYPES).toContain(type);
     }
+  });
+
+  it('includes the reference type (D20a)', () => {
+    expect(FIELD_TYPES).toContain('reference');
+    expect(isFieldType('reference')).toBe(true);
   });
 
   it('is frozen', () => {

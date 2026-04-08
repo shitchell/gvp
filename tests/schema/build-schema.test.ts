@@ -48,6 +48,42 @@ describe('buildZodSchema (DEC-3.1)', () => {
     expect(() => schema.parse({ active: 'yes' })).toThrow();
   });
 
+  it('builds schema for reference field (D20a)', () => {
+    // `reference` is structurally a string but semantically annotated
+    // as an element id. The Zod schema accepts any string; renderers
+    // and graph tooling branch on the declared type, not the value.
+    const schema = buildZodSchema({
+      governs: { type: 'reference', required: true },
+    });
+    expect(schema.parse({ governs: 'procedure:S1' })).toEqual({
+      governs: 'procedure:S1',
+    });
+    expect(schema.parse({ governs: 'gvp:P3' })).toEqual({ governs: 'gvp:P3' });
+    // Non-string values are rejected at the type boundary
+    expect(() => schema.parse({ governs: 123 })).toThrow();
+    expect(() => schema.parse({ governs: null })).toThrow();
+  });
+
+  it('builds schema for list of reference (D20a)', () => {
+    // The most common shape for reference fields: a list of element
+    // ids, like the existing `related` field on procedures. Under
+    // D20a, this shape is declared explicitly rather than inferred
+    // from data.
+    const schema = buildZodSchema({
+      related: {
+        type: 'list',
+        required: false,
+        items: { type: 'reference' },
+      },
+    });
+    expect(
+      schema.parse({ related: ['procedure:S1', 'gvp:P3', 'code/common:CP1'] }),
+    ).toEqual({ related: ['procedure:S1', 'gvp:P3', 'code/common:CP1'] });
+    expect(schema.parse({ related: [] })).toEqual({ related: [] });
+    expect(schema.parse({})).toEqual({});
+    expect(() => schema.parse({ related: ['ok', 42] })).toThrow();
+  });
+
   it('builds schema for enum field (DEC-10.11)', () => {
     const schema = buildZodSchema({
       role: { type: 'enum', values: ['defines', 'implements', 'uses', 'extends'], required: true },

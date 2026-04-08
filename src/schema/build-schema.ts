@@ -19,6 +19,14 @@ function fieldEntryToZod(entry: FieldSchemaEntry, options: BuildOptions): z.ZodT
       schema = z.string();
       break;
 
+    case 'reference':
+      // D20a: structurally a string (a qualified element id like
+      // "procedure:S1" or "gvp:P3"); semantically annotated so
+      // renderers, graph exporters, and validators can recognize it
+      // as an element reference without sniffing data at runtime.
+      schema = z.string();
+      break;
+
     case 'number':
       schema = z.number();
       break;
