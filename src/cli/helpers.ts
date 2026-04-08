@@ -47,24 +47,69 @@ export function parseConfigOptions(cmd: Command): { config: GVPConfig; configOpt
 }
 
 /**
- * Build a Catalog from the current working directory.
+ * Read the `--library <path>` global option from a command and return
+ * it as a string, or undefined if not set. This is the input to
+ * `buildCatalog`'s `libraryOverride` parameter. Centralized so every
+ * subcommand reads the same option name consistently and future
+ * changes to the option shape touch one place.
  */
-export function buildCatalog(config: GVPConfig, cwd: string = process.cwd()): Catalog {
+export function getLibraryOverride(cmd: Command): string | undefined {
+  const value = cmd.optsWithGlobals().library;
+  return typeof value === 'string' ? value : undefined;
+}
+
+/**
+ * Build a Catalog from the current working directory, or from an
+ * explicit library path override.
+ *
+ * When `libraryOverride` is provided, walk-back discovery is SKIPPED
+ * entirely and `libraryOverride` is used as the library directory
+ * directly. The path points AT the library (the directory containing
+ * YAML documents), NOT at a project root that contains a `.gvp/library/`
+ * child. Relative paths are resolved against `cwd`.
+ *
+ * This is the mechanism behind the `--library <path>` CLI flag: it
+ * lets operators switch between multiple non-inherited libraries in a
+ * single shell without `cd`-ing between directories, and it composes
+ * cleanly with the existing `--config` flag because the two axes
+ * (library discovery vs config discovery) are orthogonal.
+ */
+export function buildCatalog(
+  config: GVPConfig,
+  cwd: string = process.cwd(),
+  libraryOverride?: string,
+): Catalog {
   const defaults = loadDefaults();
   const registry = CategoryRegistry.fromDefaults(defaults);
 
-  // Find the library directory
+  // Resolve the library directory.
+  // If --library was passed, use it directly (no walk-back).
+  // Otherwise, walk backwards from cwd looking for .gvp/library/.
   let libraryDir: string | undefined;
-  let current = path.resolve(cwd);
-  while (true) {
-    const gvpLib = path.join(current, '.gvp', 'library');
-    if (fs.existsSync(gvpLib)) {
-      libraryDir = gvpLib;
-      break;
+  if (libraryOverride !== undefined) {
+    const resolved = path.resolve(cwd, libraryOverride);
+    if (!fs.existsSync(resolved)) {
+      console.error(`Library directory does not exist: ${libraryOverride}`);
+      process.exit(1);
     }
-    const parent = path.dirname(current);
-    if (parent === current) break;
-    current = parent;
+    const stat = fs.statSync(resolved);
+    if (!stat.isDirectory()) {
+      console.error(`Library path is not a directory: ${libraryOverride}`);
+      process.exit(1);
+    }
+    libraryDir = resolved;
+  } else {
+    let current = path.resolve(cwd);
+    while (true) {
+      const gvpLib = path.join(current, '.gvp', 'library');
+      if (fs.existsSync(gvpLib)) {
+        libraryDir = gvpLib;
+        break;
+      }
+      const parent = path.dirname(current);
+      if (parent === current) break;
+      current = parent;
+    }
   }
 
   if (!libraryDir) {

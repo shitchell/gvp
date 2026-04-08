@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import * as fs from 'fs';
 import * as yaml from 'js-yaml';
 import { randomUUID } from 'crypto';
-import { parseConfigOptions, buildCatalog, requireUserIdentity } from '../helpers.js';
+import { parseConfigOptions, buildCatalog, requireUserIdentity, getLibraryOverride } from '../helpers.js';
 import { resolveTimezone } from '../../schema/datetime.js';
 
 export function addCommand(): Command {
@@ -17,7 +17,7 @@ export function addCommand(): Command {
     .action(async (category: string, name: string) => {
       try {
         const { config } = parseConfigOptions(cmd);
-        const catalog = buildCatalog(config);
+        const catalog = buildCatalog(config, process.cwd(), getLibraryOverride(cmd));
         const opts = cmd.opts();
 
         // Verify category exists

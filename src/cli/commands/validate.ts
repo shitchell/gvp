@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import { execSync } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
-import { parseConfigOptions, buildCatalog, resolveDocumentFilter } from '../helpers.js';
+import { parseConfigOptions, buildCatalog, resolveDocumentFilter, getLibraryOverride } from '../helpers.js';
 import { runValidation, hasErrors, builtinPasses, optionalPasses } from '../../validation/index.js';
 import type { Diagnostic, ValidationPass } from '../../validation/index.js';
 
@@ -85,7 +85,7 @@ export function validateCommand(): Command {
     .action(async () => {
       try {
         const { config } = parseConfigOptions(cmd);
-        const catalog = buildCatalog(config);
+        const catalog = buildCatalog(config, process.cwd(), getLibraryOverride(cmd));
         const opts = cmd.opts();
 
         let documentFilter: Set<string> | undefined;

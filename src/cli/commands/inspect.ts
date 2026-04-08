@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { parseConfigOptions, buildCatalog, resolveDocumentFilter } from '../helpers.js';
+import { parseConfigOptions, buildCatalog, resolveDocumentFilter, getLibraryOverride } from '../helpers.js';
 import { isStale, getUnreviewedUpdates } from '../../provenance/staleness.js';
 import { renderElementMarkdown } from '../../exporters/shape-renderer.js';
 import type { Element } from '../../model/element.js';
@@ -84,7 +84,7 @@ export function inspectCommand(): Command {
     .action(async (elementArg: string | undefined) => {
       try {
         const { config } = parseConfigOptions(cmd);
-        const catalog = buildCatalog(config);
+        const catalog = buildCatalog(config, process.cwd(), getLibraryOverride(cmd));
         const opts = cmd.opts();
 
         // If no element and no --ref, show help

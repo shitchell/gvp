@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import * as fs from 'fs';
 import * as path from 'path';
-import { parseConfigOptions, buildCatalog, resolveDocumentFilter } from '../helpers.js';
+import { parseConfigOptions, buildCatalog, resolveDocumentFilter, getLibraryOverride } from '../helpers.js';
 import { createExporterRegistry } from '../../exporters/registry.js';
 
 export function exportCommand(): Command {
@@ -14,7 +14,7 @@ export function exportCommand(): Command {
     .action(async () => {
       try {
         const { config } = parseConfigOptions(cmd);
-        const catalog = buildCatalog(config);
+        const catalog = buildCatalog(config, process.cwd(), getLibraryOverride(cmd));
         const registry = createExporterRegistry();
 
         const opts = cmd.opts();

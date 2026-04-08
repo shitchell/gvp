@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { parseConfigOptions, buildCatalog } from '../helpers.js';
+import { parseConfigOptions, buildCatalog, getLibraryOverride } from '../helpers.js';
 import { StubEmbeddingProvider } from '../../analysis/stub-provider.js';
 import { findUnmappedRelationships } from '../../analysis/analyzer.js';
 
@@ -10,7 +10,7 @@ export function analyzeCommand(): Command {
     .action(async () => {
       try {
         const { config } = parseConfigOptions(cmd);
-        const catalog = buildCatalog(config);
+        const catalog = buildCatalog(config, process.cwd(), getLibraryOverride(cmd));
         const opts = cmd.opts();
 
         const provider = new StubEmbeddingProvider();
