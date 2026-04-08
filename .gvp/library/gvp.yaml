@@ -1147,6 +1147,99 @@ decisions:
       - date: "2026-04-08"
         note: "Requested by TAStest project during PM Phase C.0 investigation -- preferred over data-sniffing for reference-list detection to avoid silent behavior changes on typo'd ids; aligns with P14 explicit over implicit"
 
+  - id: D21
+    name: Project identity via .gvp/config.yaml project_id with preflight backfill
+    rationale: >
+      Cairn projects need a stable identity that survives clones,
+      worktrees, filesystem moves, and git origin URL changes. The
+      obvious identifier (git origin, local path, directory name)
+      is volatile; something stored inside the library itself is
+      stable. This decision adds a `project_id` UUID field as the
+      authoritative project identity, generated once per project
+      and never changed.
+
+      **Location chosen: `.gvp/config.yaml`** as a top-level key,
+      not `meta.project_id` in a document and not a `.gvp/.uuid`
+      sidecar file. Reasons:
+
+      - `.gvp/config.yaml` already exists as a first-class concept
+        with its own schema (configSchema) and walk-back discovery.
+        Adding a field is a one-line schema addition with Zod UUID
+        validation for free.
+      - Separating identity from document content dissolves the
+        "which doc carries it" ambiguity that affects multi-root
+        libraries. There is exactly one config file per library, so
+        there is no multi-root problem.
+      - Humans reading `.gvp/config.yaml` understand it's project
+        configuration. `meta.project_id` would require explaining
+        what "meta" means in YAML-document-header jargon.
+      - A `.gvp/.uuid` sidecar would be the simplest implementation,
+        but provides no validation, no extensibility for future
+        project-scoped state (format_version, created_at, ...), and
+        hides important state inside a dotfile.
+
+      **Backfill via preflight:** the first cairn invocation that
+      finds a `.gvp/` directory without a `project_id` generates
+      one and writes it to `.gvp/config.yaml`, creating the file
+      if necessary and preserving any existing keys. A one-line
+      stderr notice tells the user what happened:
+
+          cairn: generated project_id <uuid> and wrote it to <path>
+
+      An explicit migration command was considered and rejected
+      for discoverability: users who initialized their library
+      months ago won't know to run it. Auto-backfill on first
+      invocation is invisible when it doesn't matter and loud when
+      it does.
+
+      **Write side effects on read commands:** the preflight writes
+      exactly ONCE per project, ever — not on every invocation.
+      This is qualitatively different from a registry cache that
+      writes every time (the rejected earlier shape of feature 2).
+      The one-time nature makes the side effect acceptable: users
+      who dislike it see exactly one stderr line ever per project
+      and can delete the config file to undo. A registry that
+      wrote every time would be a continuous side effect and is
+      gated behind an explicit config flag (see D22).
+
+      **Immutability via IMMUTABLE_CONFIG_FIELDS:** the project_id
+      is registered in a generic Set that edit commands and future
+      config-mutation paths check before allowing a write. Separate
+      Set from RESERVED_FIELD_NAMES because the enforcement surface
+      is config fields vs element meta fields — two different
+      namespaces. Future immutable config fields (format_version,
+      created_at) join the Set and get enforcement for free.
+      Generic mechanism per R6: no hard-coded
+      "if field === 'project_id'" branches anywhere.
+
+      **Preflight target: cwd, not --library override.** If the
+      user invokes cairn from project A while passing
+      `--library ~/.cwork/pm/gvp/` to read the PM library, preflight
+      backfills A's identity, not the PM library's. This matches
+      the intuition that "project identity" tracks the working
+      directory, not whichever library happens to be loaded. The
+      PM library has its own config managed separately.
+
+      **UUID version:** any valid UUID accepted (per configSchema's
+      `.uuid()` validator). New IDs generated via
+      `crypto.randomUUID()` which produces v4. Users pasting v7
+      or other versions into config by hand will validate fine.
+    tags: [framework, tooling, integrity]
+    maps_to: [gvp:G1, gvp:G5, gvp:G8, gvp:V2, gvp:V6, gvp:V10, gvp:P4, gvp:P13, gvp:P14, gvp:R1]
+    refs:
+      - file: src/config/schema.ts
+        identifier: IMMUTABLE_CONFIG_FIELDS
+        role: defines
+      - file: src/config/preflight.ts
+        identifier: runProjectPreflight
+        role: implements
+      - file: src/cli/helpers.ts
+        identifier: parseConfigOptions
+        role: implements
+    origin:
+      - date: "2026-04-08"
+        note: "Requested by the claude-worker PM to support PM-identity state that's stable across cloned/moved/renamed projects. Design locked in a two-round evaluation with multiple location options considered; .gvp/config.yaml chosen over meta.project_id and .gvp/.uuid sidecar per human's recommendation to Guy."
+
 constraints:
   - id: C1
     name: Agents optimize for minimal effort

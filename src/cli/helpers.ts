@@ -1,5 +1,6 @@
 import { loadConfig, type LoadConfigOptions } from '../config/loader.js';
 import type { GVPConfig } from '../config/schema.js';
+import { runProjectPreflight } from '../config/preflight.js';
 import { loadDefaults } from '../schema/defaults-loader.js';
 import { CategoryRegistry } from '../model/category-registry.js';
 import { parseDocument } from '../model/document-parser.js';
@@ -13,9 +14,28 @@ import * as path from 'path';
 
 /**
  * Parse global options from a Commander command into LoadConfigOptions.
+ *
+ * Also runs the project preflight (D21): the first cairn command
+ * in a library lacking a project_id auto-generates and persists one
+ * to .gvp/config.yaml. Preflight runs BEFORE loadConfig so the
+ * backfilled value is visible to this invocation's loaded config.
+ * Preflight is a no-op when no .gvp/ directory exists in the
+ * ancestry (e.g., when the user is running cairn outside any
+ * project) or when the project_id is already present.
+ *
+ * Preflight runs regardless of --no-config and --library. The
+ * rationale: identity is about the current working directory's
+ * project, not about which config or library the invocation is
+ * reading. Someone using `--library <elsewhere>` to peek at
+ * another library from inside their project still wants their own
+ * project identified. Preflight's walk-back always starts from cwd.
  */
 export function parseConfigOptions(cmd: Command): { config: GVPConfig; configOptions: LoadConfigOptions } {
   const opts = cmd.optsWithGlobals();
+
+  // Run preflight before config loading so a freshly backfilled
+  // project_id is visible to the config we're about to load.
+  runProjectPreflight(process.cwd());
 
   const inlineOverrides: Record<string, string> = {};
   if (opts.override) {
