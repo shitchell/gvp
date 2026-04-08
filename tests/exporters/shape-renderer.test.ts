@@ -309,6 +309,64 @@ procedures:
     });
   });
 
+  describe('procedure end-to-end (integration with real category)', () => {
+    it('renders a procedure with steps, when, related, and per-step maps_to in one shape pass', () => {
+      // This is the canonical TAStest use case: a procedure with
+      // a description, when, multiple steps each with their own
+      // maps_to, and a related list. All five field shapes
+      // (string, list<reference>, list<model>) are exercised.
+      writeRoot();
+      writeLib(
+        'guides.yaml',
+        `
+meta:
+  name: guides
+  scope: project
+procedures:
+  - id: S1
+    name: Writing a test
+    description: Guide for creating a net-new test file.
+    when: Starting a new test
+    tags: []
+    maps_to: [root:G1, root:V1]
+    steps:
+      - id: S1.1
+        name: Read the profile
+        description: Open the profile file.
+        maps_to: [root:V1]
+      - id: S1.2
+        name: Inspect the DOM
+        description: See what's there.
+        maps_to: [root:G1]
+    related:
+      - root:V1
+`,
+      );
+      const catalog = buildCatalog(defaultConfig, tmpDir);
+      const s1 = catalog.getAllElements().find((e) => e.id === 'S1')!;
+      const md = renderElementMarkdown(s1, catalog);
+      // Header + primary description
+      expect(md).toContain('### S1: Writing a test');
+      expect(md).toContain('Guide for creating a net-new test file.');
+      // Element-level maps_to (reserved inline preamble)
+      expect(md).toContain('**Maps to:** root:G1, root:V1');
+      // when (string scalar via title-cased label)
+      expect(md).toContain('**When:** Starting a new test');
+      // related (list<reference> with resolved names)
+      expect(md).toContain('**Related:**');
+      expect(md).toContain('root:V1 — *Simplicity*');
+      // steps (list<model> with numbered subsection)
+      expect(md).toContain('**Steps:**');
+      expect(md).toContain('1. **S1.1** — Read the profile');
+      expect(md).toContain('Open the profile file.');
+      expect(md).toContain('2. **S1.2** — Inspect the DOM');
+      expect(md).toContain("See what's there.");
+      // step-level maps_to expanded with resolved names (also list<reference>)
+      expect(md).toContain('root:V1 — *Simplicity*');
+      expect(md).toContain('root:G1 — *Ship software*');
+    });
+  });
+
   describe('generic dispatch — no category-specific branches', () => {
     it('the renderer never hard-codes the word "considered" or "steps"', () => {
       // Read the source of shape-renderer.ts and assert that no

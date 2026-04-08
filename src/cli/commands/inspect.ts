@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import { parseConfigOptions, buildCatalog, resolveDocumentFilter } from '../helpers.js';
 import { isStale, getUnreviewedUpdates } from '../../provenance/staleness.js';
+import { renderElementMarkdown } from '../../exporters/shape-renderer.js';
 import type { Element } from '../../model/element.js';
 import type { Catalog } from '../../catalog/catalog.js';
 
@@ -79,7 +80,7 @@ export function inspectCommand(): Command {
     .option('--ref <file::id>', 'Find elements referencing a file/identifier and trace')
     .option('-d, --document <name>', 'Restrict element lookup to a single document (matched by meta.name or documentPath)')
     .option('--hops <n>', 'Expand maps_to N levels deep inline with id, name, and content preview', (v) => parseInt(v, 10))
-    .option('--format <format>', 'Output format (text, json)', 'text')
+    .option('--format <format>', 'Output format (text, json, markdown)', 'text')
     .action(async (elementArg: string | undefined) => {
       try {
         const { config } = parseConfigOptions(cmd);
@@ -165,6 +166,30 @@ export function inspectCommand(): Command {
             _canonicalId: element.toCanonicalId(),
           };
           process.stdout.write(JSON.stringify(output, null, 2));
+          process.exit(0);
+        }
+
+        if (opts.format === 'markdown') {
+          // Use the same shape-based renderer that the markdown
+          // exporter uses, so procedures (and any other element
+          // with declared list<model> / dict<model> fields) render
+          // with structured subsections. The text format below
+          // stays as-is for terminal-friendly plain output.
+          process.stdout.write(renderElementMarkdown(element, catalog));
+          process.stdout.write('\n');
+
+          // --hops still appends an expansion section, even in
+          // markdown mode, so consumers can compose `--format
+          // markdown --hops 2` for a guide-style render.
+          if (typeof opts.hops === 'number' && opts.hops > 0) {
+            const hopLines = renderHops(element, catalog, opts.hops as number);
+            process.stdout.write(`\n**Maps to (${opts.hops} hop${opts.hops === 1 ? '' : 's'}):**\n\n`);
+            if (hopLines.length > 0) {
+              for (const line of hopLines) process.stdout.write(line + '\n');
+            } else {
+              process.stdout.write('  (no outgoing mappings)\n');
+            }
+          }
           process.exit(0);
         }
 
