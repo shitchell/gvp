@@ -424,6 +424,40 @@ procedures:
       expect(md).toMatch(/\`\`\`bash/m);
       expect(md).toContain('echo "hello"');
     });
+
+    it('separates consecutive labeled fields with blank lines in model blocks', () => {
+      writeRoot();
+      writeLib(
+        'guides.yaml',
+        `
+meta:
+  name: guides
+  scope: project
+procedures:
+  - id: S1
+    name: Field separator test
+    description: Top level.
+    tags: []
+    maps_to: [root:G1, root:V1]
+    steps:
+      - id: S1.1
+        name: Do the thing
+        description: Run the smoke test.
+        example: "expect(result).toBe(42);"
+        maps_to: [root:G1]
+`,
+      );
+      const catalog = buildCatalog(defaultConfig, tmpDir);
+      const s1 = catalog.getAllElements().find((e) => e.id === 'S1')!;
+      const md = renderElementMarkdown(s1, catalog);
+      // There must be a blank indented line between the body (description)
+      // and the first labeled field (example), and between consecutive
+      // labeled fields (example → maps_to).
+      // Check: description content NOT immediately followed by **Example:**
+      expect(md).not.toMatch(/Run the smoke test\.\n   \*\*Example:\*\*/);
+      // Check: example content NOT immediately followed by **Maps To:**
+      expect(md).not.toMatch(/expect\(result\)\.toBe\(42\);\n   \*\*Maps To:\*\*/);
+    });
   });
 
   describe('list<reference> shape (procedure related)', () => {

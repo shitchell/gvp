@@ -401,7 +401,10 @@ function renderModelBlock(
     }
   }
 
-  // Remaining fields in declared order (excluding id, name, body)
+  // Remaining fields in declared order (excluding id, name, body).
+  // Each emitted field is preceded by a blank continuation-indented
+  // line so that CommonMark treats consecutive labeled fields as
+  // separate paragraphs rather than one run-on block.
   for (const [subField, subSchema] of Object.entries(fields)) {
     if (subField === 'id' || subField === 'name' || subField === bodyField) continue;
     const subValue = model[subField];
@@ -409,6 +412,7 @@ function renderModelBlock(
     if (Array.isArray(subValue) && subValue.length === 0) continue;
     const rendered = renderFieldByShape(displayLabel(subField, subSchema), subValue, subSchema, catalog, depth + 1, maxDepth);
     if (rendered) {
+      lines.push(indent); // blank continuation-indented separator line
       lines.push(indentContinuation(rendered, indent));
     }
   }
