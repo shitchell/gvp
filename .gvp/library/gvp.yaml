@@ -421,6 +421,21 @@ principles:
       - date: "2026-03-26"
         note: "Added during post-v1 heuristic mining -- driven by DEC-9.4 (defaults.yaml through same pipeline as user files)"
 
+  - id: P16
+    name: Strict types end-to-end
+    statement: >
+      Every data structure -- from YAML parse output through model layer to CLI
+      output -- should be fully typed such that IDE autocomplete works at every
+      point in the chain. If a developer can't dot-into a field and see
+      completions, the typing is insufficient. Prefer typed interfaces over
+      Record<string, unknown>, typed discriminated unions over any, and
+      schema-derived types over hand-maintained ones. Transient untyped states
+      (e.g., raw YAML fragments awaiting schema resolution) are design smells --
+      restructure the pipeline so the data is typed from the moment it enters the
+      system.
+    tags: [tooling, code, integrity]
+    maps_to: [gvp:G7, gvp:V10, gvp:P3, gvp:P14]
+
 heuristics:
   - id: H1
     name: Core vs. example placement
