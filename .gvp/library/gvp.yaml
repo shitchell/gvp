@@ -1416,6 +1416,31 @@ decisions:
       - date: "2026-04-09"
         note: "Requested by TAStest consumer (chat:tastest-process-element). --field-file wins over --field for the same key (last-write-wins). Uses Commander variadic <entries...> pattern processed as key/path pairs."
 
+  - id: D25
+    name: Optional summary field on all elements via _all.field_schemas
+    rationale: >
+      The description field serves two conflicting purposes: short form for
+      indices, frontmatter, and list views, and long form for full inspection
+      and teaching material. Enriched procedures with multi-paragraph
+      descriptions produce bloated frontmatter and unusable list-view previews.
+      Adding an optional summary field gives elements an explicit short-form
+      representation without requiring silent truncation of description (P14).
+      Declared in _all.field_schemas so every category (including custom
+      categories) gets it for free, following the same mechanism as refs. Field
+      ordering in defaults.yaml controls rendering order via Object.entries()
+      insertion order -- summary is positioned first in _all.field_schemas so
+      it renders before refs. Fallback on absence is blank (no emission), not
+      truncation.
+    tags: [framework, tooling, usability]
+    maps_to: [gvp:G1, gvp:G9, gvp:V4, gvp:V6, gvp:P5, gvp:P14, gvp:P15, gvp:R4, gvp:R6]
+    refs:
+      - file: src/data/defaults.yaml
+        identifier: summary
+        role: implements
+    origin:
+      - date: "2026-04-09"
+        note: "Requested by TAStest consumer (chat:tastest-process-element). Guy pre-approved. Enables explicit short-form representation for all elements without truncation."
+
 constraints:
   - id: C1
     name: Agents optimize for minimal effort
