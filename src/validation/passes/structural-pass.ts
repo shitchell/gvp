@@ -251,6 +251,20 @@ export function structuralPass(catalog: Catalog, _config: GVPConfig): Diagnostic
     }
   }
 
+  // W016: Unrecognized YAML keys (not meta, not any known category yaml_key)
+  for (const doc of catalog.documents) {
+    for (const key of doc.unrecognizedKeys) {
+      diagnostics.push(createDiagnostic(
+        'W016',
+        'UNRECOGNIZED_YAML_KEY',
+        `Document '${doc.name}' has unrecognized top-level key '${key}' that does not match any category yaml_key`,
+        'warning',
+        PASS_NAME,
+        { documentPath: doc.documentPath, details: key },
+      ));
+    }
+  }
+
   // E003: Broken inheritance — document references a parent that doesn't exist.
   // Inherits entries may reference parents by docPath, by source:docPath, or
   // by meta.name (the canonical convention). All three forms must resolve.

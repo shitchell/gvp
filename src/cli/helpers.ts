@@ -4,13 +4,17 @@ import { runProjectPreflight, runRegistryPreflight } from '../config/preflight.j
 import { loadDefaults } from '../schema/defaults-loader.js';
 import { CategoryRegistry } from '../model/category-registry.js';
 import { parseDocument } from '../model/document-parser.js';
+import { documentMetaSchema } from '../model/document-meta.js';
 import { resolveInheritance, type DocumentLoader, type ResolvedInheritance } from '../inheritance/inheritance-resolver.js';
 import { Catalog } from '../catalog/catalog.js';
 import type { Element } from '../model/element.js';
+import type { CategoryDefinition } from '../schema/category-definition.js';
+import type { FieldSchemaEntry } from '../schema/field-schema.js';
 import { setVerbosity, logv } from '../utils/logger.js';
 import type { Command } from 'commander';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as yaml from 'js-yaml';
 
 /**
  * Parse global options from a Commander command into LoadConfigOptions.
@@ -107,7 +111,7 @@ export function buildCatalog(
   libraryOverride?: string,
 ): Catalog {
   const defaults = loadDefaults();
-  const registry = CategoryRegistry.fromDefaults(defaults);
+  let registry = CategoryRegistry.fromDefaults(defaults);
 
   // Resolve the library directory.
   // If --library was passed, use it directly (no walk-back).
@@ -155,7 +159,48 @@ export function buildCatalog(
     process.exit(1);
   }
 
-  // Load all documents in the library
+  // Pass 1: Collect custom category definitions from all documents so that
+  // pass 2 parsing can recognize their yaml_keys. Without this, elements
+  // under custom yaml_keys are silently skipped because the defaults-only
+  // registry doesn't know about them.
+  const collectedCategories: Record<string, CategoryDefinition> = {};
+  const collectedAllSchemas: Record<string, FieldSchemaEntry> = {};
+  for (const file of yamlFiles) {
+    try {
+      const raw = yaml.load(fs.readFileSync(file, 'utf-8'));
+      if (!raw || typeof raw !== 'object') continue;
+      const data = raw as Record<string, unknown>;
+      const meta = documentMetaSchema.parse(data.meta ?? {});
+      const cats = meta.definitions?.categories;
+      if (cats) {
+        for (const [name, def] of Object.entries(cats)) {
+          // Simple last-wins accumulation; authoritative merge happens in Catalog constructor
+          collectedCategories[name] = def as CategoryDefinition;
+        }
+      }
+      // Collect _all.field_schemas (same access pattern as category-merger.ts:78-88)
+      const allBlock = (meta.definitions as Record<string, unknown> | undefined)?._all;
+      if (allBlock && typeof allBlock === 'object' && 'field_schemas' in allBlock) {
+        const schemas = (allBlock as { field_schemas?: Record<string, FieldSchemaEntry> }).field_schemas;
+        if (schemas) {
+          Object.assign(collectedAllSchemas, schemas);
+        }
+      }
+    } catch {
+      // Pass 1 errors are non-fatal — pass 2 will surface them properly
+      continue;
+    }
+  }
+
+  // Build full registry with custom categories for pass 2 parsing
+  if (Object.keys(collectedCategories).length > 0 || Object.keys(collectedAllSchemas).length > 0) {
+    const userAll = Object.keys(collectedAllSchemas).length > 0
+      ? { field_schemas: collectedAllSchemas }
+      : undefined;
+    registry = registry.merge(collectedCategories, userAll);
+  }
+
+  // Pass 2: Load all documents with the full registry
   const docCache = new Map<string, ReturnType<typeof loadDocumentFile>>();
   // Index documents by meta.name so `inherits:` can reference them by name
   // even when meta.name differs from the filesystem-relative docPath (e.g.

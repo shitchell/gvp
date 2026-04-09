@@ -19,6 +19,12 @@ export class Document {
    * JSON exports (it's carried on the Document, not in element data).
    */
   private readonly _autoAssignedStepIds: Set<string>;
+  /**
+   * Top-level YAML keys that were present in the document but did not
+   * match `meta` or any known category `yaml_key` at parse time.
+   * Surfaced by the structural pass as W016 UNRECOGNIZED_YAML_KEY.
+   */
+  readonly unrecognizedKeys: string[];
 
   constructor(
     meta: DocumentMeta,
@@ -27,6 +33,7 @@ export class Document {
     documentPath: string,
     source: string,
     autoAssignedStepIds: Set<string> = new Set(),
+    unrecognizedKeys: string[] = [],
   ) {
     this.meta = meta;
     this._elementsByCategory = elementsByCategory;
@@ -34,6 +41,7 @@ export class Document {
     this.documentPath = documentPath;
     this.source = source;
     this._autoAssignedStepIds = new Set(autoAssignedStepIds);
+    this.unrecognizedKeys = [...unrecognizedKeys];
   }
 
   /**

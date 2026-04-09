@@ -86,6 +86,10 @@ export function parseDocument(
     elementsByCategory.set(categoryName, elements);
   }
 
+  // Detect unrecognized top-level YAML keys (not meta, not any known category yaml_key)
+  const knownKeys = new Set(['meta', ...registry.allYamlKeys]);
+  const unrecognizedKeys = Object.keys(data).filter(k => !knownKeys.has(k));
+
   return new Document(
     meta,
     elementsByCategory,
@@ -93,6 +97,7 @@ export function parseDocument(
     documentPath,
     source,
     autoAssignedStepIds,
+    unrecognizedKeys,
   );
 }
 
