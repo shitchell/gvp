@@ -576,6 +576,94 @@ procedures:
     });
   });
 
+  describe('_all.field_schemas rendering (summary)', () => {
+    it('renders summary on a procedure element', () => {
+      writeRoot();
+      writeLib(
+        'guides.yaml',
+        `
+meta:
+  name: guides
+  scope: project
+procedures:
+  - id: S1
+    name: With summary
+    description: Detailed description.
+    summary: Short TL;DR.
+    tags: []
+    maps_to: [root:G1, root:V1]
+`,
+      );
+      const catalog = buildCatalog(defaultConfig, tmpDir);
+      const s1 = catalog.getAllElements().find((e) => e.id === 'S1')!;
+      const md = renderElementMarkdown(s1, catalog);
+      expect(md).toContain('**Summary:**');
+      expect(md).toContain('Short TL;DR.');
+    });
+
+    it('renders summary on a non-procedure element (decision)', () => {
+      writeRoot();
+      writeLib(
+        'decisions.yaml',
+        `
+meta:
+  name: decs
+  scope: project
+decisions:
+  - id: D1
+    name: With summary
+    rationale: Because reasons.
+    summary: Quick overview.
+    tags: []
+    maps_to: [root:G1, root:V1]
+`,
+      );
+      const catalog = buildCatalog(defaultConfig, tmpDir);
+      const d1 = catalog.getAllElements().find((e) => e.id === 'D1')!;
+      const md = renderElementMarkdown(d1, catalog);
+      expect(md).toContain('**Summary:**');
+      expect(md).toContain('Quick overview.');
+    });
+
+    it('omits summary section when the field is not set', () => {
+      writeRoot();
+      const catalog = buildCatalog(defaultConfig, tmpDir);
+      const g1 = catalog.getAllElements().find((e) => e.id === 'G1')!;
+      const md = renderElementMarkdown(g1, catalog);
+      expect(md).not.toContain('**Summary:**');
+    });
+
+    it('renders summary before per-category fields', () => {
+      writeRoot();
+      writeLib(
+        'decisions.yaml',
+        `
+meta:
+  name: decs
+  scope: project
+decisions:
+  - id: D1
+    name: Ordering test
+    rationale: Rationale text.
+    summary: Summary text.
+    tags: []
+    maps_to: [root:G1, root:V1]
+    considered:
+      option_a:
+        rationale: Alternative A.
+`,
+      );
+      const catalog = buildCatalog(defaultConfig, tmpDir);
+      const d1 = catalog.getAllElements().find((e) => e.id === 'D1')!;
+      const md = renderElementMarkdown(d1, catalog);
+      const summaryIdx = md.indexOf('**Summary:**');
+      const consideredIdx = md.indexOf('**Considered alternatives:**');
+      expect(summaryIdx).toBeGreaterThan(-1);
+      expect(consideredIdx).toBeGreaterThan(-1);
+      expect(summaryIdx).toBeLessThan(consideredIdx);
+    });
+  });
+
   describe('generic dispatch — no category-specific branches', () => {
     it('the renderer never hard-codes the word "considered" or "steps"', () => {
       // Read the source of shape-renderer.ts and assert that no

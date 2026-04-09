@@ -83,15 +83,40 @@ export function renderElementMarkdown(
   }
 
   // 5. Dynamic fields in declared order, dispatched by shape.
-  // Per-category fields only — fields declared in `_all` (refs,
-  // priority, etc.) are universal across categories and get fixed
-  // handling (priority is already in the reserved preamble; refs is
-  // currently not rendered by the markdown exporter and will be
-  // surfaced via a dedicated generic preamble step in a future
-  // phase). Skipping `_all` fields here preserves byte-for-byte
-  // parity with the pre-shape-renderer markdown output.
-  const allFieldNames = new Set(Object.keys(catalog.registry.allFieldSchemas));
+  // Two loops: first _all field_schemas (universal fields like
+  // summary), then per-category field_schemas. _all fields render
+  // first because they tend to be high-level metadata (summary)
+  // that should appear before category-specific structure (steps,
+  // considered). Both skip reserved fields (handled in the
+  // preamble) and the primary field (rendered as body above).
+  const allFieldSchemas = catalog.registry.allFieldSchemas;
+  const allFieldNames = new Set(Object.keys(allFieldSchemas));
   const perCategoryFieldSchemas = catDef.field_schemas ?? {};
+
+  // 5a. Universal fields from _all.field_schemas (e.g., summary)
+  for (const [fieldName, schema] of Object.entries(allFieldSchemas)) {
+    if (RESERVED_FIELD_NAMES.has(fieldName)) continue;
+    if (fieldName === primaryField) continue;
+    const value = element.get(fieldName);
+    if (value === undefined || value === null) continue;
+    if (Array.isArray(value) && value.length === 0) continue;
+    if (typeof value === 'object' && !Array.isArray(value) && Object.keys(value as object).length === 0) continue;
+
+    const rendered = renderFieldByShape(
+      displayLabel(fieldName, schema),
+      value,
+      schema,
+      catalog,
+      0,
+      maxDepth,
+    );
+    if (rendered) {
+      lines.push(rendered);
+      lines.push('');
+    }
+  }
+
+  // 5b. Per-category fields (skip _all fields — rendered in 5a)
   for (const [fieldName, schema] of Object.entries(perCategoryFieldSchemas)) {
     if (RESERVED_FIELD_NAMES.has(fieldName)) continue;
     if (allFieldNames.has(fieldName)) continue;

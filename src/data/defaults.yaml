@@ -3,6 +3,10 @@
 
 _all:
   field_schemas:
+    summary:
+      type: string
+      required: false
+      display_name: "Summary"
     priority:
       type: number
       required: false
