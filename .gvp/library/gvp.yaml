@@ -1362,6 +1362,45 @@ decisions:
       - date: "2026-04-08"
         note: "Requested by the claude-worker PM as feature 2 of the PM lifecycle architecture, building on D21 project_id as the registry key. Landed in the same session as D21 since the two features are tightly coupled; registry is useless without stable identity, and D21 is nearly useless without a way to correlate IDs across projects."
 
+  - id: D23
+    name: Scalar example field on procedure steps
+    rationale: >
+      Procedure steps need a dedicated field for concrete code/JSON/prose
+      examples, separate from the description field which carries the
+      "what and why". Scalar string shape chosen over list<model> because
+      YAML anchors handle reuse across steps, and a structured sub-model
+      would be scope creep. Backwards compatible — if a richer shape is
+      needed later, the scalar can be promoted without breaking existing
+      procedures.
+    tags: [framework, tooling]
+    maps_to: [gvp:G9, gvp:V4, gvp:V7, gvp:P15, gvp:R4, gvp:R6, gvp:D19]
+    refs:
+      - file: src/data/defaults.yaml
+        identifier: example
+        role: implements
+    origin:
+      - date: "2026-04-09"
+        note: "Requested by TAStest consumer (chat:tastest-process-element). Implemented as a schema-only change in defaults.yaml — zero source code modifications. R6 compliant: handled entirely by the existing generic shape-dispatch pipeline."
+
+  - id: D24
+    name: File-based field input via --field-file on cairn edit
+    rationale: >
+      AI assistants and scripts need to set rich multi-line field content
+      (descriptions, rationale, examples) without invoking $EDITOR. The
+      --field-file flag reads file contents and sets a top-level element
+      field, following the established CLI pattern from kubectl -F and
+      git commit -F. Scoped to top-level fields only; step-level editing
+      deferred to a separate design conversation.
+    tags: [tooling, usability]
+    maps_to: [gvp:G7, gvp:G9, gvp:V5, gvp:V7, gvp:P7, gvp:D12]
+    refs:
+      - file: src/cli/commands/edit.ts
+        identifier: editCommand
+        role: implements
+    origin:
+      - date: "2026-04-09"
+        note: "Requested by TAStest consumer (chat:tastest-process-element). --field-file wins over --field for the same key (last-write-wins). Uses Commander variadic <entries...> pattern processed as key/path pairs."
+
 constraints:
   - id: C1
     name: Agents optimize for minimal effort
