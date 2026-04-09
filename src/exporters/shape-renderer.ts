@@ -138,6 +138,8 @@ function renderFieldByShape(
 ): string {
   switch (schema.type) {
     case 'string':
+      return renderStringField(label, value);
+
     case 'number':
     case 'boolean':
     case 'enum':
@@ -179,6 +181,11 @@ function displayLabel(fieldName: string, schema: FieldSchemaEntry): string {
 
 function renderScalarField(label: string, value: unknown): string {
   return `**${label}:** ${String(value)}`;
+}
+
+function renderStringField(label: string, value: unknown): string {
+  const text = String(value);
+  return `**${label}:**\n\n${text}`;
 }
 
 function renderReferenceField(

@@ -386,7 +386,43 @@ procedures:
       const catalog = buildCatalog(defaultConfig, tmpDir);
       const s1 = catalog.getAllElements().find((e) => e.id === 'S1')!;
       const md = renderElementMarkdown(s1, catalog);
-      expect(md).toContain('**Example:** expect(result).toBe(42);');
+      expect(md).toContain('**Example:**');
+      expect(md).toContain('expect(result).toBe(42);');
+    });
+
+    it('emits label on its own line when string content starts with a code fence', () => {
+      writeRoot();
+      writeLib(
+        'guides.yaml',
+        `
+meta:
+  name: guides
+  scope: project
+procedures:
+  - id: S1
+    name: Code fence example
+    description: Example with code fence.
+    tags: []
+    maps_to: [root:G1, root:V1]
+    steps:
+      - id: S1.1
+        name: Run the command
+        description: Execute it.
+        example: |
+          \`\`\`bash
+          echo "hello"
+          \`\`\`
+`,
+      );
+      const catalog = buildCatalog(defaultConfig, tmpDir);
+      const s1 = catalog.getAllElements().find((e) => e.id === 'S1')!;
+      const md = renderElementMarkdown(s1, catalog);
+      // The label must NOT be on the same line as the opening fence —
+      // CommonMark requires the fence marker to start a line.
+      expect(md).not.toMatch(/\*\*Example:\*\* \`\`\`/);
+      // The fence should appear on its own line (with possible indent)
+      expect(md).toMatch(/\`\`\`bash/m);
+      expect(md).toContain('echo "hello"');
     });
   });
 
@@ -488,8 +524,9 @@ procedures:
       expect(md).toContain('Guide for creating a net-new test file.');
       // Element-level maps_to (reserved inline preamble)
       expect(md).toContain('**Maps to:** root:G1, root:V1');
-      // when (string scalar via title-cased label)
-      expect(md).toContain('**When:** Starting a new test');
+      // when (string scalar — label on its own line, content below)
+      expect(md).toContain('**When:**');
+      expect(md).toContain('Starting a new test');
       // related (list<reference> with resolved names)
       expect(md).toContain('**Related:**');
       expect(md).toContain('root:V1 — *Simplicity*');
