@@ -361,6 +361,33 @@ procedures:
       expect(md).not.toMatch(/^\`\`\`json/m);
       expect(md).not.toMatch(/^\`\`\`$/m);
     });
+
+    it('renders a step example field as a scalar via shape dispatch', () => {
+      writeRoot();
+      writeLib(
+        'guides.yaml',
+        `
+meta:
+  name: guides
+  scope: project
+procedures:
+  - id: S1
+    name: With example
+    description: Example rendering.
+    tags: []
+    maps_to: [root:G1, root:V1]
+    steps:
+      - id: S1.1
+        name: Write the test
+        description: Use expect().
+        example: "expect(result).toBe(42);"
+`,
+      );
+      const catalog = buildCatalog(defaultConfig, tmpDir);
+      const s1 = catalog.getAllElements().find((e) => e.id === 'S1')!;
+      const md = renderElementMarkdown(s1, catalog);
+      expect(md).toContain('**Example:** expect(result).toBe(42);');
+    });
   });
 
   describe('list<reference> shape (procedure related)', () => {

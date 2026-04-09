@@ -131,6 +131,10 @@ categories:
             description:
               type: string
               required: false
+            example:
+              type: string
+              required: false
+              display_name: "Example"
             maps_to:
               type: list
               required: false

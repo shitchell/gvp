@@ -455,4 +455,66 @@ procedures:
       );
     });
   });
+
+  describe('step example field', () => {
+    it('step example field round-trips on the procedure element', () => {
+      writeRootDoc();
+      writeLib(
+        'guides.yaml',
+        `
+meta:
+  name: guides
+  scope: project
+
+procedures:
+  - id: S1
+    name: With example steps
+    description: Has example on steps.
+    tags: []
+    maps_to: [root:G1, root:V1]
+    steps:
+      - id: S1.1
+        name: Write the assertion
+        description: Use expect() to verify.
+        example: "expect(result).toBe(42);"
+`,
+      );
+      const catalog = buildCatalog(defaultConfig, tmpDir);
+      const el = catalog.getAllElements().find((e) => e.id === 'S1')!;
+      const steps = el.get('steps') as Array<Record<string, unknown>>;
+      expect(steps[0]!.example).toBe('expect(result).toBe(42);');
+    });
+
+    it('step with example validates without errors', () => {
+      writeRootDoc();
+      writeLib(
+        'guides.yaml',
+        `
+meta:
+  name: guides
+  scope: project
+
+procedures:
+  - id: S1
+    name: With example
+    description: Example test.
+    tags: []
+    maps_to: [root:G1, root:V1]
+    steps:
+      - id: S1.1
+        name: First step
+        example: "some example text"
+`,
+      );
+      const catalog = buildCatalog(defaultConfig, tmpDir);
+      const diagnostics = runValidation(
+        catalog,
+        defaultConfig,
+        allPasses,
+        passNames,
+      );
+      const errors = diagnostics.filter((d) => d.severity === 'error');
+      expect(errors).toHaveLength(0);
+    });
+  });
 });
