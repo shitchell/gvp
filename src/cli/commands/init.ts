@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import * as fs from 'fs';
 import * as path from 'path';
-import { getLibraryOverride } from '../helpers.js';
+import { getLibraryOverride, getStoreOverride } from '../helpers.js';
 
 export function initCommand(): Command {
   const cmd = new Command('init')
@@ -17,9 +17,15 @@ export function initCommand(): Command {
       // of `<cwd>/.gvp/library/` — matching how cairn has always
       // initialized new libraries.
       const libraryOverride = getLibraryOverride(cmd);
-      const libDir = libraryOverride
-        ? path.resolve(process.cwd(), libraryOverride)
-        : path.join(process.cwd(), '.gvp', 'library');
+      const storeOverride = getStoreOverride(cmd);
+      let libDir: string;
+      if (libraryOverride) {
+        libDir = path.resolve(process.cwd(), libraryOverride);
+      } else if (storeOverride) {
+        libDir = path.join(path.resolve(process.cwd(), storeOverride), '.gvp', 'library');
+      } else {
+        libDir = path.join(process.cwd(), '.gvp', 'library');
+      }
       if (fs.existsSync(libDir)) {
         console.error(`${libDir} already exists`);
         process.exit(1);

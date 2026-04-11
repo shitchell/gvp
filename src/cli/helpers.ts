@@ -37,11 +37,26 @@ import * as yaml from 'js-yaml';
 export function parseConfigOptions(cmd: Command): { config: GVPConfig; configOptions: LoadConfigOptions } {
   const opts = cmd.optsWithGlobals();
 
+  // Resolve --store path if provided
+  const storeOverride = typeof opts.store === 'string' ? opts.store : undefined;
+  let storePath: string | undefined;
+  if (storeOverride !== undefined) {
+    storePath = path.resolve(process.cwd(), storeOverride);
+    if (!fs.existsSync(storePath)) {
+      console.error(`Store directory does not exist: ${storeOverride}`);
+      process.exit(1);
+    }
+    const gvpDir = path.join(storePath, '.gvp');
+    if (!fs.existsSync(gvpDir)) {
+      console.error(`Store directory has no .gvp/ subdirectory: ${storeOverride}`);
+      process.exit(1);
+    }
+  }
+
   // Phase 1 of preflight: project_id identity backfill. Runs BEFORE
   // loadConfig so a freshly backfilled project_id is visible to the
-  // config we're about to load. No-op when no .gvp/ exists in cwd's
-  // ancestry. Idempotent when project_id already exists.
-  const preflight = runProjectPreflight(process.cwd());
+  // config we're about to load. Target store path if set, otherwise CWD.
+  const preflight = runProjectPreflight(storePath ?? process.cwd());
 
   const inlineOverrides: Record<string, string> = {};
   if (opts.override) {
@@ -57,6 +72,7 @@ export function parseConfigOptions(cmd: Command): { config: GVPConfig; configOpt
     configPath: opts.config === false ? undefined : opts.config as string | undefined,
     noConfig: opts.config === false,
     inlineOverrides: Object.keys(inlineOverrides).length > 0 ? inlineOverrides : undefined,
+    storePath,
   };
 
   const config = loadConfig(configOptions);
@@ -90,6 +106,17 @@ export function getLibraryOverride(cmd: Command): string | undefined {
 }
 
 /**
+ * Read the `--store <path>` global option from a command and return
+ * it as a string, or undefined if not set. This is the input to
+ * `buildCatalog`'s `storeOverride` parameter. Centralized so every
+ * subcommand reads the same option name consistently.
+ */
+export function getStoreOverride(cmd: Command): string | undefined {
+  const value = cmd.optsWithGlobals().store;
+  return typeof value === 'string' ? value : undefined;
+}
+
+/**
  * Build a Catalog from the current working directory, or from an
  * explicit library path override.
  *
@@ -109,15 +136,18 @@ export function buildCatalog(
   config: GVPConfig,
   cwd: string = process.cwd(),
   libraryOverride?: string,
+  storeOverride?: string,
 ): Catalog {
   const defaults = loadDefaults();
   let registry = CategoryRegistry.fromDefaults(defaults);
 
   // Resolve the library directory.
   // If --library was passed, use it directly (no walk-back).
+  // If --store was passed without --library, derive library from store.
   // Otherwise, walk backwards from cwd looking for .gvp/library/.
   let libraryDir: string | undefined;
   if (libraryOverride !== undefined) {
+    // --library: use directly (existing behavior, unchanged)
     const resolved = path.resolve(cwd, libraryOverride);
     if (!fs.existsSync(resolved)) {
       console.error(`Library directory does not exist: ${libraryOverride}`);
@@ -129,7 +159,17 @@ export function buildCatalog(
       process.exit(1);
     }
     libraryDir = resolved;
+  } else if (storeOverride !== undefined) {
+    // --store without --library: derive library from store path
+    const resolved = path.resolve(cwd, storeOverride);
+    const storeLib = path.join(resolved, '.gvp', 'library');
+    if (!fs.existsSync(storeLib)) {
+      console.error(`Store has no library directory: ${path.join(storeOverride, '.gvp', 'library')}`);
+      process.exit(1);
+    }
+    libraryDir = storeLib;
   } else {
+    // Walk backwards from cwd (existing behavior, unchanged)
     let current = path.resolve(cwd);
     while (true) {
       const gvpLib = path.join(current, '.gvp', 'library');

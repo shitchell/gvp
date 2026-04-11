@@ -25,6 +25,7 @@ program
   .option('--no-config', 'Skip all config files')
   .option('-c, --override <key=value...>', 'Inline config override (highest precedence)')
   .option('--library <path>', 'Load library from this directory instead of discovering from CWD')
+  .option('--store <path>', 'Use this directory as the GVP store root (contains .gvp/)')
   .option('--strict', 'Promote warnings to errors')
   .option('-v, --verbose', 'Verbose output (-v, -vv, -vvv)', (_: string, prev: number) => (prev ?? 0) + 1, 0);
 

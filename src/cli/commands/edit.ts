@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import * as fs from 'fs';
 import * as yaml from 'js-yaml';
 import { randomUUID } from 'crypto';
-import { parseConfigOptions, buildCatalog, requireUserIdentity, getLibraryOverride } from '../helpers.js';
+import { parseConfigOptions, buildCatalog, requireUserIdentity, getLibraryOverride, getStoreOverride } from '../helpers.js';
 
 export function editCommand(): Command {
   const cmd = new Command('edit')
@@ -15,7 +15,7 @@ export function editCommand(): Command {
     .action(async (elementArg: string) => {
       try {
         const { config } = parseConfigOptions(cmd);
-        const catalog = buildCatalog(config, process.cwd(), getLibraryOverride(cmd));
+        const catalog = buildCatalog(config, process.cwd(), getLibraryOverride(cmd), getStoreOverride(cmd));
         const opts = cmd.opts();
 
         const element = catalog.getAllElements().find(e =>

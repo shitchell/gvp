@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { parseConfigOptions, buildCatalog, resolveDocumentFilter, filterElementsByDocument, getLibraryOverride } from '../helpers.js';
+import { parseConfigOptions, buildCatalog, resolveDocumentFilter, filterElementsByDocument, getLibraryOverride, getStoreOverride } from '../helpers.js';
 import { createExporterRegistry } from '../../exporters/registry.js';
 
 export function queryCommand(): Command {
@@ -16,7 +16,7 @@ export function queryCommand(): Command {
     .action(async () => {
       try {
         const { config } = parseConfigOptions(cmd);
-        const catalog = buildCatalog(config, process.cwd(), getLibraryOverride(cmd));
+        const catalog = buildCatalog(config, process.cwd(), getLibraryOverride(cmd), getStoreOverride(cmd));
         const opts = cmd.opts();
 
         let elements = catalog.getAllElements();

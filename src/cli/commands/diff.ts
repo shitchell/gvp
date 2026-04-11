@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { parseConfigOptions, buildCatalog, getLibraryOverride } from '../helpers.js';
+import { parseConfigOptions, buildCatalog, getLibraryOverride, getStoreOverride } from '../helpers.js';
 import { traceGitDiff, formatDiffTrace } from '../../refs/git-diff-tracer.js';
 import * as path from 'path';
 
@@ -13,7 +13,7 @@ export function diffCommand(): Command {
     .action(async (commitA?: string, commitB?: string) => {
       try {
         const { config } = parseConfigOptions(cmd);
-        const catalog = buildCatalog(config, process.cwd(), getLibraryOverride(cmd));
+        const catalog = buildCatalog(config, process.cwd(), getLibraryOverride(cmd), getStoreOverride(cmd));
         const opts = cmd.opts();
 
         let a: string;

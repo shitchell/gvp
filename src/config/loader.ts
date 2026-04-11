@@ -14,8 +14,10 @@ export interface ConfigPaths {
 
 /**
  * Discover config files by walking backwards from cwd (CFG-1, DEC-8.9).
+ * When storePath is provided, use it directly for project/local config
+ * discovery instead of walk-back.
  */
-export function discoverConfigPaths(cwd: string = process.cwd()): ConfigPaths {
+export function discoverConfigPaths(cwd: string = process.cwd(), storePath?: string): ConfigPaths {
   const paths: ConfigPaths = {};
 
   // System config
@@ -30,17 +32,26 @@ export function discoverConfigPaths(cwd: string = process.cwd()): ConfigPaths {
   }
 
   // Walk backwards for project and local configs
-  let current = path.resolve(cwd);
-  while (true) {
-    const projectPath = path.join(current, '.gvp', 'config.yaml');
-    const localPath = path.join(current, '.gvp.yaml');
+  if (storePath) {
+    // --store: use store path directly instead of walk-back
+    const projectPath = path.join(storePath, '.gvp', 'config.yaml');
+    const localPath = path.join(storePath, '.gvp.yaml');
+    if (fs.existsSync(projectPath)) paths.project = projectPath;
+    if (fs.existsSync(localPath)) paths.local = localPath;
+  } else {
+    // Default: walk backwards from cwd
+    let current = path.resolve(cwd);
+    while (true) {
+      const projectPath = path.join(current, '.gvp', 'config.yaml');
+      const localPath = path.join(current, '.gvp.yaml');
 
-    if (!paths.project && fs.existsSync(projectPath)) paths.project = projectPath;
-    if (!paths.local && fs.existsSync(localPath)) paths.local = localPath;
+      if (!paths.project && fs.existsSync(projectPath)) paths.project = projectPath;
+      if (!paths.local && fs.existsSync(localPath)) paths.local = localPath;
 
-    const parent = path.dirname(current);
-    if (parent === current) break; // filesystem root
-    current = parent;
+      const parent = path.dirname(current);
+      if (parent === current) break; // filesystem root
+      current = parent;
+    }
   }
 
   return paths;
@@ -174,6 +185,8 @@ export interface LoadConfigOptions {
   inlineOverrides?: Record<string, string>;
   /** Working directory for discovery */
   cwd?: string;
+  /** Store root path (--store flag): use for project/local config discovery instead of walk-back */
+  storePath?: string;
 }
 
 /**
@@ -198,7 +211,7 @@ export function loadConfig(options: LoadConfigOptions = {}): GVPConfig {
     raw = loadConfigFile(options.configPath);
   } else {
     // Normal discovery
-    let paths = discoverConfigPaths(options.cwd);
+    let paths = discoverConfigPaths(options.cwd, options.storePath);
     paths = applyEnvVarOverrides(paths);
 
     // Load in priority order: system, global, project, local

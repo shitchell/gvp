@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import * as fs from 'fs';
 import * as yaml from 'js-yaml';
 import { randomUUID } from 'crypto';
-import { parseConfigOptions, buildCatalog, requireUserIdentity, getLibraryOverride } from '../helpers.js';
+import { parseConfigOptions, buildCatalog, requireUserIdentity, getLibraryOverride, getStoreOverride } from '../helpers.js';
 import { isStale, getUnreviewedUpdates } from '../../provenance/staleness.js';
 import { computeReviewHash, validateReviewHash } from '../../provenance/review-hash.js';
 
@@ -17,7 +17,7 @@ export function reviewCommand(): Command {
     .action(async (elementId?: string) => {
       try {
         const { config } = parseConfigOptions(cmd);
-        const catalog = buildCatalog(config, process.cwd(), getLibraryOverride(cmd));
+        const catalog = buildCatalog(config, process.cwd(), getLibraryOverride(cmd), getStoreOverride(cmd));
         const opts = cmd.opts();
 
         if (!elementId) {
