@@ -1441,6 +1441,36 @@ decisions:
       - date: "2026-04-09"
         note: "Requested by TAStest consumer (chat:tastest-process-element). Guy pre-approved. Enables explicit short-form representation for all elements without truncation."
 
+  - id: D26
+    name: --store flag for explicit GVP store root addressing
+    rationale: >
+      The .gvp/ directory (containing config.yaml, library/, and project
+      state) and the library/ subdirectory were conflated under the name
+      "library". The --library flag only addresses the document directory;
+      config discovery always walks back from CWD. Non-CWD libraries had
+      no way to reach their own config. The --store flag resolves this by
+      pointing at the parent directory containing .gvp/, mirroring how git
+      and npm point at the project directory rather than their state
+      directories. "Store" was chosen because the docs already use "GVP
+      store" in 10+ places. The flag hierarchy is explicit: --store governs
+      both config and library by default; --library overrides just the
+      library path; --config overrides just the config path.
+    tags: [tooling, usability]
+    maps_to: [gvp:G9, gvp:V6, gvp:P7, gvp:P14, gvp:D1]
+    refs:
+      - file: src/cli/index.ts
+        identifier: program
+        role: implements
+      - file: src/cli/helpers.ts
+        identifier: getStoreOverride
+        role: implements
+      - file: src/config/loader.ts
+        identifier: discoverConfigPaths
+        role: implements
+    origin:
+      - date: "2026-04-11"
+        note: "Guy pre-approved the concept, routed via claude-worker PM. Design review confirmed 'store' as the canonical name matching existing docs terminology. Ticket 015."
+
 constraints:
   - id: C1
     name: Agents optimize for minimal effort
