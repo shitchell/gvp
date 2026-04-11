@@ -1449,12 +1449,17 @@ decisions:
       "library". The --library flag only addresses the document directory;
       config discovery always walks back from CWD. Non-CWD libraries had
       no way to reach their own config. The --store flag resolves this by
-      pointing at the parent directory containing .gvp/, mirroring how git
-      and npm point at the project directory rather than their state
-      directories. "Store" was chosen because the docs already use "GVP
-      store" in 10+ places. The flag hierarchy is explicit: --store governs
-      both config and library by default; --library overrides just the
-      library path; --config overrides just the config path.
+      pointing at the store directory itself (the .gvp/ directory), which
+      directly contains config.yaml and library/. The flag does NOT point
+      at the parent project directory -- the .gvp/ directory IS the store,
+      and the parent is the project directory (revised per human feedback:
+      the initial design appended .gvp/ to the path, but Guy corrected
+      this -- pointing at the store directly is more explicit and avoids
+      magic path appending). "Store" was chosen because the docs already
+      use "GVP store" in 10+ places. The flag hierarchy is explicit:
+      --store governs both config and library by default; --library
+      overrides just the library path; --config overrides just the config
+      path.
     tags: [tooling, usability]
     maps_to: [gvp:G9, gvp:V6, gvp:P7, gvp:P14, gvp:D1]
     refs:
@@ -1469,7 +1474,7 @@ decisions:
         role: implements
     origin:
       - date: "2026-04-11"
-        note: "Guy pre-approved the concept, routed via claude-worker PM. Design review confirmed 'store' as the canonical name matching existing docs terminology. Ticket 015."
+        note: "Guy pre-approved the concept, routed via claude-worker PM. Design review confirmed 'store' as the canonical name matching existing docs terminology. Revised post-implementation: --store points at the store directory itself (not parent), per human feedback that the .gvp/ dir IS the store. Ticket 015."
 
 constraints:
   - id: C1
