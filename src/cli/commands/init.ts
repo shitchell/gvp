@@ -22,7 +22,7 @@ export function initCommand(): Command {
       if (libraryOverride) {
         libDir = path.resolve(process.cwd(), libraryOverride);
       } else if (storeOverride) {
-        libDir = path.join(path.resolve(process.cwd(), storeOverride), '.gvp', 'library');
+        libDir = path.join(path.resolve(process.cwd(), storeOverride), 'library');
       } else {
         libDir = path.join(process.cwd(), '.gvp', 'library');
       }

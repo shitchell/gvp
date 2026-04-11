@@ -46,11 +46,6 @@ export function parseConfigOptions(cmd: Command): { config: GVPConfig; configOpt
       console.error(`Store directory does not exist: ${storeOverride}`);
       process.exit(1);
     }
-    const gvpDir = path.join(storePath, '.gvp');
-    if (!fs.existsSync(gvpDir)) {
-      console.error(`Store directory has no .gvp/ subdirectory: ${storeOverride}`);
-      process.exit(1);
-    }
   }
 
   // Phase 1 of preflight: project_id identity backfill. Runs BEFORE
@@ -160,11 +155,11 @@ export function buildCatalog(
     }
     libraryDir = resolved;
   } else if (storeOverride !== undefined) {
-    // --store without --library: derive library from store path
+    // --store without --library: derive library from store directory
     const resolved = path.resolve(cwd, storeOverride);
-    const storeLib = path.join(resolved, '.gvp', 'library');
+    const storeLib = path.join(resolved, 'library');
     if (!fs.existsSync(storeLib)) {
-      console.error(`Store has no library directory: ${path.join(storeOverride, '.gvp', 'library')}`);
+      console.error(`Store has no library directory: ${path.join(storeOverride, 'library')}`);
       process.exit(1);
     }
     libraryDir = storeLib;

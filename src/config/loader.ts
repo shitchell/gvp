@@ -33,11 +33,9 @@ export function discoverConfigPaths(cwd: string = process.cwd(), storePath?: str
 
   // Walk backwards for project and local configs
   if (storePath) {
-    // --store: use store path directly instead of walk-back
-    const projectPath = path.join(storePath, '.gvp', 'config.yaml');
-    const localPath = path.join(storePath, '.gvp.yaml');
+    // --store: store IS the .gvp/ directory; config.yaml lives directly inside
+    const projectPath = path.join(storePath, 'config.yaml');
     if (fs.existsSync(projectPath)) paths.project = projectPath;
-    if (fs.existsSync(localPath)) paths.local = localPath;
   } else {
     // Default: walk backwards from cwd
     let current = path.resolve(cwd);

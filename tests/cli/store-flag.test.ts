@@ -15,10 +15,14 @@ describe('--store flag', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  /** Create a valid GVP store at a path under tmpDir. Returns the store root. */
+  /**
+   * Create a valid GVP store directory. The store IS the .gvp/ directory
+   * itself — it directly contains config.yaml and library/.
+   * Returns the store path.
+   */
   function createStore(name: string): string {
-    const storeRoot = path.join(tmpDir, name);
-    const libDir = path.join(storeRoot, '.gvp', 'library');
+    const storeDir = path.join(tmpDir, name);
+    const libDir = path.join(storeDir, 'library');
     fs.mkdirSync(libDir, { recursive: true });
     fs.writeFileSync(
       path.join(libDir, 'main.yaml'),
@@ -34,7 +38,7 @@ goals:
     maps_to: []
 `,
     );
-    return storeRoot;
+    return storeDir;
   }
 
   function runCairn(...args: string[]): { stdout: string; stderr: string; exitCode: number } {
@@ -52,10 +56,10 @@ goals:
   }
 
   it('--store alone discovers config and library from store path', () => {
-    const store = createStore('myproject');
-    // Add a config with suppress_diagnostics to prove it's picked up
+    const store = createStore('mystore');
+    // Add config directly inside the store (the store IS the .gvp/ dir)
     fs.writeFileSync(
-      path.join(store, '.gvp', 'config.yaml'),
+      path.join(store, 'config.yaml'),
       'suppress_diagnostics: ["W005"]\n',
     );
     const result = runCairn('validate', '--store', store);
@@ -68,7 +72,7 @@ goals:
   it('--store + --library: config from store, library from --library', () => {
     const store = createStore('configsource');
     fs.writeFileSync(
-      path.join(store, '.gvp', 'config.yaml'),
+      path.join(store, 'config.yaml'),
       'suppress_diagnostics: ["W005"]\n',
     );
     // Create a separate library directory
@@ -98,7 +102,7 @@ goals:
     const store = createStore('libsource');
     // Store config suppresses W005
     fs.writeFileSync(
-      path.join(store, '.gvp', 'config.yaml'),
+      path.join(store, 'config.yaml'),
       'suppress_diagnostics: ["W005"]\n',
     );
     // Explicit config does NOT suppress W005
@@ -116,16 +120,17 @@ goals:
     expect(result.stderr).toContain('does not exist');
   });
 
-  it('errors when store path has no .gvp/ subdirectory', () => {
-    const noGvp = path.join(tmpDir, 'nogvp');
-    fs.mkdirSync(noGvp);
-    const result = runCairn('validate', '--store', noGvp);
+  it('errors when store has no library/ subdirectory', () => {
+    // Create a directory but don't put library/ in it
+    const emptyStore = path.join(tmpDir, 'emptystore');
+    fs.mkdirSync(emptyStore);
+    const result = runCairn('validate', '--store', emptyStore);
     expect(result.exitCode).not.toBe(0);
-    expect(result.stderr).toContain('.gvp/');
+    expect(result.stderr).toContain('library');
   });
 
   it('no flags: CWD behavior unchanged (regression)', () => {
-    // Create a store at tmpDir itself (CWD) so the walk-back finds it
+    // Create a standard project layout at tmpDir so CWD walk-back finds it
     const libDir = path.join(tmpDir, '.gvp', 'library');
     fs.mkdirSync(libDir, { recursive: true });
     fs.writeFileSync(
