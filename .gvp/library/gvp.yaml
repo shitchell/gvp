@@ -1512,6 +1512,29 @@ decisions:
       - date: "2026-04-11"
         note: "Guy pre-approved the concept, routed via claude-worker PM. Design review confirmed 'store' as the canonical name matching existing docs terminology. Revised post-implementation: --store points at the store directory itself (not parent), per human feedback that the .gvp/ dir IS the store. Ticket 015."
 
+  - id: D27
+    name: cairn import command with candidate elements and multi-document patches
+    rationale: >
+      Building prototype GVP libraries requires drafting elements in formal
+      YAML that can be reviewed, refined, then imported cleanly. Manual YAML
+      edits bypass validation and miss origin/timestamp tracking. The import
+      command accepts patch files with ?-prefixed pseudo-IDs, auto-assigns
+      sequential real IDs, rewrites cross-references generically (R6), adds
+      provenance automatically (P1), and shows a preview before writing (P4).
+      Two modes: single-file with --into for quick additions, and directory
+      mode where file structure mirrors library structure for full
+      restructuring operations. Element deprecation follows R2, document
+      deletion requires explicit manifest + --confirm-delete flag.
+    tags: [tooling, usability]
+    maps_to: [gvp:G7, gvp:G9, gvp:V4, gvp:V9, gvp:P1, gvp:P4, gvp:P14, gvp:R2, gvp:R6]
+    refs:
+      - file: src/cli/commands/import.ts
+        identifier: importCommand
+        role: implements
+    origin:
+      - date: "2026-04-13"
+        note: "RHC consumer + Guy (human-approved). Design reviewed through S1 process. Ticket 017."
+
 constraints:
   - id: C1
     name: Agents optimize for minimal effort
