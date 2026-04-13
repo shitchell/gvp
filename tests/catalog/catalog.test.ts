@@ -296,6 +296,40 @@ describe('Catalog', () => {
   });
 });
 
+describe('E006 CATALOG_ELEMENT_DROP invariant', () => {
+  it('throws CatalogError when elements are silently dropped (duplicate hashKeys)', () => {
+    // Two documents with the same source and documentPath containing
+    // elements with the same id → same hashKey → Map overwrites silently
+    const doc1 = makeDoc('shared', {
+      elements: [
+        { categoryName: 'goal', data: { id: 'G1', name: 'First', status: 'active' } },
+      ],
+    });
+    const doc2 = makeDoc('shared', {
+      elements: [
+        { categoryName: 'goal', data: { id: 'G1', name: 'Duplicate', status: 'active' } },
+      ],
+    });
+    const resolved: ResolvedInheritance = {
+      orderedDocuments: [doc1, doc2],
+      aliasMap: new Map(),
+      sccs: [],
+    };
+    expect(() => new Catalog(resolved, defaultConfig)).toThrow(CatalogError);
+    expect(() => new Catalog(resolved, defaultConfig)).toThrow(/CATALOG_ELEMENT_DROP/);
+  });
+
+  it('does not throw for a normal catalog build (regression)', () => {
+    const doc = makeDoc('main', {
+      elements: [
+        { categoryName: 'goal', data: { id: 'G1', name: 'Goal', status: 'active' } },
+        { categoryName: 'value', data: { id: 'V1', name: 'Value', status: 'active' } },
+      ],
+    });
+    expect(() => new Catalog(singleDocResolved(doc), defaultConfig)).not.toThrow();
+  });
+});
+
 describe('mergeDefinitions', () => {
   it('descendant-wins: later document overrides category field_schemas', () => {
     const ancestor = makeDoc('ancestor', {

@@ -3,6 +3,7 @@ import type { Element } from '../model/element.js';
 import type { ResolvedInheritance } from '../inheritance/inheritance-resolver.js';
 import type { GVPConfig } from '../config/schema.js';
 import { CategoryRegistry } from '../model/category-registry.js';
+import { CatalogError } from '../errors.js';
 import { loadDefaults } from '../schema/defaults-loader.js';
 import {
   mergeDefinitions,
@@ -81,13 +82,25 @@ export class Catalog {
     // Step 4: Index all elements
     this._elements = new Map();
     this._elementsByCategory = new Map();
+    let totalDocElements = 0;
     for (const doc of this._documents) {
       for (const element of doc.getAllElements()) {
         this._elements.set(element.hashKey(), element);
         const catElements = this._elementsByCategory.get(element.categoryName) ?? [];
         catElements.push(element);
         this._elementsByCategory.set(element.categoryName, catElements);
+        totalDocElements++;
       }
+    }
+
+    // E006: Invariant guard — no silent element drops (P13).
+    // If documents contain more elements than the index, something
+    // was silently overwritten (e.g., duplicate hashKeys across
+    // documents). This is a bug, not a user error.
+    if (this._elements.size !== totalDocElements) {
+      throw new CatalogError(
+        `E006 CATALOG_ELEMENT_DROP: documents contain ${totalDocElements} elements but catalog indexed ${this._elements.size}. This is a bug — elements were silently lost during catalog construction.`,
+      );
     }
   }
 
