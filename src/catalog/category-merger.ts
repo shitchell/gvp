@@ -2,7 +2,7 @@ import type { Document } from '../model/document.js';
 import type { CategoryDefinition } from '../schema/category-definition.js';
 import type { FieldSchemaEntry } from '../schema/field-schema.js';
 
-export interface LibraryDefinitionSnapshot {
+export interface SourceDefinitionSnapshot {
   categories: Record<string, CategoryDefinition>;
   tags: Record<string, { description: string }>;
 }
@@ -11,7 +11,7 @@ export interface MergedDefinitions {
   categories: Record<string, CategoryDefinition>;
   tags: Record<string, { description: string }>;
   allFieldSchemas: Record<string, FieldSchemaEntry>;
-  librarySnapshots: Map<string, LibraryDefinitionSnapshot>;
+  sourceSnapshots: Map<string, SourceDefinitionSnapshot>;
 }
 
 /**
@@ -37,7 +37,7 @@ export function mergeDefinitions(
   const mergedCategories: Record<string, CategoryDefinition> = {};
   const mergedTags: Record<string, { description: string }> = {};
   const mergedAll: Record<string, FieldSchemaEntry> = {};
-  const librarySnapshots = new Map<string, LibraryDefinitionSnapshot>();
+  const sourceSnapshots = new Map<string, SourceDefinitionSnapshot>();
 
   // Iterate in the direction where the winner comes LAST
   // descendant-wins: iterate ancestors first, descendants overwrite
@@ -89,8 +89,8 @@ export function mergeDefinitions(
     }
 
     // Capture per-library snapshot (DEC-2.12)
-    if (!librarySnapshots.has(doc.source)) {
-      librarySnapshots.set(doc.source, {
+    if (!sourceSnapshots.has(doc.source)) {
+      sourceSnapshots.set(doc.source, {
         categories: { ...mergedCategories },
         tags: { ...mergedTags },
       });
@@ -101,6 +101,6 @@ export function mergeDefinitions(
     categories: mergedCategories,
     tags: mergedTags,
     allFieldSchemas: mergedAll,
-    librarySnapshots,
+    sourceSnapshots,
   };
 }

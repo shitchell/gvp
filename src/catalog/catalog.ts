@@ -7,7 +7,7 @@ import { loadDefaults } from '../schema/defaults-loader.js';
 import {
   mergeDefinitions,
   type MergedDefinitions,
-  type LibraryDefinitionSnapshot,
+  type SourceDefinitionSnapshot,
 } from './category-merger.js';
 import { validateMergedCategories } from './post-merge-validation.js';
 import {
@@ -121,9 +121,9 @@ export class Catalog {
     return this._mergedDefinitions.tags;
   }
 
-  /** Get per-library definition snapshot (DEC-2.12) */
-  getLibrarySnapshot(source: string): LibraryDefinitionSnapshot | undefined {
-    return this._mergedDefinitions.librarySnapshots.get(source);
+  /** Get per-source definition snapshot (DEC-2.12) */
+  getSourceSnapshot(source: string): SourceDefinitionSnapshot | undefined {
+    return this._mergedDefinitions.sourceSnapshots.get(source);
   }
 
   /** Build ancestors graph for an element (DEC-6.1, DEC-6.5) */

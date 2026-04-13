@@ -282,7 +282,7 @@ describe('Catalog', () => {
     expect(catalog.config.strict).toBe(true); // other keys still work
   });
 
-  it('provides library snapshots (DEC-2.12)', () => {
+  it('provides source snapshots (DEC-2.12)', () => {
     const doc = makeDoc('main', {
       definitions: {
         tags: { important: { description: 'Important stuff' } },
@@ -290,7 +290,7 @@ describe('Catalog', () => {
     });
 
     const catalog = new Catalog(singleDocResolved(doc), defaultConfig);
-    const snapshot = catalog.getLibrarySnapshot('@local');
+    const snapshot = catalog.getSourceSnapshot('@local');
     expect(snapshot).toBeDefined();
     expect(snapshot!.tags.important).toBeDefined();
   });
