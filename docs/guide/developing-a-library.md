@@ -16,6 +16,25 @@ The ideal GVP graph has well-defined heuristics for every recurring decision, an
 
 In practice, not every design choice will have a corresponding heuristic — not because they don't trace back to one, but because the effort to painstakingly map every heuristic for every one-off decision might not add proportional value to the map. But when you notice a pattern in your decision-making, formalize it as a heuristic and link the design choices that follow from it. This makes it much easier for collaborators (human or AI) to make aligned changes, and much easier to review whether past decisions still hold.
 
+## Decompose to the Deepest Guiding Element
+
+When recording a new decision or heuristic, decompose the solution rationale to its most domain-agnostic guiding element before recording. A surface-level heuristic yields value for one scenario; identifying the underlying principle yields aligned decisions across domains and contexts not yet encountered.
+
+This is DRY applied to guiding elements: duplicating reasoning across scenario-specific heuristics is like copy-pasting code — it creates maintenance burden and drift when the underlying logic evolves. Decompose to a shared broad element extended by domain-specific files, so changes propagate from one place.
+
+**Example.** Consider a CLI tool where you decide "prefer fewer subcommands with flags over many subcommands":
+
+- **Surface-level heuristic:** "consolidated CLI design — prefer fewer subcommands with flags." Useful for this CLI, but doesn't help when you're designing an API, a config file format, or a documentation structure.
+- **Decomposed:** A domain-agnostic value like "Discoverability" → a principle like "consolidated interface design" that applies to CLIs, APIs, config formats, and any interface where users need to find functionality. The value applies to graphic design projects, finance dashboards, documentation structure — not just CLIs.
+
+The decomposed form serves three purposes:
+
+1. **Reuse.** The same principle guides decisions in domains you haven't encountered yet.
+2. **Maintenance.** When the underlying reasoning evolves ("actually, discoverability is less important than learnability in this context"), you update one element, not every scenario-specific heuristic that encoded the same logic.
+3. **Alignment.** Collaborators (human or AI) encountering a new decision point can trace back to the shared principle and produce an aligned decision without having seen the specific scenario before.
+
+When in doubt, ask: "Is this the deepest reason, or is there a more general principle underneath?" If you can imagine the same reasoning applying in a completely different domain, you haven't decomposed far enough.
+
 ## Building GVPs with AI Assistance
 
 For guidance on using AI assistants to build and maintain GVP libraries — including planning workflows, decision logging, and copy/paste-able agent configuration — see the [AI Integration Guide](ai-integration.md).
