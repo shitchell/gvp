@@ -33,89 +33,97 @@ export function structuralPass(catalog: Catalog, _config: GVPConfig): Diagnostic
       }
     }
 
-    // E001 (extended): broken maps_to inside procedure steps. Step
-    // maps_to uses the same traceability mechanism as element-level
-    // maps_to — no new relationship type (D19). A typo in a step's
-    // maps_to is just as much a broken reference as one at the
-    // element level.
-    const steps = element.get('steps') as
-      | Array<Record<string, unknown>>
-      | undefined;
-    if (Array.isArray(steps)) {
-      for (const step of steps) {
-        if (!step || typeof step !== 'object') continue;
-        const stepMapsTo = step.maps_to;
-        if (!Array.isArray(stepMapsTo)) continue;
-        for (const ref of stepMapsTo) {
-          if (typeof ref !== 'string') continue;
-          if (!knownIds.has(ref)) {
-            diagnostics.push(createDiagnostic(
-              'E001',
-              'BROKEN_REFERENCE',
-              `Element ${element.toLibraryId()} step '${step.id ?? step.name ?? '?'}' references '${ref}' in maps_to, but no matching element was found`,
-              'error',
-              PASS_NAME,
-              {
-                elementId: element.id,
-                documentPath: element.documentPath,
-                details: `step:${step.id ?? step.name ?? '?'}`,
-              },
-            ));
+    // E001 (generic): broken references in list<model> sub-field maps_to and list<reference> fields
+    const catDefE001 = catalog.registry.getByName(element.categoryName);
+    if (catDefE001) {
+      const mergedSchemas = { ...catalog.registry.allFieldSchemas, ...(catDefE001.field_schemas ?? {}) };
+      for (const [fieldName, schema] of Object.entries(mergedSchemas)) {
+        if (schema.type === 'list' && schema.items) {
+          // list<model> with maps_to sub-field
+          if (schema.items.type === 'model' && schema.items.fields?.maps_to) {
+            const items = element.get(fieldName) as Array<Record<string, unknown>> | undefined;
+            if (!Array.isArray(items)) continue;
+            for (const item of items) {
+              if (!item || typeof item !== 'object') continue;
+              const itemMapsTo = item.maps_to;
+              if (!Array.isArray(itemMapsTo)) continue;
+              for (const ref of itemMapsTo) {
+                if (typeof ref !== 'string') continue;
+                if (!knownIds.has(ref)) {
+                  const itemLabel = (item.id as string) ?? (item.name as string) ?? '?';
+                  diagnostics.push(createDiagnostic(
+                    'E001',
+                    'BROKEN_REFERENCE',
+                    `Element ${element.toLibraryId()} ${fieldName} '${itemLabel}' references '${ref}' in maps_to, but no matching element was found`,
+                    'error',
+                    PASS_NAME,
+                    {
+                      elementId: element.id,
+                      documentPath: element.documentPath,
+                      details: `${fieldName}:${itemLabel}`,
+                    },
+                  ));
+                }
+              }
+            }
           }
-        }
-      }
-    }
-
-    // E001 (extended): broken references in procedure element-level
-    // `related` — a list of element ids that apply to the procedure
-    // as a whole but aren't specific steps.
-    const related = element.get('related') as string[] | undefined;
-    if (Array.isArray(related)) {
-      for (const ref of related) {
-        if (typeof ref !== 'string') continue;
-        if (!knownIds.has(ref)) {
-          diagnostics.push(createDiagnostic(
-            'E001',
-            'BROKEN_REFERENCE',
-            `Element ${element.toLibraryId()} references '${ref}' in related, but no matching element was found`,
-            'error',
-            PASS_NAME,
-            { elementId: element.id, documentPath: element.documentPath },
-          ));
+          // list<reference> — each entry is a direct element reference
+          if (schema.items.type === 'reference') {
+            const refs = element.get(fieldName) as string[] | undefined;
+            if (!Array.isArray(refs)) continue;
+            for (const ref of refs) {
+              if (typeof ref !== 'string') continue;
+              if (!knownIds.has(ref)) {
+                diagnostics.push(createDiagnostic(
+                  'E001',
+                  'BROKEN_REFERENCE',
+                  `Element ${element.toLibraryId()} references '${ref}' in ${fieldName}, but no matching element was found`,
+                  'error',
+                  PASS_NAME,
+                  { elementId: element.id, documentPath: element.documentPath },
+                ));
+              }
+            }
+          }
         }
       }
     }
   }
 
-  // E005: Duplicate step id within a procedure (R1 precondition — ids
-  // must be unique within their parent scope). Only fires on explicit
-  // duplicates; auto-assigned ids are sequential and unique by
-  // construction.
+  // E005: Duplicate item id within any list<model> field with an id sub-field
+  // (R1 precondition — ids must be unique within their parent scope).
+  // Only fires on explicit duplicates; auto-assigned ids are sequential
+  // and unique by construction.
   for (const element of catalog.getAllElements()) {
-    const steps = element.get('steps') as
-      | Array<Record<string, unknown>>
-      | undefined;
-    if (!Array.isArray(steps)) continue;
-    const seen = new Set<string>();
-    for (const step of steps) {
-      if (!step || typeof step !== 'object') continue;
-      const id = step.id;
-      if (typeof id !== 'string' || id.length === 0) continue;
-      if (seen.has(id)) {
-        diagnostics.push(createDiagnostic(
-          'E005',
-          'DUPLICATE_STEP_ID',
-          `Element ${element.toLibraryId()} has duplicate step id '${id}'; step ids must be unique within their parent (R1 within procedure scope)`,
-          'error',
-          PASS_NAME,
-          {
-            elementId: element.id,
-            documentPath: element.documentPath,
-            details: `step:${id}`,
-          },
-        ));
+    const catDefE005 = catalog.registry.getByName(element.categoryName);
+    if (!catDefE005) continue;
+    const mergedSchemasE005 = { ...catalog.registry.allFieldSchemas, ...(catDefE005.field_schemas ?? {}) };
+    for (const [fieldName, schema] of Object.entries(mergedSchemasE005)) {
+      if (schema.type !== 'list' || !schema.items || schema.items.type !== 'model') continue;
+      if (!schema.items.fields?.id) continue;
+      const items = element.get(fieldName) as Array<Record<string, unknown>> | undefined;
+      if (!Array.isArray(items)) continue;
+      const seen = new Set<string>();
+      for (const item of items) {
+        if (!item || typeof item !== 'object') continue;
+        const id = item.id;
+        if (typeof id !== 'string' || id.length === 0) continue;
+        if (seen.has(id)) {
+          diagnostics.push(createDiagnostic(
+            'E005',
+            'DUPLICATE_STEP_ID',
+            `Element ${element.toLibraryId()} has duplicate ${fieldName} id '${id}'; ids must be unique within their parent`,
+            'error',
+            PASS_NAME,
+            {
+              elementId: element.id,
+              documentPath: element.documentPath,
+              details: `${fieldName}:${id}`,
+            },
+          ));
+        }
+        seen.add(id);
       }
-      seen.add(id);
     }
   }
 

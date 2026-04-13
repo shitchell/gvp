@@ -12,11 +12,11 @@ export class Document {
   readonly source: string;
   private readonly _elementsByCategory: Map<string, Element[]>;
   /**
-   * Set of element ids whose procedure `steps` had at least one step
+   * Set of element ids whose list<model> items had at least one item
    * missing an explicit `id` at parse time and received auto-assigned
-   * step ids. Read by the semantic pass to emit W015
-   * AUTO_ASSIGNED_STEP_ID warnings. This metadata does NOT flow through
-   * JSON exports (it's carried on the Document, not in element data).
+   * ids. Read by the semantic pass to emit W015 AUTO_ASSIGNED_STEP_ID
+   * warnings. This metadata does NOT flow through JSON exports (it's
+   * carried on the Document, not in element data).
    */
   private readonly _autoAssignedStepIds: Set<string>;
   /**
@@ -45,9 +45,9 @@ export class Document {
   }
 
   /**
-   * Did the given procedure element have any step ids auto-assigned at
-   * parse time? Returns true if the user authored steps without explicit
-   * ids and the parser filled them in sequentially.
+   * Did the given element have any list<model> item ids auto-assigned at
+   * parse time? Returns true if the user authored list items without
+   * explicit ids and the parser filled them in sequentially.
    */
   hasAutoAssignedStepIds(elementId: string): boolean {
     return this._autoAssignedStepIds.has(elementId);

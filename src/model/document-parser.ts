@@ -61,14 +61,16 @@ export function parseDocument(
         ? { ...meta.defaults, ...rawElement }
         : rawElement;
 
-      // Auto-assign step ids for procedure elements whose steps lack
-      // explicit ids. D19: display-stable dotted ids of the form
-      // `{parent.id}.{N}` (1-indexed sequential). Persisting these back
-      // to YAML is required for R1 preservation across step deletions;
-      // the semantic pass emits W015 when auto-assignment occurred.
-      const processed = maybeAutoAssignStepIds(
+      // Auto-assign item ids for any list<model> field whose model has
+      // an optional id sub-field. D19: display-stable dotted ids of the
+      // form `{parent.id}.{N}` (1-indexed sequential). Persisting these
+      // back to YAML is required for R1 preservation across item
+      // deletions; the semantic pass emits W015 when auto-assignment
+      // occurred.
+      const processed = maybeAutoAssignModelIds(
         withDefaults,
         categoryName,
+        registry,
         autoAssignedStepIds,
       );
 
@@ -102,42 +104,59 @@ export function parseDocument(
 }
 
 /**
- * If the element is a `procedure` and has `steps`, fill in any step
- * that lacks an explicit `id` with `{element.id}.{N}` (1-indexed). The
- * returned object is a shallow copy with a new steps array; the input
- * is not mutated. Records the element id in `autoAssignedStepIds` if
- * any step received a generated id.
+ * For any list<model> field in the element's category whose model has an
+ * optional `id` sub-field, fill in items that lack an explicit `id` with
+ * `{element.id}.{N}` (1-indexed). The returned object is a shallow copy
+ * with updated arrays; the input is not mutated. Records the element id
+ * in `autoAssignedStepIds` if any item received a generated id.
  *
- * Non-procedure categories pass through unchanged.
+ * Categories without qualifying list<model> fields pass through unchanged.
  */
-function maybeAutoAssignStepIds(
+function maybeAutoAssignModelIds(
   element: unknown,
   categoryName: string,
+  registry: CategoryRegistry,
   autoAssignedStepIds: Set<string>,
 ): unknown {
-  if (categoryName !== 'procedure') return element;
   if (!element || typeof element !== 'object') return element;
   const elementObj = element as Record<string, unknown>;
-  const steps = elementObj.steps;
-  if (!Array.isArray(steps)) return element;
   const parentId = elementObj.id;
   if (typeof parentId !== 'string' || parentId.length === 0) return element;
 
-  let anyAutoAssigned = false;
-  const nextSteps = steps.map((step, idx) => {
-    if (!step || typeof step !== 'object') return step;
-    const stepObj = step as Record<string, unknown>;
-    if (typeof stepObj.id === 'string' && stepObj.id.length > 0) {
-      return step;
+  const catDef = registry.getByName(categoryName);
+  if (!catDef) return element;
+  const mergedSchemas = { ...registry.allFieldSchemas, ...(catDef.field_schemas ?? {}) };
+
+  let anyChanged = false;
+  const result = { ...elementObj };
+
+  for (const [fieldName, schema] of Object.entries(mergedSchemas)) {
+    if (schema.type !== 'list' || !schema.items || schema.items.type !== 'model') continue;
+    // Only auto-assign if the model has an optional id field
+    const idField = schema.items.fields?.id;
+    if (!idField || idField.required) continue;
+
+    const items = elementObj[fieldName];
+    if (!Array.isArray(items)) continue;
+
+    let anyFieldAutoAssigned = false;
+    const nextItems = items.map((item, idx) => {
+      if (!item || typeof item !== 'object') return item;
+      const itemObj = item as Record<string, unknown>;
+      if (typeof itemObj.id === 'string' && itemObj.id.length > 0) return item;
+      anyFieldAutoAssigned = true;
+      return { ...itemObj, id: `${parentId}.${idx + 1}` };
+    });
+
+    if (anyFieldAutoAssigned) {
+      anyChanged = true;
+      result[fieldName] = nextItems;
     }
-    anyAutoAssigned = true;
-    return { ...stepObj, id: `${parentId}.${idx + 1}` };
-  });
+  }
 
-  if (!anyAutoAssigned) return element;
-
+  if (!anyChanged) return element;
   autoAssignedStepIds.add(parentId);
-  return { ...elementObj, steps: nextSteps };
+  return result;
 }
 
 /**

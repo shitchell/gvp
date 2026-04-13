@@ -322,7 +322,7 @@ procedures:
       );
       expect(e001).toHaveLength(1);
       expect(e001[0]!.context.elementId).toBe('S1');
-      expect(e001[0]!.context.details).toBe('step:S1.2');
+      expect(e001[0]!.context.details).toBe('steps:S1.2');
     });
   });
 

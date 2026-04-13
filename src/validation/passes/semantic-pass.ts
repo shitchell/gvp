@@ -205,34 +205,39 @@ export function semanticPass(catalog: Catalog, _config: GVPConfig): Diagnostic[]
         }
       }
 
-      // Procedure step refs (D19)
-      const steps = element.get('steps') as
-        | Array<Record<string, unknown>>
-        | undefined;
-      if (Array.isArray(steps)) {
-        for (const step of steps) {
-          if (!step || typeof step !== 'object') continue;
-          const stepRefs = step.refs;
-          if (!Array.isArray(stepRefs)) continue;
-          const stepLabel = (step.id as string) ?? (step.name as string) ?? '?';
-          for (const ref of stepRefs) {
-            if (!ref || typeof ref !== 'object') continue;
-            checkRef(
-              element,
-              ref as { file: string; identifier: string; role: string },
-              stepLabel,
-            );
+      // Generic: check refs inside any list<model> field whose items have a refs sub-field
+      const catDefRefs = catalog.registry.getByName(element.categoryName);
+      if (catDefRefs) {
+        const mergedSchemasRefs = { ...catalog.registry.allFieldSchemas, ...(catDefRefs.field_schemas ?? {}) };
+        for (const [fieldName, schema] of Object.entries(mergedSchemasRefs)) {
+          if (schema.type !== 'list' || !schema.items || schema.items.type !== 'model') continue;
+          if (!schema.items.fields?.refs) continue;
+          const items = element.get(fieldName) as Array<Record<string, unknown>> | undefined;
+          if (!Array.isArray(items)) continue;
+          for (const item of items) {
+            if (!item || typeof item !== 'object') continue;
+            const itemRefs = item.refs;
+            if (!Array.isArray(itemRefs)) continue;
+            const itemLabel = (item.id as string) ?? (item.name as string) ?? '?';
+            for (const ref of itemRefs) {
+              if (!ref || typeof ref !== 'object') continue;
+              checkRef(
+                element,
+                ref as { file: string; identifier: string; role: string },
+                itemLabel,
+              );
+            }
           }
         }
       }
     }
   }
 
-  // W015: Auto-assigned step ids (D19). Emitted by the semantic pass
-  // when the parser filled in missing step ids at load time. The
-  // warning tells the user that R1 preservation across step deletions
-  // requires persisting explicit ids — auto-numbering based on list
-  // position will silently renumber surviving steps if a step is
+  // W015: Auto-assigned item ids in list<model> fields. Emitted by the
+  // semantic pass when the parser filled in missing item ids at load
+  // time. The warning tells the user that R1 preservation across item
+  // deletions requires persisting explicit ids — auto-numbering based
+  // on list position will silently renumber surviving items if one is
   // removed without persisted ids.
   for (const doc of catalog.documents) {
     for (const element of doc.getAllElements()) {
@@ -240,7 +245,7 @@ export function semanticPass(catalog: Catalog, _config: GVPConfig): Diagnostic[]
         diagnostics.push(createDiagnostic(
           'W015',
           'AUTO_ASSIGNED_STEP_ID',
-          `Element ${element.toLibraryId()} has procedure steps without explicit ids; auto-numbered at load time. Persist explicit ids (e.g., '${element.id}.1', '${element.id}.2', ...) to preserve R1 across step deletions`,
+          `Element ${element.toLibraryId()} has list items without explicit ids; auto-numbered at load time. Persist explicit ids (e.g., '${element.id}.1', '${element.id}.2', ...) to preserve R1 across deletions`,
           'warning',
           PASS_NAME,
           { elementId: element.id, documentPath: element.documentPath },
