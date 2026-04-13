@@ -6,13 +6,13 @@ Canonical definitions for GVP terminology. For how the framework works, see [REA
 
 | Term | Definition |
 |------|------------|
-| **Goal** | An ideal state you're working toward. Would remain true if you rewrote everything tomorrow. |
-| **Value** | A semantic descriptor that shapes trade-offs. The thumb on the scale when two valid approaches exist. |
-| **Principle** | A stated preference or bias that requires judgment to apply. Less fuzzy than a value, more flexible than a rule. |
-| **Heuristic** | A well-defined if/then decision procedure. Where a principle says "prefer X," a heuristic says "if A, then B; else C." |
+| **Goal** | A state to achieve or reach. Would remain true if you rewrote everything tomorrow. |
+| **Value** | A high-level abstraction of what matters — ideally 2-3 words or adjectives (e.g., "Simplicity", "Alignment", "System Integrity"). Values shape trade-offs: the thumb on the scale when two valid approaches exist. NOT operational guidance on how to approach work — that's a principle. |
+| **Principle** | A stated preference or bias that requires judgment to apply. Less fuzzy than a value, more flexible than a rule. If it requires human judgment to apply → it's a principle, not a heuristic. |
+| **Heuristic** | A quantifiable, unambiguous, measurable, objective decision procedure. As close to code as you can get with semantic language. Must be evaluable without judgment: "if A, then B; else C" with concrete, testable conditions. If it requires interpretation or judgment → it's a principle, not a heuristic. |
 | **Rule** | A hard stop. Binary, no exceptions. A principle that graduated to "never cross this line." |
 | **Decision** | A tool or architectural decision picked for a specific implementation. Changes when the implementation changes. |
-| **Constraint** | A fact about the system or environment you don't control. Descriptive, not prescriptive. |
+| **Constraint** | An external force you have no control over. Descriptive, not prescriptive. Key test: "Do we control this?" If yes → it's a decision or principle, not a constraint. Examples: "human devs tend to dislike writing docs", "higher-ups require microprocessors with limited RAM", "external dependency requires XYZ conformance." Common agent mistake: defining project-level decisions as constraints. |
 | **Milestone** | A concrete, achievable waypoint on the path to goals. Ordered near-term to long-term. |
 | **Procedure** | A sequence of ordered steps for performing a task. Each step can be governed by its own guiding elements (via `maps_to`) and linked to artifacts (via `refs`). Captures procedural knowledge — the "how" — separately from stative guiding elements like principles and rules. |
 | **Step** | A single ordered entry within a procedure. Has a unique ID within its parent procedure (dotted form, e.g., `S1.1`), a name, an optional description, and optional `maps_to` and `refs` for per-step traceability. |
