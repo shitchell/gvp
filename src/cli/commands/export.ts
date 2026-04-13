@@ -7,7 +7,7 @@ import { createExporterRegistry } from '../../exporters/registry.js';
 export function exportCommand(): Command {
   const cmd = new Command('export')
     .description('Export the GVP catalog to a format')
-    .option('-f, --format <format>', 'Output format (json, csv, markdown)', 'json')
+    .option('-f, --format <format>', 'Output format (json, csv, markdown, compact)', 'json')
     .option('-o, --output <path>', 'Output file path (default: stdout)')
     .option('-d, --document <name>', 'Restrict export to a single document (matched by meta.name or documentPath)')
     .option('--include-deprecated', 'Include deprecated/rejected elements')

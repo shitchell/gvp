@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import { parseConfigOptions, buildCatalog, resolveDocumentFilter, filterElementsByDocument, getLibraryOverride, getStoreOverride } from '../helpers.js';
 import { createExporterRegistry } from '../../exporters/registry.js';
+import { renderCompactLine } from '../../exporters/compact-exporter.js';
 
 export function queryCommand(): Command {
   const cmd = new Command('query')
@@ -11,7 +12,7 @@ export function queryCommand(): Command {
     .option('-d, --document <name>', 'Filter by document')
     .option('--refs-file <path>', 'Filter by ref file path (DEC-10.6)')
     .option('--refs-identifier <id>', 'Filter by ref identifier (DEC-10.6)')
-    .option('--format <format>', 'Output format (text, json, csv)', 'text')
+    .option('--format <format>', 'Output format (text, json, csv, compact)', 'text')
     .option('--include-deprecated', 'Include deprecated/rejected elements')
     .action(async () => {
       try {
@@ -70,6 +71,15 @@ export function queryCommand(): Command {
             `${e.toLibraryId()},${e.categoryName},"${e.name}",${e.status},"${e.tags.join(';')}"`
           );
           process.stdout.write([header, ...rows].join('\n'));
+        } else if (opts.format === 'compact') {
+          if (elements.length === 0) {
+            console.error('No elements match the query.');
+            process.exit(0);
+          }
+          for (const el of elements) {
+            const catDef = catalog.registry.getByName(el.categoryName);
+            process.stdout.write(renderCompactLine(el, catDef?.primary_field) + '\n');
+          }
         } else {
           // Text output
           if (elements.length === 0) {

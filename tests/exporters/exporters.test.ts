@@ -389,9 +389,10 @@ describe('createExporterRegistry', () => {
     expect(registry.has('json')).toBe(true);
     expect(registry.has('csv')).toBe(true);
     expect(registry.has('markdown')).toBe(true);
+    expect(registry.has('compact')).toBe(true);
     expect(registry.has('dot')).toBe(true);
     expect(registry.has('sqlite')).toBe(true);
-    expect(registry.size).toBe(5);
+    expect(registry.size).toBe(6);
   });
 
   it('returns Exporter instances', () => {
