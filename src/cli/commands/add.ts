@@ -39,9 +39,9 @@ export function addCommand(): Command {
           process.exit(1);
         }
 
-        // Generate next ID (DEC-9.5): find max numeric suffix, increment by 1
+        // Generate next ID (DEC-9.5): find max numeric suffix in TARGET DOCUMENT, increment by 1
         const prefix = catDef.id_prefix;
-        const existingIds = catalog.getElementsByCategory(category).map(e => e.id);
+        const existingIds = targetDoc.getElementsByCategory(category).map(e => e.id);
         const maxNum = existingIds.reduce((max, id) => {
           const num = parseInt(id.replace(prefix, ''), 10);
           return isNaN(num) ? max : Math.max(max, num);

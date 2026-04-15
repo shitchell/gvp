@@ -512,4 +512,184 @@ procedures:
     // ?G1 -> G2 (G1 exists), qualified as main:G2
     expect(steps[0]!.maps_to).toContain('main:G2');
   });
+
+  // === DEC-9.5: Per-document per-category ID scoping (ticket 019) ===
+
+  describe('per-document ID scoping (DEC-9.5)', () => {
+    /** Helper to add a second document with higher-numbered decisions */
+    function addOtherDoc(dir: string) {
+      fs.writeFileSync(
+        path.join(dir, '.gvp', 'library', 'other.yaml'),
+        `
+meta:
+  name: other
+  scope: project
+
+decisions:
+  - id: D10
+    name: Decision ten
+    rationale: Existing.
+    tags: []
+    maps_to: []
+  - id: D11
+    name: Decision eleven
+    rationale: Existing.
+    tags: []
+    maps_to: []
+  - id: D12
+    name: Decision twelve
+    rationale: Existing.
+    tags: []
+    maps_to: []
+  - id: D13
+    name: Decision thirteen
+    rationale: Existing.
+    tags: []
+    maps_to: []
+  - id: D14
+    name: Decision fourteen
+    rationale: Existing.
+    tags: []
+    maps_to: []
+`,
+      );
+    }
+
+    /** Helper to add decisions D1-D3 to existing main.yaml */
+    function addDecisionsToMain(dir: string) {
+      const mainPath = path.join(dir, '.gvp', 'library', 'main.yaml');
+      const content = fs.readFileSync(mainPath, 'utf-8');
+      const data = yaml.load(content) as Record<string, unknown>;
+      data.decisions = [
+        { id: 'D1', name: 'Decision one', rationale: 'Existing.', tags: [], maps_to: [] },
+        { id: 'D2', name: 'Decision two', rationale: 'Existing.', tags: [], maps_to: [] },
+        { id: 'D3', name: 'Decision three', rationale: 'Existing.', tags: [], maps_to: [] },
+      ];
+      fs.writeFileSync(mainPath, yaml.dump(data, { lineWidth: -1, noRefs: true, sortKeys: false }));
+    }
+
+    // 18. Multi-doc: import into doc with lower max assigns correct next ID
+    it('assigns per-document ID when importing into doc with lower max', () => {
+      addDecisionsToMain(tmpDir);
+      addOtherDoc(tmpDir);
+
+      const patchFile = path.join(tmpDir, 'patch.yaml');
+      fs.writeFileSync(patchFile, `
+meta:
+  import: true
+decisions:
+  - id: "?D1"
+    name: New decision for main
+    rationale: Should get D4.
+    tags: []
+    maps_to: []
+`);
+      const result = runCairn('import', patchFile, '--into', 'main', '--yes');
+      expect(result.exitCode).toBe(0);
+
+      const data = readLibDoc('main');
+      const decisions = data.decisions as Array<Record<string, unknown>>;
+      // main has D1-D3, so next should be D4 (not D15)
+      const d4 = decisions.find(d => d.id === 'D4');
+      expect(d4).toBeDefined();
+      expect(d4!.name).toBe('New decision for main');
+      // D15 should NOT exist in main
+      expect(decisions.find(d => d.id === 'D15')).toBeUndefined();
+    });
+
+    // 19. Multi-doc: import into doc with higher max assigns correct next ID
+    it('assigns per-document ID when importing into doc with higher max', () => {
+      addDecisionsToMain(tmpDir);
+      addOtherDoc(tmpDir);
+
+      const patchFile = path.join(tmpDir, 'patch.yaml');
+      fs.writeFileSync(patchFile, `
+meta:
+  import: true
+decisions:
+  - id: "?D1"
+    name: New decision for other
+    rationale: Should get D15.
+    tags: []
+    maps_to: []
+`);
+      const result = runCairn('import', patchFile, '--into', 'other', '--yes');
+      expect(result.exitCode).toBe(0);
+
+      const data = readLibDoc('other');
+      const decisions = data.decisions as Array<Record<string, unknown>>;
+      // other has D10-D14, so next should be D15
+      const d15 = decisions.find(d => d.id === 'D15');
+      expect(d15).toBeDefined();
+      expect(d15!.name).toBe('New decision for other');
+    });
+
+    // 20. Directory mode: each sub-patch gets per-doc IDs
+    it('directory mode assigns per-document IDs to each sub-patch', () => {
+      addDecisionsToMain(tmpDir);
+      addOtherDoc(tmpDir);
+
+      const patchDir = path.join(tmpDir, 'patches');
+      fs.mkdirSync(patchDir, { recursive: true });
+      fs.writeFileSync(path.join(patchDir, 'main.yaml'), `
+meta:
+  import: true
+decisions:
+  - id: "?D1"
+    name: Dir-mode decision for main
+    rationale: Should get D4.
+    tags: []
+    maps_to: []
+`);
+      fs.writeFileSync(path.join(patchDir, 'other.yaml'), `
+meta:
+  import: true
+decisions:
+  - id: "?D2"
+    name: Dir-mode decision for other
+    rationale: Should get D15.
+    tags: []
+    maps_to: []
+`);
+      const result = runCairn('import', patchDir, '--yes');
+      expect(result.exitCode).toBe(0);
+
+      const mainData = readLibDoc('main');
+      const mainDecisions = mainData.decisions as Array<Record<string, unknown>>;
+      const d4 = mainDecisions.find(d => d.id === 'D4');
+      expect(d4).toBeDefined();
+      expect(d4!.name).toBe('Dir-mode decision for main');
+
+      const otherData = readLibDoc('other');
+      const otherDecisions = otherData.decisions as Array<Record<string, unknown>>;
+      const d15 = otherDecisions.find(d => d.id === 'D15');
+      expect(d15).toBeDefined();
+      expect(d15!.name).toBe('Dir-mode decision for other');
+    });
+
+    // 21. Single-doc regression: behavior unchanged when only one document
+    it('single-doc regression: assigns next ID correctly with one document', () => {
+      addDecisionsToMain(tmpDir);
+
+      const patchFile = path.join(tmpDir, 'patch.yaml');
+      fs.writeFileSync(patchFile, `
+meta:
+  import: true
+decisions:
+  - id: "?D1"
+    name: Single-doc decision
+    rationale: Should get D4.
+    tags: []
+    maps_to: []
+`);
+      const result = runCairn('import', patchFile, '--into', 'main', '--yes');
+      expect(result.exitCode).toBe(0);
+
+      const data = readLibDoc('main');
+      const decisions = data.decisions as Array<Record<string, unknown>>;
+      const d4 = decisions.find(d => d.id === 'D4');
+      expect(d4).toBeDefined();
+      expect(d4!.name).toBe('Single-doc decision');
+    });
+  });
 });

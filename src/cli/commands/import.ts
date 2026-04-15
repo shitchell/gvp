@@ -162,22 +162,29 @@ export function importCommand(): Command {
         // === PASS 2: Assign real IDs to candidates ===
         const rewriteMap = new Map<string, { realId: string; targetDocPath: string }>(); // "?P1" -> { realId: "P17", targetDocPath: "observations" }
 
-        // Group candidates by category to assign sequential IDs
-        const candidatesByCategory = new Map<string, PatchElement[]>();
+        // Group candidates by (category, targetDocPath) to assign per-document sequential IDs (DEC-9.5)
+        const candidatesByCategoryDoc = new Map<string, PatchElement[]>();
         for (const pe of allPatchElements) {
           if (!pe.pseudoId) continue;
-          const group = candidatesByCategory.get(pe.category) ?? [];
+          const key = `${pe.category}::${pe.targetDocPath}`;
+          const group = candidatesByCategoryDoc.get(key) ?? [];
           group.push(pe);
-          candidatesByCategory.set(pe.category, group);
+          candidatesByCategoryDoc.set(key, group);
         }
 
-        for (const [categoryName, candidates] of candidatesByCategory) {
+        for (const [groupKey, candidates] of candidatesByCategoryDoc) {
+          const sepIdx = groupKey.indexOf('::');
+          const categoryName = groupKey.substring(0, sepIdx);
+          const targetDocPath = groupKey.substring(sepIdx + 2);
           const catDef = catalog.registry.getByName(categoryName);
           if (!catDef) continue;
           const prefix = catDef.id_prefix;
 
-          // Find max existing ID number across the whole catalog for this category
-          const existingIds = catalog.getElementsByCategory(categoryName).map(e => e.id);
+          // Find max existing ID number in the TARGET DOCUMENT for this category (DEC-9.5)
+          const targetDoc = catalog.documents.find(d => d.documentPath === targetDocPath);
+          const existingIds = targetDoc
+            ? targetDoc.getElementsByCategory(categoryName).map(e => e.id)
+            : [];
           let maxNum = existingIds.reduce((max, id) => {
             const num = parseInt(id.replace(prefix, ''), 10);
             return isNaN(num) ? max : Math.max(max, num);
