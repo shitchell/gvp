@@ -692,4 +692,274 @@ decisions:
       expect(d4!.name).toBe('Single-doc decision');
     });
   });
+
+  // === Multi-document patch format (ticket 018) ===
+
+  describe('multi-document patch format (ticket 018)', () => {
+    // 22. Two sub-patches, different targets
+    it('imports elements from multi-document patch to different targets', () => {
+      fs.writeFileSync(
+        path.join(tmpDir, '.gvp', 'library', 'other.yaml'),
+        `
+meta:
+  name: other
+  scope: project
+goals:
+  - id: G1
+    name: Other goal
+    statement: Existing.
+    tags: []
+    maps_to: []
+`,
+      );
+      const patchFile = path.join(tmpDir, 'multi.yaml');
+      fs.writeFileSync(patchFile, `
+meta:
+  multi_document: true
+first:
+  document: main
+  patch:
+    principles:
+      - id: "?P1"
+        name: New principle via multi
+        statement: Added.
+        tags: []
+        maps_to: [main:G1]
+second:
+  document: other
+  patch:
+    goals:
+      - id: "?G1"
+        name: New goal in other
+        statement: Added.
+        tags: []
+        maps_to: []
+`);
+      const result = runCairn('import', patchFile, '--yes');
+      expect(result.exitCode).toBe(0);
+      // Check main got P2
+      const mainData = readLibDoc('main');
+      const principles = mainData.principles as Array<Record<string, unknown>>;
+      expect(principles.find(p => p.id === 'P2')).toBeDefined();
+      // Check other got G2
+      const otherData = readLibDoc('other');
+      const goals = otherData.goals as Array<Record<string, unknown>>;
+      expect(goals.find(g => g.id === 'G2')).toBeDefined();
+    });
+
+    // 23. Two sub-patches targeting same document
+    it('allows multiple sub-patches targeting the same document', () => {
+      const patchFile = path.join(tmpDir, 'multi.yaml');
+      fs.writeFileSync(patchFile, `
+meta:
+  multi_document: true
+batch1:
+  document: main
+  patch:
+    goals:
+      - id: "?G1"
+        name: Goal batch 1
+        statement: First batch.
+        tags: []
+        maps_to: []
+batch2:
+  document: main
+  patch:
+    principles:
+      - id: "?P1"
+        name: Principle batch 2
+        statement: Second batch.
+        tags: []
+        maps_to: []
+`);
+      const result = runCairn('import', patchFile, '--yes');
+      expect(result.exitCode).toBe(0);
+      const data = readLibDoc('main');
+      const goals = data.goals as Array<Record<string, unknown>>;
+      const principles = data.principles as Array<Record<string, unknown>>;
+      expect(goals.find(g => g.id === 'G2')).toBeDefined();
+      expect(principles.find(p => p.id === 'P2')).toBeDefined();
+    });
+
+    // 24. Cross-sub-patch pseudo-ID references
+    it('rewrites cross-sub-patch pseudo-ID references', () => {
+      fs.writeFileSync(
+        path.join(tmpDir, '.gvp', 'library', 'other.yaml'),
+        `
+meta:
+  name: other
+  scope: project
+goals:
+  - id: G1
+    name: Other goal
+    statement: Existing.
+    tags: []
+    maps_to: []
+`,
+      );
+      const patchFile = path.join(tmpDir, 'multi.yaml');
+      fs.writeFileSync(patchFile, `
+meta:
+  multi_document: true
+new_goal:
+  document: other
+  patch:
+    goals:
+      - id: "?G1"
+        name: Cross ref target
+        statement: Target.
+        tags: []
+        maps_to: []
+ref_principle:
+  document: main
+  patch:
+    principles:
+      - id: "?P1"
+        name: Cross ref source
+        statement: References goal in other doc.
+        tags: []
+        maps_to: ["?G1", main:V1]
+`);
+      const result = runCairn('import', patchFile, '--yes');
+      expect(result.exitCode).toBe(0);
+      const mainData = readLibDoc('main');
+      const principles = mainData.principles as Array<Record<string, unknown>>;
+      const newP = principles.find(p => p.name === 'Cross ref source');
+      expect(newP).toBeDefined();
+      // ?G1 was assigned G2 in 'other', so reference should be other:G2
+      expect(newP!.maps_to).toContain('other:G2');
+      expect(newP!.maps_to).toContain('main:V1');
+    });
+
+    // 25. patch.meta merges into target document meta
+    it('merges patch.meta into target document meta', () => {
+      const patchFile = path.join(tmpDir, 'multi.yaml');
+      fs.writeFileSync(patchFile, `
+meta:
+  multi_document: true
+update_meta:
+  document: main
+  patch:
+    meta:
+      description: "Updated via multi-doc import"
+    goals:
+      - id: "?G1"
+        name: With meta merge
+        statement: Added.
+        tags: []
+        maps_to: []
+`);
+      const result = runCairn('import', patchFile, '--yes');
+      expect(result.exitCode).toBe(0);
+      const data = readLibDoc('main');
+      const meta = data.meta as Record<string, unknown>;
+      expect(meta.description).toBe('Updated via multi-doc import');
+      expect(meta.name).toBe('main'); // Original meta preserved
+    });
+
+    // 26. Error: --into with multi-doc
+    it('errors when --into is used with multi-document mode', () => {
+      const patchFile = path.join(tmpDir, 'multi.yaml');
+      fs.writeFileSync(patchFile, `
+meta:
+  multi_document: true
+sub:
+  document: main
+  patch:
+    goals:
+      - id: "?G1"
+        name: X
+        statement: X.
+        tags: []
+        maps_to: []
+`);
+      const result = runCairn('import', patchFile, '--into', 'main', '--yes');
+      expect(result.exitCode).not.toBe(0);
+      expect(result.stderr).toContain('--into cannot be used with multi-document');
+    });
+
+    // 27. Error: sub-patch missing document
+    it('errors when sub-patch is missing document field', () => {
+      const patchFile = path.join(tmpDir, 'multi.yaml');
+      fs.writeFileSync(patchFile, `
+meta:
+  multi_document: true
+bad:
+  patch:
+    goals:
+      - id: "?G1"
+        name: X
+        statement: X.
+        tags: []
+        maps_to: []
+`);
+      const result = runCairn('import', patchFile, '--yes');
+      expect(result.exitCode).not.toBe(0);
+      expect(result.stderr).toContain('missing');
+      expect(result.stderr).toContain('document');
+    });
+
+    // 28. --dry-run preview
+    it('--dry-run shows multi-document preview without writing', () => {
+      fs.writeFileSync(
+        path.join(tmpDir, '.gvp', 'library', 'other.yaml'),
+        `
+meta:
+  name: other
+  scope: project
+`,
+      );
+      const patchFile = path.join(tmpDir, 'multi.yaml');
+      fs.writeFileSync(patchFile, `
+meta:
+  multi_document: true
+sub:
+  document: main
+  patch:
+    goals:
+      - id: "?G1"
+        name: Dry run multi
+        statement: Should not be written.
+        tags: []
+        maps_to: []
+`);
+      const result = runCairn('import', patchFile, '--dry-run');
+      expect(result.exitCode).toBe(0);
+      expect(result.stderr).toContain('Dry run');
+      // Verify nothing was written
+      const data = readLibDoc('main');
+      const goals = data.goals as Array<Record<string, unknown>>;
+      expect(goals.find(g => g.name === 'Dry run multi')).toBeUndefined();
+    });
+
+    // 29. Error: pseudo-ID collision same category same target
+    it('errors on pseudo-ID collision within same category and target document', () => {
+      const patchFile = path.join(tmpDir, 'multi.yaml');
+      fs.writeFileSync(patchFile, `
+meta:
+  multi_document: true
+batch1:
+  document: main
+  patch:
+    goals:
+      - id: "?G1"
+        name: First
+        statement: First.
+        tags: []
+        maps_to: []
+batch2:
+  document: main
+  patch:
+    goals:
+      - id: "?G1"
+        name: Duplicate
+        statement: Collision.
+        tags: []
+        maps_to: []
+`);
+      const result = runCairn('import', patchFile, '--yes');
+      expect(result.exitCode).not.toBe(0);
+      expect(result.stderr).toContain('collision');
+    });
+  });
 });

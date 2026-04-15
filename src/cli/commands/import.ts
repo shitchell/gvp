@@ -51,17 +51,41 @@ export function importCommand(): Command {
 
         const isDirectory = fs.statSync(resolved).isDirectory();
 
+        // Detect multi-document mode (P14: explicit flag)
+        let isMultiDocument = false;
+        if (!isDirectory) {
+          const raw = yaml.load(fs.readFileSync(resolved, 'utf-8'));
+          if (raw && typeof raw === 'object') {
+            const data = raw as Record<string, unknown>;
+            const meta = data.meta as Record<string, unknown> | undefined;
+            if (meta?.multi_document === true) {
+              isMultiDocument = true;
+            }
+          }
+        }
+
         if (isDirectory && opts.into) {
           console.error('--into cannot be used with directory mode. Each file maps by relative path.');
           process.exit(1);
         }
-        if (!isDirectory && !opts.into) {
+        if (isMultiDocument && opts.into) {
+          console.error('--into cannot be used with multi-document mode. Each sub-patch specifies its target document.');
+          process.exit(1);
+        }
+        if (!isDirectory && !isMultiDocument && !opts.into) {
           console.error('--into is required for single-file mode. Specify the target document.');
           process.exit(1);
         }
 
         // Collect patch files
         const patchFiles: Array<{ filePath: string; targetDocPath: string }> = [];
+        // For multi-document mode, store pre-parsed sub-patch data
+        const parsedPatches: Array<{
+          data: Record<string, unknown>;
+          targetDocPath: string;
+          sourceFile: string;
+          patchMeta?: Record<string, unknown>;
+        }> = [];
         let manifest: Manifest | undefined;
 
         if (isDirectory) {
@@ -80,6 +104,46 @@ export function importCommand(): Command {
             }
             const docPath = relPath.replace(/\.ya?ml$/, '');
             patchFiles.push({ filePath: file, targetDocPath: docPath });
+          }
+        } else if (isMultiDocument) {
+          // Multi-document mode: parse sub-patches from single file
+          const raw = yaml.load(fs.readFileSync(resolved, 'utf-8'));
+          if (!raw || typeof raw !== 'object') {
+            console.error('Failed to parse multi-document patch file.');
+            process.exit(1);
+          }
+          const data = raw as Record<string, unknown>;
+
+          for (const [label, value] of Object.entries(data)) {
+            if (label === 'meta') continue;
+            if (!value || typeof value !== 'object') continue;
+            const subPatch = value as Record<string, unknown>;
+
+            if (!subPatch.document) {
+              console.error(`Sub-patch '${label}' is missing required 'document' field.`);
+              process.exit(1);
+            }
+
+            const docRef = subPatch.document as string;
+            const targetDoc = catalog.documents.find(d =>
+              d.documentPath === docRef || d.meta.name === docRef
+            );
+            if (!targetDoc) {
+              console.error(`Sub-patch '${label}': target document '${docRef}' not found in the library.`);
+              process.exit(1);
+            }
+
+            const patchContent = subPatch.patch as Record<string, unknown> | undefined;
+            if (!patchContent || typeof patchContent !== 'object') continue;
+
+            const patchMeta = patchContent.meta as Record<string, unknown> | undefined;
+
+            parsedPatches.push({
+              data: patchContent,
+              targetDocPath: targetDoc.documentPath,
+              sourceFile: resolved,
+              patchMeta,
+            });
           }
         } else {
           // Single-file mode
@@ -146,6 +210,47 @@ export function importCommand(): Command {
                 const existing = pseudoIdRegistry.get(pseudoId);
                 if (existing && existing.category === pe.category) {
                   console.error(`Pseudo-ID collision: '${pseudoId}' used in multiple patch files for category '${categoryName}'`);
+                  process.exit(1);
+                }
+                pseudoIdRegistry.set(pseudoId, pe);
+              }
+            }
+          }
+        }
+
+        // Multi-document mode: process pre-parsed sub-patches
+        for (const { data, targetDocPath, sourceFile } of parsedPatches) {
+          for (const yamlKey of Object.keys(data)) {
+            if (yamlKey === 'meta') continue;
+            const catLookup = catalog.registry.getByYamlKey(yamlKey);
+            if (!catLookup) continue;
+            const { name: categoryName } = catLookup;
+            const items = data[yamlKey];
+            if (!Array.isArray(items)) continue;
+
+            for (const item of items) {
+              if (!item || typeof item !== 'object') continue;
+              const elementData = item as Record<string, unknown>;
+              const id = elementData.id as string | undefined;
+              const pseudoId = (id && isPseudoId(id)) ? id : undefined;
+
+              const pe: PatchElement = {
+                data: { ...elementData },
+                category: categoryName,
+                yamlKey,
+                sourceFile,
+                targetDocPath,
+                pseudoId,
+              };
+
+              allPatchElements.push(pe);
+
+              if (pseudoId) {
+                // Collision check for multi-doc: same ?ID + same category + same targetDocPath = error
+                // Same ?ID + same category + DIFFERENT targetDocPath = fine (they get independent IDs)
+                const existing = pseudoIdRegistry.get(pseudoId);
+                if (existing && existing.category === pe.category && existing.targetDocPath === pe.targetDocPath) {
+                  console.error(`Pseudo-ID collision: '${pseudoId}' used multiple times for category '${categoryName}' targeting document '${targetDocPath}'`);
                   process.exit(1);
                 }
                 pseudoIdRegistry.set(pseudoId, pe);
@@ -358,7 +463,34 @@ export function importCommand(): Command {
             }
           }
 
+          // Multi-document mode: merge patch.meta into target document meta
+          for (const pp of parsedPatches) {
+            if (pp.targetDocPath === targetDocPath && pp.patchMeta) {
+              const currentMeta = (data.meta ?? {}) as Record<string, unknown>;
+              data.meta = { ...currentMeta, ...pp.patchMeta };
+            }
+          }
+
           fs.writeFileSync(targetFile, yaml.dump(data, {
+            lineWidth: -1,
+            noRefs: true,
+            sortKeys: false,
+          }));
+        }
+
+        // Multi-document mode: handle sub-patches that only have meta (no elements)
+        for (const pp of parsedPatches) {
+          if (!pp.patchMeta) continue;
+          if (elementsByTarget.has(pp.targetDocPath)) continue; // Already handled above
+
+          const existingDoc = catalog.documents.find(d => d.documentPath === pp.targetDocPath);
+          if (!existingDoc || !fs.existsSync(existingDoc.filePath)) continue;
+
+          const fileData = yaml.load(fs.readFileSync(existingDoc.filePath, 'utf-8')) as Record<string, unknown> ?? {};
+          const currentMeta = (fileData.meta ?? {}) as Record<string, unknown>;
+          fileData.meta = { ...currentMeta, ...pp.patchMeta };
+
+          fs.writeFileSync(existingDoc.filePath, yaml.dump(fileData, {
             lineWidth: -1,
             noRefs: true,
             sortKeys: false,
