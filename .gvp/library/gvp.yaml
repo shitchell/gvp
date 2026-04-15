@@ -1535,6 +1535,31 @@ decisions:
       - date: "2026-04-13"
         note: "RHC consumer + Guy (human-approved). Design reviewed through S1 process. Ticket 017."
 
+  - id: D28
+    name: Multi-document patch format for cairn import
+    rationale: >
+      Single-file patches with --into address single-document updates. Directory
+      mode mirrors library structure for filesystem-mapped restructuring. But
+      consumers need a third pattern: one reviewable file that updates multiple
+      documents in a single reviewable artifact. The multi_document patch format
+      fills this gap — meta.multi_document: true triggers the mode, each named
+      top-level sub-patch has document (target) + patch (content following cairn
+      document schema). patch.meta merges into target document metadata.
+      Cross-sub-patch pseudo-ID references resolve via the same R6 generic
+      rewriting pipeline as directory mode. Distinct purpose from directory mode
+      (single reviewable file vs. filesystem-mirrored multi-file) per H6
+      (collapse by layer). Shape was locked with human signoff 2026-04-14 after
+      the to_document → document rename.
+    tags: [tooling, usability]
+    maps_to: [gvp:G7, gvp:G9, gvp:V4, gvp:V9, gvp:P11, gvp:P14, gvp:R6, gvp:D27]
+    refs:
+      - file: src/cli/commands/import.ts
+        identifier: importCommand
+        role: implements
+    origin:
+      - date: "2026-04-14"
+        note: "RHC consumer (human-approved shape 2026-04-14). Ticket 018."
+
 constraints:
   - id: C1
     name: Agents optimize for minimal effort
