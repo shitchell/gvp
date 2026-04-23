@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   MarkdownRefParser,
+  PythonRefParser,
   TypeScriptRefParser,
   YamlRefParser,
   createRefParserRegistry,
@@ -166,6 +167,106 @@ describe('TypeScriptRefParser', () => {
   });
 });
 
+describe('PythonRefParser', () => {
+  const parser = new PythonRefParser();
+
+  it('extractIdentifiers returns module-level def, class, methods, and nested class', () => {
+    const content = [
+      'def foo():',
+      '    return 1',
+      '',
+      'class Foo:',
+      '    def method_a(self):',
+      '        return self',
+      '',
+      '    def method_b(self):',
+      '        return self',
+      '',
+      'class Outer:',
+      '    class Inner:',
+      '        pass',
+    ].join('\n');
+
+    const results = parser.extractIdentifiers(content);
+    const names = results.map(r => r.identifier);
+    expect(names).toContain('foo');
+    expect(names).toContain('Foo');
+    expect(names).toContain('method_a');
+    expect(names).toContain('method_b');
+    expect(names).toContain('Outer');
+    expect(names).toContain('Inner');
+  });
+
+  it('async def extracts identifier without async prefix', () => {
+    const content = [
+      'async def bar():',
+      '    return 2',
+    ].join('\n');
+
+    const results = parser.extractIdentifiers(content);
+    const names = results.map(r => r.identifier);
+    expect(names).toContain('bar');
+    expect(names).not.toContain('async');
+  });
+
+  it('decorated function extracts the def name', () => {
+    const content = [
+      'class Thing:',
+      '    @property',
+      '    def prop(self):',
+      '        return self._x',
+    ].join('\n');
+
+    const results = parser.extractIdentifiers(content);
+    const names = results.map(r => r.identifier);
+    expect(names).toContain('prop');
+  });
+
+  it('extractBlock resolves dotted ClassName.method_name', () => {
+    const content = [
+      'class Foo:',
+      '    def method_name(self):',
+      '        return 42',
+      '',
+      '    def other(self):',
+      '        return 0',
+    ].join('\n');
+
+    const block = parser.extractBlock(content, 'Foo.method_name');
+    expect(block).not.toBeNull();
+    expect(block).toContain('def method_name');
+    expect(block).toContain('return 42');
+    expect(block).not.toContain('def other');
+  });
+
+  it('extractBlock returns null for dotted path with missing tail', () => {
+    const content = [
+      'class Foo:',
+      '    def method_name(self):',
+      '        return 1',
+    ].join('\n');
+
+    const block = parser.extractBlock(content, 'Foo.nonexistent');
+    expect(block).toBeNull();
+  });
+
+  it('extractBlock returns null for absent identifier', () => {
+    const content = [
+      'def foo():',
+      '    return 1',
+    ].join('\n');
+
+    const block = parser.extractBlock(content, 'absent');
+    expect(block).toBeNull();
+  });
+
+  it('findParser returns PythonRefParser for .py', () => {
+    const parsers = createRefParserRegistry();
+    const found = findParser('.py', parsers);
+    expect(found).toBeInstanceOf(PythonRefParser);
+  });
+});
+
 describe('YamlRefParser', () => {
   const parser = new YamlRefParser();
 
@@ -274,8 +375,8 @@ describe('Parser registry', () => {
     expect(parser).toBeUndefined();
   });
 
-  it('createRefParserRegistry has 3 parsers', () => {
+  it('createRefParserRegistry has 4 parsers', () => {
     const parsers = createRefParserRegistry();
-    expect(parsers).toHaveLength(3);
+    expect(parsers).toHaveLength(4);
   });
 });

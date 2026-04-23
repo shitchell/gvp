@@ -1,5 +1,6 @@
 import type { RefParser } from './base.js';
 import { MarkdownRefParser } from './markdown-parser.js';
+import { PythonRefParser } from './python-parser.js';
 import { TypeScriptRefParser } from './typescript-parser.js';
 import { YamlRefParser } from './yaml-parser.js';
 
@@ -9,6 +10,7 @@ import { YamlRefParser } from './yaml-parser.js';
 export function createRefParserRegistry(): RefParser[] {
   return [
     new MarkdownRefParser(),
+    new PythonRefParser(),
     new TypeScriptRefParser(),
     new YamlRefParser(),
   ];
