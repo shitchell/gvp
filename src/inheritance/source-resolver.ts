@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import { InheritanceError } from '../errors.js';
 
 /**
@@ -87,6 +87,60 @@ function defaultCacheDir(): string {
 }
 
 /**
+ * Build the sequence of git commands that fetch a single commit-ish (tag OR
+ * SHA) shallowly into `dest` and check it out in detached HEAD state.
+ *
+ * Why not `git clone --branch <commitish>`? `--branch` only accepts tag or
+ * branch *names*, never raw commit SHAs — a SHA dies with
+ * "Remote branch <sha> not found in upstream origin". This init+fetch+checkout
+ * approach handles both:
+ *   - tags resolve through `git fetch origin <tag>`
+ *   - SHAs resolve through `git fetch origin <sha>` (GitHub enables
+ *     uploadpack.allowReachableSHA1InWant)
+ *
+ * LIMITATION (DEC-1.9, honest by V2 "Transparency"): only commits that are
+ * *reachable from a ref* (a branch/tag tip or its history) can be fetched by
+ * SHA. GitHub allows this; some git servers disable
+ * allowReachableSHA1InWant / allowAnySHA1InWant and will reject a bare-SHA
+ * fetch. Tags are unaffected. There is no cheap, universal workaround — a
+ * server that forbids SHA fetches simply cannot serve SHA pins shallowly.
+ *
+ * Returned commands run with `cwd: dest`; `dest` must already exist.
+ */
+export function buildFetchCommands(gitUrl: string, commitish: string): string[][] {
+  return [
+    ['git', 'init', '--quiet'],
+    ['git', 'remote', 'add', 'origin', gitUrl],
+    ['git', 'fetch', '--depth', '1', '--quiet', 'origin', commitish],
+    ['git', 'checkout', '--quiet', '--detach', 'FETCH_HEAD'],
+  ];
+}
+
+/**
+ * Return true if `commitish` names a *branch head* on the remote, which is a
+ * mutable ref and therefore disallowed (DEC-1.9: "Only commits and tags are
+ * valid — branches are NOT stored in YAML").
+ *
+ * Uses `git ls-remote --heads <url> <name>`: a non-empty result means the name
+ * matches a branch head. Tags and SHAs produce no head match and pass through.
+ * On any network/command failure we fail *open* (return false) and let the
+ * subsequent fetch decide — we don't want a flaky `ls-remote` to block a valid
+ * tag/SHA pin.
+ */
+export function commitishIsBranch(gitUrl: string, commitish: string): boolean {
+  try {
+    const out = execFileSync(
+      'git',
+      ['ls-remote', '--heads', gitUrl, commitish],
+      { stdio: ['pipe', 'pipe', 'pipe'], encoding: 'utf-8' }
+    );
+    return out.trim().length > 0;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Resolver for git-based sources (DEC-1.9).
  * Clones repos to a local cache and returns the library path.
  *
@@ -146,21 +200,36 @@ export class GitSourceResolver implements SourceResolver {
 
     const gitUrl = urlBuilder(repoPath!);
 
-    // Step 2: Clone to cache
+    // Step 2a: Reject mutable branch refs (DEC-1.9). A commit-ish that names a
+    // branch head is not an immutable pin. Tags and SHAs pass through.
+    if (commitishIsBranch(gitUrl, commitish!)) {
+      throw new InheritanceError(
+        `Git source '${source}' pins branch '${commitish}', which is mutable and ` +
+        `not allowed (DEC-1.9). Use an immutable tag or commit SHA instead.`
+      );
+    }
+
+    // Step 2b: Fetch the commit-ish (tag OR SHA) shallowly into the cache.
+    // See buildFetchCommands for why we can't use `git clone --branch`.
     fs.mkdirSync(cachedPath, { recursive: true });
 
     try {
-      execSync(
-        `git clone --depth 1 --branch ${commitish} ${gitUrl} ${cachedPath}`,
-        { stdio: ['pipe', 'pipe', 'pipe'], encoding: 'utf-8' }
-      );
+      for (const [cmd, ...args] of buildFetchCommands(gitUrl, commitish!)) {
+        execFileSync(cmd!, args, {
+          cwd: cachedPath,
+          stdio: ['pipe', 'pipe', 'pipe'],
+          encoding: 'utf-8',
+        });
+      }
     } catch (e) {
-      // Clean up failed clone
+      // Clean up failed fetch
       fs.rmSync(cachedPath, { recursive: true, force: true });
 
       const errMsg = e instanceof Error ? e.message : String(e);
       throw new InheritanceError(
-        `Failed to clone git source '${source}' from ${gitUrl}: ${errMsg}`
+        `Failed to fetch git source '${source}' from ${gitUrl}: ${errMsg}. ` +
+        `Note: pinning by SHA requires the commit to be reachable from a ref and ` +
+        `the server to allow SHA fetches (GitHub does; some servers do not).`
       );
     }
 
