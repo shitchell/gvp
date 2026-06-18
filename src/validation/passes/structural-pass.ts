@@ -280,14 +280,24 @@ export function structuralPass(catalog: Catalog, _config: GVPConfig): Diagnostic
     if (!doc.meta.inherits) continue;
     const inherits = doc.meta.inherits as Array<string | { source: string; as?: string }>;
     for (const parent of inherits) {
-      const parentPath = typeof parent === 'string' ? parent : parent.source;
-      // The parent should be in the catalog's documents if inheritance resolved correctly.
-      // If it's listed but not found, it's a broken reference.
-      const found = catalog.documents.some(d =>
-        d.documentPath === parentPath ||
-        d.source + ':' + d.documentPath === parentPath ||
-        d.meta.name === parentPath
-      );
+      let found: boolean;
+      let parentPath: string;
+      if (typeof parent === 'string') {
+        // String-form: a single document in the same library, referenced by
+        // docPath, source:docPath, or meta.name.
+        parentPath = parent;
+        found = catalog.documents.some(d =>
+          d.documentPath === parentPath ||
+          d.source + ':' + d.documentPath === parentPath ||
+          d.meta.name === parentPath
+        );
+      } else {
+        // Object-form: names an external SOURCE LIBRARY. Every document
+        // pulled from that source carries `source === parent.source`, so the
+        // inheritance resolved iff at least one such document is present.
+        parentPath = parent.source;
+        found = catalog.documents.some(d => d.source === parentPath);
+      }
       if (!found) {
         diagnostics.push(createDiagnostic(
           'E003',

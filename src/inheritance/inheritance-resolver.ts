@@ -10,6 +10,23 @@ import { InheritanceError } from '../errors.js';
 export type DocumentLoader = (source: string, documentPath: string) => Document;
 
 /**
+ * Callback type for enumerating ALL documents in an external source's
+ * library (DEC-1.7 object-form inherits). Object-form `inherits` entries
+ * — `{ source: <path-or-@source>, as: <alias> }` — name a source library,
+ * not a single document. The resolver pulls every document from that
+ * source so the inheriting document can reference any of them with the
+ * natural 2-segment `document:element` form (e.g. `personal:V2`,
+ * `code/common:CP7`). Each returned Document carries its own
+ * `documentPath` relative to the source library and a `source` string
+ * identifying the source (so identity stays unique across libraries).
+ *
+ * The caller provides this. When absent, object-form entries are skipped
+ * (legacy behavior) so the resolver remains usable in unit tests that
+ * only exercise same-library string-form inheritance.
+ */
+export type SourceLoader = (source: string) => Document[];
+
+/**
  * Result of resolving a document's inheritance tree.
  */
 export interface ResolvedInheritance {
@@ -41,6 +58,7 @@ export interface ResolvedInheritance {
 export function resolveInheritance(
   entryDoc: Document,
   loader: DocumentLoader,
+  sourceLoader?: SourceLoader,
 ): ResolvedInheritance {
   const ordered: Document[] = [];
   const visited = new Set<string>(); // fully-processed keys
@@ -73,37 +91,56 @@ export function resolveInheritance(
     const inherits = doc.meta.inherits;
     if (inherits && Array.isArray(inherits)) {
       for (const entry of inherits) {
-        let source: string;
-        let docPath: string;
-
         if (typeof entry === 'string') {
-          // Local document reference (same source)
-          source = doc.source;
-          docPath = entry;
+          // String-form: a single document in the SAME source/library.
+          const source = doc.source;
+          const docPath = entry;
+          const parentKey = `${source}:${docPath}`;
+          let parent = docMap.get(parentKey);
+          if (!parent) {
+            try {
+              parent = loader(source, docPath);
+              docMap.set(parentKey, parent);
+            } catch (e) {
+              throw new InheritanceError(
+                `Failed to load inherited document '${docPath}' from source '${source}': ${(e as Error).message}`,
+              );
+            }
+          }
+          dfs(parent, aliases);
         } else if (typeof entry === 'object' && entry !== null && 'source' in entry) {
-          // External source reference
-          source = entry.source as string;
-          docPath = '';
+          // Object-form: name an EXTERNAL source library (DEC-1.7). Pull
+          // every document from that source so any of them can be
+          // referenced by `document:element`. Without a sourceLoader the
+          // resolver cannot reach the source, so we skip (and unit tests
+          // that don't wire one stay unaffected).
+          if (!sourceLoader) continue;
+          const source = entry.source as string;
+          let sourceDocs: Document[];
+          try {
+            sourceDocs = sourceLoader(source);
+          } catch (e) {
+            throw new InheritanceError(
+              `Failed to load inherited source '${source}': ${(e as Error).message}`,
+            );
+          }
+          if (sourceDocs.length === 0) {
+            throw new InheritanceError(
+              `Inherited source '${source}' contains no documents`,
+            );
+          }
+          for (const sourceDoc of sourceDocs) {
+            const parentKey = docKey(sourceDoc);
+            if (!docMap.has(parentKey)) {
+              docMap.set(parentKey, sourceDoc);
+            }
+            // Recurse so the source doc's own (string-form) inherits and
+            // alias map are processed, and it lands in `ordered`.
+            dfs(docMap.get(parentKey)!, aliases);
+          }
         } else {
           continue;
         }
-
-        // Try to load the parent document
-        const parentKey = `${source}:${docPath}`;
-        let parent = docMap.get(parentKey);
-        if (!parent) {
-          try {
-            parent = loader(source, docPath);
-            docMap.set(parentKey, parent);
-          } catch (e) {
-            throw new InheritanceError(
-              `Failed to load inherited document '${docPath}' from source '${source}': ${(e as Error).message}`,
-            );
-          }
-        }
-
-        // Recurse into parent (DFS — process parents before self)
-        dfs(parent, aliases);
       }
     }
 
@@ -158,18 +195,15 @@ function findSCCs(
     const inherits = doc.meta.inherits;
     if (inherits && Array.isArray(inherits)) {
       for (const entry of inherits) {
-        let successorKey: string;
-        if (typeof entry === 'string') {
-          successorKey = `${doc.source}:${entry}`;
-        } else if (
-          typeof entry === 'object' &&
-          entry !== null &&
-          'source' in entry
-        ) {
-          successorKey = `${entry.source}:`;
-        } else {
+        // Only string-form (same-library) edges participate in SCC
+        // detection. Object-form entries expand to whole external
+        // libraries (each doc keyed by its own source:documentPath) and
+        // are handled during DFS; they don't create same-key back-edges
+        // here, so we skip them.
+        if (typeof entry !== 'string') {
           continue;
         }
+        const successorKey = `${doc.source}:${entry}`;
 
         if (!indices.has(successorKey)) {
           const successor = docMap.get(successorKey);

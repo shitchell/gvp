@@ -230,17 +230,32 @@ describe('Inheritance Resolver (DEC-1.0, DEC-1.3, DEC-1.8)', () => {
     );
   });
 
-  it('handles object-form inherits with source', () => {
+  it('handles object-form inherits with source (via SourceLoader)', () => {
+    // Object-form `inherits` names an external SOURCE LIBRARY, not a single
+    // document. The resolver pulls every doc from that source via the
+    // SourceLoader. Here the source library has one doc ('root').
     const externalDoc = makeDoc('root', [], 'external-lib');
     const docA = makeDoc('a', [{ source: 'external-lib' }]);
 
-    const loader: DocumentLoader = (source, _docPath) => {
-      if (source === 'external-lib') return externalDoc;
+    const loader: DocumentLoader = (source) => {
+      throw new Error(`Unexpected single-doc load from source: ${source}`);
+    };
+    const sourceLoader = (source: string) => {
+      if (source === 'external-lib') return [externalDoc];
       throw new Error(`Unknown source: ${source}`);
     };
 
-    const result = resolveInheritance(docA, loader);
+    const result = resolveInheritance(docA, loader, sourceLoader);
     expect(result.orderedDocuments).toHaveLength(2);
+  });
+
+  it('object-form inherits is skipped when no SourceLoader is provided', () => {
+    const docA = makeDoc('a', [{ source: 'external-lib' }]);
+    const loader: DocumentLoader = () => {
+      throw new Error('should not be called');
+    };
+    const result = resolveInheritance(docA, loader);
+    expect(result.orderedDocuments).toHaveLength(1);
   });
 
   it('detects SCCs with >1 member for mutual cycles', () => {

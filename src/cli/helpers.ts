@@ -5,7 +5,9 @@ import { loadDefaults } from '../schema/defaults-loader.js';
 import { CategoryRegistry } from '../model/category-registry.js';
 import { parseDocument } from '../model/document-parser.js';
 import { documentMetaSchema } from '../model/document-meta.js';
-import { resolveInheritance, type DocumentLoader, type ResolvedInheritance } from '../inheritance/inheritance-resolver.js';
+import { resolveInheritance, type DocumentLoader, type SourceLoader, type ResolvedInheritance } from '../inheritance/inheritance-resolver.js';
+import { createSourceResolver } from '../inheritance/source-resolver.js';
+import * as os from 'os';
 import { Catalog } from '../catalog/catalog.js';
 import type { Element } from '../model/element.js';
 import type { CategoryDefinition } from '../schema/category-definition.js';
@@ -250,7 +252,50 @@ export function buildCatalog(
     }
   }
 
-  const loader: DocumentLoader = (_src, docPath) => {
+  // Source resolver for object-form `inherits` (external sources). Local
+  // paths (incl. `~`-prefixed and `@local`) resolve against THIS library's
+  // directory; `@github:...`/`@gitlab:...` etc. clone to a cache. See
+  // src/inheritance/source-resolver.ts.
+  const sourceResolver = createSourceResolver(libraryDir!);
+
+  // Cache of loaded external-source libraries: source string -> its docs.
+  // Keyed by the raw source string so two entries naming the same source
+  // (e.g. across leaf documents) only hit the filesystem/network once.
+  const sourceDocCache = new Map<string, ReturnType<typeof loadDocumentFile>[]>();
+
+  // Load every document from an external source's library. Each doc's
+  // documentPath is relative to the RESOLVED source library, and its
+  // `source` is the raw source string so element identity stays unique
+  // across libraries (Element identity is source:documentPath:id).
+  const sourceLoader: SourceLoader = (src) => {
+    const cachedDocs = sourceDocCache.get(src);
+    if (cachedDocs) return cachedDocs;
+    const resolvedDir = sourceResolver.resolve(expandTilde(src));
+    const files = findYamlFiles(resolvedDir);
+    if (files.length === 0) {
+      throw new Error(`No YAML files found in source library ${resolvedDir}`);
+    }
+    const docs = files.map((file) => {
+      const docPath = path.relative(resolvedDir, file).replace(/\.ya?ml$/, '');
+      return loadDocumentFile(file, docPath, src, registry);
+    });
+    sourceDocCache.set(src, docs);
+    return docs;
+  };
+
+  const loader: DocumentLoader = (src, docPath) => {
+    // String-form inherits within an external source: load relative to
+    // that source's resolved library. (src === the local library's own
+    // `source` for entry-document string-form inherits — handled by the
+    // cache lookup below.)
+    if (src !== source && src !== '@local') {
+      const sourceDocs = sourceLoader(src);
+      const match = sourceDocs.find(
+        (d) => d.documentPath === docPath || d.meta.name === docPath,
+      );
+      if (match) return match;
+      throw new Error(`Document not found: '${docPath}' in source '${src}'`);
+    }
     // Cache lookup: try docPath first (existing behavior), then meta.name.
     const cached = docCache.get(docPath) ?? nameIndex.get(docPath);
     if (cached) return cached;
@@ -303,7 +348,7 @@ export function buildCatalog(
 
   const entries = leafDocs.length > 0 ? leafDocs : [docCache.values().next().value!];
   for (const leaf of entries) {
-    const resolved = resolveInheritance(leaf, loader);
+    const resolved = resolveInheritance(leaf, loader, sourceLoader);
     for (const doc of resolved.orderedDocuments) {
       const key = `${doc.source}:${doc.documentPath}`;
       if (!seen.has(key)) {
@@ -373,6 +418,18 @@ export function filterElementsByDocument(
   allowedDocPaths: Set<string>,
 ): Element[] {
   return elements.filter((e) => allowedDocPaths.has(e.documentPath));
+}
+
+/**
+ * Expand a leading `~` or `~/` to the user's home directory. Other forms
+ * (`~user`) are left untouched — cairn sources are the current user's own
+ * paths. LocalSourceResolver does not expand tildes, so the CLI does it
+ * before handing the source string off.
+ */
+function expandTilde(p: string): string {
+  if (p === '~') return os.homedir();
+  if (p.startsWith('~/')) return path.join(os.homedir(), p.slice(2));
+  return p;
 }
 
 function loadDocumentFile(filePath: string, docPath: string, source: string, registry: CategoryRegistry) {
