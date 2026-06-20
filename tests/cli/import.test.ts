@@ -361,6 +361,93 @@ goals:
     expect(goals.find(g => g.name === 'Goal in new doc')).toBeDefined();
   });
 
+  // 11b. Directory mode: new doc honors patch meta (scope + inherits), not force-stamped scope: project
+  it('directory mode honors meta (scope, inherits) when creating a new document', () => {
+    const patchDir = path.join(tmpDir, 'patches');
+    fs.mkdirSync(patchDir, { recursive: true });
+    fs.writeFileSync(path.join(patchDir, 'impl.yaml'), `
+meta:
+  import: true
+  name: impl
+  scope: implementation
+  inherits:
+    - main
+decisions:
+  - id: "?D1"
+    name: Bootstrap decision
+    rationale: Created in a new implementation doc.
+    tags: []
+    maps_to: []
+`);
+    const result = runCairn('import', patchDir, '--yes');
+    expect(result.exitCode).toBe(0);
+    const newDocPath = path.join(tmpDir, '.gvp', 'library', 'impl.yaml');
+    expect(fs.existsSync(newDocPath)).toBe(true);
+    const data = yaml.load(fs.readFileSync(newDocPath, 'utf-8')) as Record<string, unknown>;
+    const meta = data.meta as Record<string, unknown>;
+    // Scope must be honored, NOT force-stamped to project
+    expect(meta.scope).toBe('implementation');
+    // inherits must be carried over
+    expect(meta.inherits).toEqual(['main']);
+    // The reserved 'import' control key must NOT leak into the document meta
+    expect(meta.import).toBeUndefined();
+    // Element still landed
+    const decisions = data.decisions as Array<Record<string, unknown>>;
+    expect(decisions.find(d => d.name === 'Bootstrap decision')).toBeDefined();
+  });
+
+  // 11c. Directory mode: new doc default scope when no scope in meta
+  it('directory mode defaults new-document scope to project when meta omits scope', () => {
+    const patchDir = path.join(tmpDir, 'patches');
+    fs.mkdirSync(patchDir, { recursive: true });
+    fs.writeFileSync(path.join(patchDir, 'plain.yaml'), `
+meta:
+  import: true
+goals:
+  - id: "?G1"
+    name: Plain new doc goal
+    statement: No scope given.
+    tags: []
+    maps_to: []
+`);
+    const result = runCairn('import', patchDir, '--yes');
+    expect(result.exitCode).toBe(0);
+    const newDocPath = path.join(tmpDir, '.gvp', 'library', 'plain.yaml');
+    expect(fs.existsSync(newDocPath)).toBe(true);
+    const data = yaml.load(fs.readFileSync(newDocPath, 'utf-8')) as Record<string, unknown>;
+    const meta = data.meta as Record<string, unknown>;
+    expect(meta.scope).toBe('project');
+    expect(meta.name).toBe('plain');
+  });
+
+  // 11d. Directory mode regression: existing-file patching does not overwrite meta from patch
+  it('directory mode does not alter existing document meta when patching', () => {
+    const patchDir = path.join(tmpDir, 'patches');
+    fs.mkdirSync(patchDir, { recursive: true });
+    fs.writeFileSync(path.join(patchDir, 'main.yaml'), `
+meta:
+  import: true
+goals:
+  - id: "?G1"
+    name: Appended to existing main
+    statement: Existing-file patch.
+    tags: []
+    maps_to: []
+`);
+    const result = runCairn('import', patchDir, '--yes');
+    expect(result.exitCode).toBe(0);
+    const data = readLibDoc('main');
+    const meta = data.meta as Record<string, unknown>;
+    // Existing main meta unchanged: still project scope, name main, no leaked import key
+    expect(meta.scope).toBe('project');
+    expect(meta.name).toBe('main');
+    expect(meta.import).toBeUndefined();
+    const goals = data.goals as Array<Record<string, unknown>>;
+    expect(goals.find(g => g.name === 'Appended to existing main')).toBeDefined();
+    // Original G1 still present
+    expect(goals.find(g => g.id === 'G1')).toBeDefined();
+  });
+
   // 12. Manifest document deletion
   it('deletes documents listed in _manifest.yaml with --confirm-delete', () => {
     // Add a doc to delete

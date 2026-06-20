@@ -79,6 +79,9 @@ export function importCommand(): Command {
 
         // Collect patch files
         const patchFiles: Array<{ filePath: string; targetDocPath: string }> = [];
+        // Directory mode: capture each patch file's top-level meta, keyed by targetDocPath.
+        // Applied only when creating a NEW document (honors scope/inherits, etc.).
+        const dirPatchMeta = new Map<string, Record<string, unknown>>();
         // For multi-document mode, store pre-parsed sub-patch data
         const parsedPatches: Array<{
           data: Record<string, unknown>;
@@ -104,6 +107,15 @@ export function importCommand(): Command {
             }
             const docPath = relPath.replace(/\.ya?ml$/, '');
             patchFiles.push({ filePath: file, targetDocPath: docPath });
+
+            // Capture the patch file's top-level meta for new-document creation.
+            const raw = yaml.load(fs.readFileSync(file, 'utf-8'));
+            if (raw && typeof raw === 'object') {
+              const meta = (raw as Record<string, unknown>).meta;
+              if (meta && typeof meta === 'object') {
+                dirPatchMeta.set(docPath, meta as Record<string, unknown>);
+              }
+            }
           }
         } else if (isMultiDocument) {
           // Multi-document mode: parse sub-patches from single file
@@ -442,9 +454,17 @@ export function importCommand(): Command {
           } else {
             // New document
             fs.mkdirSync(path.dirname(targetFile), { recursive: true });
-            data = {
-              meta: { name: targetDocPath, scope: 'project' },
+            // Honor the patch file's top-level meta (e.g. scope, inherits) when creating
+            // the document, rather than force-stamping scope: project. Reserved control
+            // keys used to drive the import (import, multi_document) are stripped so they
+            // don't leak into the persisted document meta.
+            const providedMeta = stripImportControlKeys(dirPatchMeta.get(targetDocPath));
+            const newMeta: Record<string, unknown> = {
+              name: targetDocPath,
+              scope: 'project',
+              ...providedMeta,
             };
+            data = { meta: newMeta };
           }
 
           for (const pe of elements) {
@@ -681,6 +701,25 @@ function isNewElement(pe: PatchElement, catalog: Catalog): boolean {
     e.id === pe.data.id && e.documentPath === pe.targetDocPath
   );
   return !existing;
+}
+
+/** Reserved meta keys that drive the import flow and must not persist into a document. */
+const IMPORT_CONTROL_META_KEYS = new Set(['import', 'multi_document']);
+
+/**
+ * Return a copy of a patch file's top-level meta with reserved import-control keys removed.
+ * Returns an empty object if no meta was provided.
+ */
+function stripImportControlKeys(
+  meta: Record<string, unknown> | undefined,
+): Record<string, unknown> {
+  if (!meta) return {};
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(meta)) {
+    if (IMPORT_CONTROL_META_KEYS.has(key)) continue;
+    out[key] = value;
+  }
+  return out;
 }
 
 function findYamlFilesRecursive(dir: string): string[] {
