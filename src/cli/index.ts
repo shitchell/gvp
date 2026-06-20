@@ -15,6 +15,7 @@ import { editCommand } from './commands/edit.js';
 import { analyzeCommand } from './commands/analyze.js';
 import { initCommand } from './commands/init.js';
 import { importCommand } from './commands/import.js';
+import { mvCommand } from './commands/mv.js';
 
 const program = new Command();
 
@@ -41,5 +42,6 @@ program.addCommand(editCommand());
 program.addCommand(analyzeCommand());
 program.addCommand(initCommand());
 program.addCommand(importCommand());
+program.addCommand(mvCommand());
 
 program.parse();
