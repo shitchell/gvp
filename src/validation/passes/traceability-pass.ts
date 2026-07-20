@@ -109,5 +109,70 @@ export function traceabilityPass(catalog: Catalog, _config: GVPConfig): Diagnost
     }
   }
 
+  // W016: Soft, transitive value anchor (#6). Non-root active elements should
+  // trace transitively to at least one value-anchor category. When none is
+  // reachable this is a *warning*, not an error: the acceptance value is often
+  // authored later and lives upstream in an org/personal library, and
+  // hard-erroring during incremental library-building forces a hollow local
+  // value stub (C1/P6) — the exact smell we are avoiding. Suppressible;
+  // --strict promotes. Dispatches on the is_value_anchor flag, not a name (R6).
+  {
+    const valueAnchorCategories = new Set<string>();
+    for (const catName of catalog.registry.categoryNames) {
+      const catDef = catalog.registry.getByName(catName);
+      if (catDef?.is_value_anchor) valueAnchorCategories.add(catName);
+    }
+
+    // Only meaningful if the library actually declares a value-anchor category.
+    if (valueAnchorCategories.size > 0) {
+      for (const element of catalog.getAllElements()) {
+        if (element.status === 'deprecated' || element.status === 'rejected') continue;
+        const catDef = catalog.registry.getByName(element.categoryName);
+        if (!catDef || catDef.is_root) continue;
+        if (element.maps_to.length === 0) continue; // W001 handles empty maps_to
+
+        const visited = new Set<string>();
+        const queue = [element.hashKey()];
+        let foundValue = false;
+
+        while (queue.length > 0) {
+          const current = queue.pop()!;
+          if (visited.has(current)) continue;
+          visited.add(current);
+
+          const currentEl = elementLookup.get(current);
+          if (!currentEl) continue;
+
+          // The starting element is non-root, so it can never be a value anchor
+          // itself; any match is a genuine transitive ancestor.
+          if (valueAnchorCategories.has(currentEl.categoryName)) {
+            foundValue = true;
+            break;
+          }
+
+          for (const ref of currentEl.maps_to) {
+            const target = elementLookup.get(ref);
+            if (target && !visited.has(target.hashKey())) {
+              queue.push(target.hashKey());
+            }
+          }
+        }
+
+        if (!foundValue) {
+          diagnostics.push(createDiagnostic(
+            'W016',
+            'NO_VALUE_TRACE',
+            `Element ${element.toLibraryId()} does not trace to any value transitively — ` +
+              `the acceptance value for a constraint/requirement/exclusion-anchored element ` +
+              `usually lives in an org/personal library; wire it up or add one`,
+            'warning',
+            PASS_NAME,
+            { elementId: element.id, documentPath: element.documentPath, categoryName: element.categoryName },
+          ));
+        }
+      }
+    }
+  }
+
   return diagnostics;
 }

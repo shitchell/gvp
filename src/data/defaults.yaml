@@ -33,6 +33,7 @@ categories:
     id_prefix: G
     primary_field: statement
     is_root: true
+    requires_decision: true
     color: "#4CAF50"
 
   value:
@@ -40,6 +41,7 @@ categories:
     id_prefix: V
     primary_field: statement
     is_root: true
+    is_value_anchor: true
     color: "#2196F3"
 
   constraint:
@@ -47,14 +49,21 @@ categories:
     id_prefix: C
     primary_field: impact
     is_root: true
+    requires_decision: true
     color: "#FF9800"
 
   principle:
     yaml_key: principles
     id_prefix: P
     primary_field: statement
+    # Anchor to any non-value root (goal+value | constraint | user_requirement |
+    # exclusion). The value anchor is enforced softly and transitively by W016,
+    # not by W003. See #6 / 2026-07-20-identity-lattice-design.md.
     mapping_rules:
       - [goal, value]
+      - [constraint]
+      - [user_requirement]
+      - [exclusion]
     color: "#9C27B0"
 
   rule:
@@ -63,6 +72,9 @@ categories:
     primary_field: statement
     mapping_rules:
       - [goal, value]
+      - [constraint]
+      - [user_requirement]
+      - [exclusion]
     color: "#F44336"
 
   heuristic:
@@ -71,6 +83,9 @@ categories:
     primary_field: statement
     mapping_rules:
       - [goal, value]
+      - [constraint]
+      - [user_requirement]
+      - [exclusion]
       - [principle]
       - [rule]
     color: "#00BCD4"
@@ -81,7 +96,15 @@ categories:
     primary_field: rationale
     mapping_rules:
       - [goal, value]
+      - [constraint]
+      - [user_requirement]
+      - [exclusion]
     field_schemas:
+      disposition:
+        type: enum
+        values: ["accepted", "declined", "deferred"]
+        required: false
+        display_name: "Disposition"
       considered:
         type: dict
         required: false
@@ -103,6 +126,9 @@ categories:
     primary_field: description
     mapping_rules:
       - [goal, value]
+      - [constraint]
+      - [user_requirement]
+      - [exclusion]
     color: "#607D8B"
 
   procedure:
@@ -111,6 +137,9 @@ categories:
     primary_field: description
     mapping_rules:
       - [goal, value]
+      - [constraint]
+      - [user_requirement]
+      - [exclusion]
     field_schemas:
       when:
         type: string
@@ -161,3 +190,27 @@ categories:
                     values: ["defines", "implements", "uses", "extends"]
                     required: true
     color: "#8BC34A"
+
+  # Stakeholder-decreed mandate, asserted as input and NOT derivable from any
+  # value (that non-derivability is what makes it a requirement and not a rule).
+  # A root; requires_decision marks it as an actionable point-root that top-side
+  # coverage (W017) expects to be actioned by a decision. See #7.
+  user_requirement:
+    yaml_key: user_requirements
+    id_prefix: U
+    primary_field: statement
+    display_label: "User Requirement"
+    is_root: true
+    requires_decision: true
+    color: "#E91E63"
+
+  # Self-imposed out-of-scope boundary — the negative space of goals. A root, but
+  # already its own resolution, so it self-satisfies top-side coverage (no
+  # requires_decision flag). See #7 / #8.
+  exclusion:
+    yaml_key: exclusions
+    id_prefix: X
+    primary_field: statement
+    display_label: "Exclusion"
+    is_root: true
+    color: "#37474F"

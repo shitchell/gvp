@@ -7,8 +7,8 @@ describe('CategoryRegistry', () => {
   const registry = CategoryRegistry.fromDefaults(defaults);
 
   describe('lookup', () => {
-    it('has 9 core categories', () => {
-      expect(registry.categoryNames).toHaveLength(9);
+    it('has 11 core categories', () => {
+      expect(registry.categoryNames).toHaveLength(11);
     });
 
     it('getByName returns category definition', () => {
@@ -41,7 +41,7 @@ describe('CategoryRegistry', () => {
       expect(keys).toContain('values');
       expect(keys).toContain('decisions');
       expect(keys).toContain('procedures');
-      expect(keys).toHaveLength(9);
+      expect(keys).toHaveLength(11);
     });
   });
 
@@ -84,7 +84,7 @@ describe('CategoryRegistry', () => {
       const merged = registry.merge({
         custom: { yaml_key: 'customs', id_prefix: 'CU', primary_field: 'description' },
       });
-      expect(merged.categoryNames).toHaveLength(10);
+      expect(merged.categoryNames).toHaveLength(12);
       expect(merged.getByName('custom')).toBeDefined();
     });
 
@@ -99,7 +99,7 @@ describe('CategoryRegistry', () => {
       registry.merge({
         custom: { yaml_key: 'customs', id_prefix: 'CU' },
       });
-      expect(registry.categoryNames).toHaveLength(9); // Original unchanged (9 core)
+      expect(registry.categoryNames).toHaveLength(11); // Original unchanged (11 core)
     });
   });
 });

@@ -58,7 +58,7 @@ decisions:
 `;
 
   it('loads defaults and creates registry', () => {
-    expect(registry.categoryNames).toHaveLength(9);
+    expect(registry.categoryNames).toHaveLength(11);
   });
 
   it('parses a multi-category document', () => {

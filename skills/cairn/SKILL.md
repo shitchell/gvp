@@ -26,13 +26,15 @@ Elements are the building blocks of a GVP library. Each has an `id`, `name`, `ma
 | **Goal** | G | Yes | What we're trying to achieve | `statement` |
 | **Value** | V | Yes | What we care about; guides tradeoffs | `statement` |
 | **Constraint** | C | Yes | Limitations we're working within | `impact` |
+| **User Requirement** | U | Yes | Stakeholder-decreed mandate, asserted as input (not derived from a value) | `statement` |
+| **Exclusion** | X | Yes | Self-imposed out-of-scope boundary (the negative space of goals) | `statement` |
 | **Principle** | P | No | Actionable guidelines derived from values | `statement` |
 | **Heuristic** | H | No | Decision-making rules ("if X, do Y") | `statement` |
-| **Rule** | R | No | Unconditional requirements | `statement` |
-| **Decision** | D | No | Specific choices with rationale + alternatives | `rationale` |
+| **Rule** | R | No | Unconditional standing constraint / hard stop | `statement` |
+| **Decision** | D | No | Specific choices with rationale + alternatives; carries a `disposition` (`accepted`/`declined`/`deferred`) | `rationale` |
 | **Milestone** | M | No | Checkpoints tied to goals | `description` |
 
-**Root elements** (goals, values, constraints) are the top of the traceability chain — they don't need to map to anything. **Non-root elements** must map to at least one goal AND one value (directly or transitively).
+**Root elements** (goals, values, constraints, user_requirements, exclusions) are the top of the traceability chain — they don't need to map to anything. **Non-root elements** anchor to at least one non-value root (goal, constraint, user_requirement, or exclusion) and should trace to a value (soft/transitive). A **Rule** is a *derived* standing constraint (re-derivable from a value); a **User Requirement** bottoms out at a stakeholder, not a value — that is the distinction.
 
 ### Traceability Direction
 

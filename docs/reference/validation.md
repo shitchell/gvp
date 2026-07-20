@@ -8,27 +8,50 @@ Traceability rules are defined per-category in the element category schema (see
 [schema.md](schema.md#element-category-definitions)). The rules below describe the
 built-in defaults.
 
-Every element must trace back to at least one **goal** and one **value** -- either directly through its `maps_to` references, or transitively through elements it maps to. Three categories are exempt from this requirement because they *are* the roots of the traceability graph:
+Every non-root element must anchor to at least one **non-value root** (goal,
+constraint, user_requirement, or exclusion) and should also trace to at least one
+**value** -- either directly through its `maps_to` references, or transitively
+through elements it maps to. The value anchor is enforced *softly* (W016 warning,
+transitive, suppressible), because the acceptance value often lives upstream in an
+inherited org/personal library. Five categories are exempt from the anchor
+requirement because they *are* the roots of the traceability graph:
 
 - **Goals** -- no mapping required
-- **Values** -- no mapping required
+- **Values** -- no mapping required (the value axis itself)
 - **Constraints** -- no mapping required
+- **User Requirements** -- no mapping required; a stakeholder-decreed mandate asserted as input, not derived from any value
+- **Exclusions** -- no mapping required; a self-imposed out-of-scope boundary (the negative space of goals)
+
+Roots are *encouraged* to map when applicable (e.g. a requirement may map to the
+value it resonates with), but are never required to.
 
 Elements with status `deprecated` or `rejected` are excluded from all traceability checks.
 
 ### Core Categories
 
-| Category | Must map to... |
+| Category | Must anchor to... |
 |----------|---------------|
-| Milestone | 1+ goal AND 1+ value |
-| Principle | 1+ goal AND 1+ value |
-| Rule | 1+ goal AND 1+ value |
-| Decision | 1+ goal AND 1+ value |
-| Heuristic | (1+ goal AND 1+ value) OR 1+ principle or rule |
+| Milestone | (1+ goal AND 1+ value) OR 1+ constraint OR 1+ user_requirement OR 1+ exclusion |
+| Principle | (1+ goal AND 1+ value) OR 1+ constraint OR 1+ user_requirement OR 1+ exclusion |
+| Rule | (1+ goal AND 1+ value) OR 1+ constraint OR 1+ user_requirement OR 1+ exclusion |
+| Decision | (1+ goal AND 1+ value) OR 1+ constraint OR 1+ user_requirement OR 1+ exclusion |
+| Heuristic | (1+ goal AND 1+ value) OR 1+ constraint OR 1+ user_requirement OR 1+ exclusion OR 1+ principle OR 1+ rule |
 
-Milestones, principles, rules, and decisions must map directly to at least one goal and at least one value. Both are required -- mapping to only a goal or only a value is a traceability violation.
+Every non-root element must anchor to at least one **non-value root**. The
+`[goal, value]` pair remains a satisfying group (backward compatible), but a single
+non-value root -- constraint, user_requirement, or exclusion -- now also satisfies
+the structural anchor check (W003). This is what lets a decision that actions a
+stakeholder mandate map *only* to that `user_requirement` without a manufactured
+goal/value pair.
 
-Heuristics have an **alternative path**: instead of mapping directly to a goal and a value, a heuristic can map to a principle or a rule. Either satisfies the requirement. The idea is that the principle or rule it maps to must itself trace to a goal and value, so the chain is still complete -- just indirect.
+Separately, the **value anchor** is checked softly and transitively (W016): if no
+value is reachable anywhere in the graph (including inherited libraries), a warning
+is emitted -- not an error -- because the acceptance value frequently lives upstream
+and hard-erroring would force a hollow local value stub.
+
+Heuristics keep an additional **alternative path**: they may map to a principle or a
+rule, which must itself trace onward to the roots, so the chain is still complete --
+just indirect.
 
 ### Extended Categories
 
@@ -77,7 +100,9 @@ Warnings are printed to stderr but do not cause a non-zero exit code under norma
 | W010 | REF_FILE_MISSING | A ref points to a file that does not exist on disk. |
 | W011 | REF_IDENTIFIER_MISSING | A ref's identifier was not found in the referenced file. |
 | W012 | ORPHAN_IDENTIFIER | An identifier in a file is not referenced by any element (coverage pass only). |
-| W013 | DECISION_NO_REFS | A decision element has no refs (coverage pass only). |
+| W013 | DECISION_NO_REFS | An **accepted** decision has no refs (coverage pass only). `declined` and `deferred` decisions are exempt -- their rationale and considered alternatives are the record. A decision with no `disposition` is treated as `accepted`. |
+| W016 | NO_VALUE_TRACE | A non-root element does not trace to any value transitively. Soft anchor: the acceptance value often lives upstream in an inherited library, so this warns rather than errors (promotable under `--strict`). |
+| W017 | ROOT_NO_DECISION | An actionable root -- a category declaring `requires_decision: true` (goal, constraint, user_requirement) -- has no Decision tracing to it (coverage pass only). `value` and `exclusion` are exempt. Ensures decreed drivers are explicitly actioned (accept/decline/defer). |
 
 ### Suppressing Diagnostics
 

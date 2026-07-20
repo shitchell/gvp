@@ -21,346 +21,392 @@ meta:
         description: Code-level patterns and implementation heuristics
   defaults:
     origin:
-      - date: "2026-02-23"
-        note: "Inferred from planning sessions"
-
+      - date: '2026-02-23'
+        note: Inferred from planning sessions
 goals:
   - id: G1
     name: Facilitate alignment across collaborators
-    statement: >
-      Collaborators -- human or AI -- can consult the GVP store to understand
-      how decisions are made and why, producing plans and work that align with
-      stated goals and values without repeated explanation. Applies during
-      planning, execution, and review.
-    tags: [framework, alignment]
+    statement: |
+      Collaborators -- human or AI -- can consult the GVP store to understand how decisions are made and why, producing plans and work that align with stated goals and values without repeated explanation. Applies during planning, execution, and review.
+    tags:
+      - framework
+      - alignment
     maps_to: []
-
   - id: G2
     name: Facilitate easier planning for AI and humans
-    statement: >
-      Decision-making context is already documented, so new planning sessions
-      start from shared ground rather than blank slates.
-    tags: [framework, alignment, usability]
-    maps_to: [gvp:G1]
-
+    statement: |
+      Decision-making context is already documented, so new planning sessions start from shared ground rather than blank slates.
+    tags:
+      - framework
+      - alignment
+      - usability
+    maps_to:
+      - gvp:G1
   - id: G3
     name: Enable periodic review of GVPs
-    statement: >
-      Users can revisit their goals, values, and principles over time to verify
-      they still hold true, updating or deprecating those that no longer apply.
-    tags: [framework, integrity]
-    maps_to: [gvp:G4]
-
+    statement: |
+      Users can revisit their goals, values, and principles over time to verify they still hold true, updating or deprecating those that no longer apply.
+    tags:
+      - framework
+      - integrity
+    maps_to:
+      - gvp:G4
   - id: G4
     name: Review guiding values against their results
-    statement: >
-      Users can examine whether their stated values are actually producing
-      outcomes coherent with their goals, surfacing contradictions or drift.
-    tags: [framework, alignment, integrity]
+    statement: |
+      Users can examine whether their stated values are actually producing outcomes coherent with their goals, surfacing contradictions or drift.
+    tags:
+      - framework
+      - alignment
+      - integrity
     maps_to: []
-
   - id: G5
     name: Ensure internal consistency across all scopes
-    statement: >
-      The framework helps detect and surface misalignment between elements at
-      different scopes so contradictions are visible rather than hidden.
-    tags: [framework, alignment]
+    statement: |
+      The framework helps detect and surface misalignment between elements at different scopes so contradictions are visible rather than hidden.
+    tags:
+      - framework
+      - alignment
     maps_to: []
-
   - id: G6
     name: Works anywhere
-    statement: >
-      The tool should work for organizations, teams, and individuals alike --
-      across domains, project structures, and workflows. This includes being
-      domain-agnostic in its core design.
-    tags: [framework, usability]
+    statement: |
+      The tool should work for organizations, teams, and individuals alike -- across domains, project structures, and workflows. This includes being domain-agnostic in its core design.
+    tags:
+      - framework
+      - usability
     maps_to: []
-
   - id: G7
     name: Usable by AI assistants
-    statement: >
-      AI assistants should be able to read, query, and propose changes to GVP
-      stores as part of planning and development workflows.
-    tags: [framework, alignment]
-    maps_to: [gvp:G1]
-
+    statement: |
+      AI assistants should be able to read, query, and propose changes to GVP stores as part of planning and development workflows.
+    tags:
+      - framework
+      - alignment
+    maps_to:
+      - gvp:G1
   - id: G8
     name: Just works out of the box
-    statement: >
-      The tool should work correctly and predictably with minimal setup.
-      Sensible defaults, automatic discovery, and progressive fallbacks mean
-      a user can start using the tool without reading documentation or writing
-      configuration.
-    tags: [framework, usability]
-    maps_to: [gvp:G6]
-
+    statement: |
+      The tool should work correctly and predictably with minimal setup. Sensible defaults, automatic discovery, and progressive fallbacks mean a user can start using the tool without reading documentation or writing configuration.
+    tags:
+      - framework
+      - usability
+    maps_to:
+      - gvp:G6
   - id: G9
     name: Adapts to the user
-    statement: >
-      The tool should conform to the user's environment, needs, and how they
-      conceptualize and model their goals and projects -- rather than demanding
-      the user conform to the tool.
-    tags: [framework, usability, extensibility]
+    statement: |
+      The tool should conform to the user's environment, needs, and how they conceptualize and model their goals and projects -- rather than demanding the user conform to the tool.
+    tags:
+      - framework
+      - usability
+      - extensibility
     maps_to: []
-
   - id: G10
     name: Automated detection of similar and conflicting elements
-    statement: >
-      The framework should progressively improve its ability to automatically
-      detect elements that are semantically similar, potentially conflicting,
-      or unmapped despite apparent relevance -- reducing the burden on humans
-      and AI agents to manually discover these relationships.
-    tags: [framework, alignment, tooling]
-    maps_to: [gvp:G5, gvp:G7]
+    statement: |
+      The framework should progressively improve its ability to automatically detect elements that are semantically similar, potentially conflicting, or unmapped despite apparent relevance -- reducing the burden on humans and AI agents to manually discover these relationships.
+    tags:
+      - framework
+      - alignment
+      - tooling
+    maps_to:
+      - gvp:G5
+      - gvp:G7
     origin:
-      - date: "2026-03-26"
-        note: "Added during post-v1 heuristic mining -- supports Surface Tension principle"
-
+      - date: '2026-03-26'
+        note: Added during post-v1 heuristic mining -- supports Surface Tension principle
 values:
   - id: V1
     name: Alignment
-    statement: >
-      Shared understanding between agents -- human or AI -- of what the vision
-      is and how we're getting there. Across people, across projects, across
-      time.
-    tags: [framework, alignment]
-    maps_to: [gvp:G1]
-
+    statement: |
+      Shared understanding between agents -- human or AI -- of what the vision is and how we're getting there. Across people, across projects, across time.
+    tags:
+      - framework
+      - alignment
+    maps_to:
+      - gvp:G1
   - id: V2
     name: Coherency
-    statement: >
-      The system of decisions should be internally consistent. Elements across
-      scopes should not contradict each other. The graph matters more than any
-      single element.
-    tags: [framework, integrity]
-    maps_to: [gvp:G5]
-
+    statement: |
+      The system of decisions should be internally consistent. Elements across scopes should not contradict each other. The graph matters more than any single element.
+    tags:
+      - framework
+      - integrity
+    maps_to:
+      - gvp:G5
   - id: V3
     name: Honesty
-    statement: >
-      Capture real reasoning, even when messy or uncomfortable. Fuzzy gut
-      feelings are valid starting points worth documenting. Presenting a clean
-      facade over unclear motivations helps no one.
-    tags: [framework, integrity]
-    maps_to: [gvp:G3, gvp:G4]
-
+    statement: |
+      Capture real reasoning, even when messy or uncomfortable. Fuzzy gut feelings are valid starting points worth documenting. Presenting a clean facade over unclear motivations helps no one.
+    tags:
+      - framework
+      - integrity
+    maps_to:
+      - gvp:G3
+      - gvp:G4
   - id: V4
     name: Simplicity
-    statement: >
-      The quality of being uncomplicated and easy to understand. Complexity
-      must earn its place.
-    tags: [framework, tooling]
-    maps_to: [gvp:G8]
-
+    statement: |
+      The quality of being uncomplicated and easy to understand. Complexity must earn its place.
+    tags:
+      - framework
+      - tooling
+    maps_to:
+      - gvp:G8
   - id: V5
     name: Approachability
-    statement: >
-      Meet users where they are. The framework should be intuitive regardless
-      of domain expertise or technical background -- through layered
-      documentation, domain-specific examples, and terminology that fits the
-      audience.
-    tags: [framework, usability]
-    maps_to: [gvp:G6]
-
+    statement: |
+      Meet users where they are. The framework should be intuitive regardless of domain expertise or technical background -- through layered documentation, domain-specific examples, and terminology that fits the audience.
+    tags:
+      - framework
+      - usability
+    maps_to:
+      - gvp:G6
   - id: V6
     name: Clarity
-    statement: >
-      Easy, simple understanding throughout all aspects of the system -- its
-      usage, its output, and its interwoven philosophies.
-    tags: [framework, usability]
-    maps_to: [gvp:G1, gvp:V5]
-
+    statement: |
+      Easy, simple understanding throughout all aspects of the system -- its usage, its output, and its interwoven philosophies.
+    tags:
+      - framework
+      - usability
+    maps_to:
+      - gvp:G1
+      - gvp:V5
   - id: V7
     name: Flexibility
-    statement: >
-      Systems should be adaptable to different environments, preferences, and
-      unforeseen contexts.
-    tags: [framework, extensibility]
-    maps_to: [gvp:G9]
-
+    statement: |
+      Systems should be adaptable to different environments, preferences, and unforeseen contexts.
+    tags:
+      - framework
+      - extensibility
+    maps_to:
+      - gvp:G9
   - id: V8
     name: Configurability
-    statement: >
+    statement: |
       Users should have control over how the system behaves in their context.
-    tags: [framework, extensibility]
-    maps_to: [gvp:G9, gvp:V7]
-
+    tags:
+      - framework
+      - extensibility
+    maps_to:
+      - gvp:G9
+      - gvp:V7
   - id: V9
     name: Auditability
-    statement: >
-      Every action that changes the state of the system leaves a complete,
-      immutable trace. Where traceability ensures decisions connect to their
-      justification (the "why"), auditability ensures every change is
-      recorded (the "what" and "when"). Data may be excluded from review
-      cycles, but it is never excluded from the record.
-    tags: [framework, integrity]
-    maps_to: [gvp:G3, gvp:G4, gvp:V2, gvp:V3]
+    statement: |
+      Every action that changes the state of the system leaves a complete, immutable trace. Where traceability ensures decisions connect to their justification (the "why"), auditability ensures every change is recorded (the "what" and "when"). Data may be excluded from review cycles, but it is never excluded from the record.
+    tags:
+      - framework
+      - integrity
+    maps_to:
+      - gvp:G3
+      - gvp:G4
+      - gvp:V2
+      - gvp:V3
     origin:
-      - date: "2026-03-19"
-        note: "Added during v1 design review -- driven by DEC-4.6 (--skip-review records full provenance) and DEC-1.0a (fully transitive, transparent dependencies)"
-
+      - date: '2026-03-19'
+        note: Added during v1 design review -- driven by DEC-4.6 (--skip-review records full provenance) and DEC-1.0a (fully transitive, transparent dependencies)
   - id: V10
     name: System Integrity
-    statement: >
-      The system should be trustworthy. Its outputs, its state, and its
-      guarantees should be reliable -- or visibly absent.
-    tags: [framework, integrity]
-    maps_to: [gvp:V2, gvp:V3]
+    statement: |
+      The system should be trustworthy. Its outputs, its state, and its guarantees should be reliable -- or visibly absent.
+    tags:
+      - framework
+      - integrity
+    maps_to:
+      - gvp:V2
+      - gvp:V3
     origin:
-      - date: "2026-03-26"
-        note: "Added during post-v1 heuristic mining -- the system is either fully valid or refuses to operate"
-
+      - date: '2026-03-26'
+        note: Added during post-v1 heuristic mining -- the system is either fully valid or refuses to operate
 principles:
   - id: P1
     name: Capture rationale always
-    statement: >
-      Every decision should include its rationale. Use direct quotes where
-      possible. Never infer, assume, or paraphrase someone's reasoning.
-      If rationale was not discussed, note it as TBD and follow up.
-    tags: [framework, integrity, alignment]
-    maps_to: [gvp:G1, gvp:G2, gvp:V1, gvp:V3]
-
+    statement: |
+      Every decision should include its rationale. Use direct quotes where possible. Never infer, assume, or paraphrase someone's reasoning. If rationale was not discussed, note it as TBD and follow up.
+    tags:
+      - framework
+      - integrity
+      - alignment
+    maps_to:
+      - gvp:G1
+      - gvp:G2
+      - gvp:V1
+      - gvp:V3
   - id: P2
     name: Fuzzy boundaries are a feature
-    statement: >
-      Categories are tools for thinking, not rigid taxonomies. Goals and values
-      are tightly coupled and co-evolve. Tags embrace the fuzziness of human
-      conceptualization rather than forcing hierarchical boxes.
-    tags: [framework, usability]
-    maps_to: [gvp:G6, gvp:V5, gvp:V7]
-
+    statement: |
+      Categories are tools for thinking, not rigid taxonomies. Goals and values are tightly coupled and co-evolve. Tags embrace the fuzziness of human conceptualization rather than forcing hierarchical boxes.
+    tags:
+      - framework
+      - usability
+    maps_to:
+      - gvp:G6
+      - gvp:V5
+      - gvp:V7
   - id: P3
     name: Source of truth is structured data
-    statement: >
-      The source of truth should be well-defined, parseable, and manipulable
-      with deterministic tools. Consistency and scriptability matter more than
-      the specific format.
-    tags: [framework, integrity, tooling]
-    maps_to: [gvp:G1, gvp:G7, gvp:V2, gvp:V4]
-
+    statement: |
+      The source of truth should be well-defined, parseable, and manipulable with deterministic tools. Consistency and scriptability matter more than the specific format.
+    tags:
+      - framework
+      - integrity
+      - tooling
+    maps_to:
+      - gvp:G1
+      - gvp:G7
+      - gvp:V2
+      - gvp:V4
   - id: P4
     name: Enforce standards through appropriate friction
-    statement: >
-      Adherence to standards should be supported by the right level of
-      enforcement -- from transparency and trust where risk is low, to active
-      friction where attention matters, to hard stops where violation is
-      destructive or irreversible.
-    tags: [framework, integrity, usability]
-    maps_to: [gvp:G3, gvp:G4, gvp:V2, gvp:V1, gvp:C1]
-
+    statement: |
+      Adherence to standards should be supported by the right level of enforcement -- from transparency and trust where risk is low, to active friction where attention matters, to hard stops where violation is destructive or irreversible.
+    tags:
+      - framework
+      - integrity
+      - usability
+    maps_to:
+      - gvp:G3
+      - gvp:G4
+      - gvp:V2
+      - gvp:V1
+      - gvp:C1
   - id: P5
     name: Design around flex points
-    statement: >
-      When a specific future change is plausible, design around it now rather
-      than refactoring later. A little upfront complexity in the interface
-      buys future simplicity. This does not mean implementing the change
-      early -- it means shaping the architecture so the change is not painful
-      when it arrives.
-    tags: [framework, tooling]
-    maps_to: [gvp:G2, gvp:V4, gvp:V2, gvp:V7]
-
+    statement: |
+      When a specific future change is plausible, design around it now rather than refactoring later. A little upfront complexity in the interface buys future simplicity. This does not mean implementing the change early -- it means shaping the architecture so the change is not painful when it arrives.
+    tags:
+      - framework
+      - tooling
+    maps_to:
+      - gvp:G2
+      - gvp:V4
+      - gvp:V2
+      - gvp:V7
   - id: P6
     name: Minimize friction while maintaining coherency
-    statement: >
-      The default posture is to impose the least friction necessary to maintain
-      alignment and coherency. Where possible, make the right thing easy
-      rather than making the wrong thing hard. But where coherency demands
-      friction, friction wins.
-    tags: [framework, usability, integrity]
-    maps_to: [gvp:G5, gvp:V2, gvp:V4, gvp:V5, gvp:C1]
-
+    statement: |
+      The default posture is to impose the least friction necessary to maintain alignment and coherency. Where possible, make the right thing easy rather than making the wrong thing hard. But where coherency demands friction, friction wins.
+    tags:
+      - framework
+      - usability
+      - integrity
+    maps_to:
+      - gvp:G5
+      - gvp:V2
+      - gvp:V4
+      - gvp:V5
+      - gvp:C1
   - id: P7
     name: Respect the user's environment
-    statement: >
-      Integrate with existing conventions and configurations rather than
-      imposing new ones. Use platform idioms, mirror patterns from established
-      tools, and respect the user's choices about their own workflow.
-    tags: [framework, tooling, usability]
-    maps_to: [gvp:G6, gvp:G9, gvp:V5, gvp:V7]
-
+    statement: |
+      Integrate with existing conventions and configurations rather than imposing new ones. Use platform idioms, mirror patterns from established tools, and respect the user's choices about their own workflow.
+    tags:
+      - framework
+      - tooling
+      - usability
+    maps_to:
+      - gvp:G6
+      - gvp:G9
+      - gvp:V5
+      - gvp:V7
   - id: P8
     name: Opinionated defaults with escape hatches
-    statement: >
-      Offer well-considered defaults that push toward stated goals and values.
-      Always provide explicit opt-outs to accommodate unforeseen scenarios
-      where the defaults fall short.
-    tags: [framework, usability, extensibility]
-    maps_to: [gvp:G8, gvp:G9, gvp:V4, gvp:V5, gvp:V3, gvp:V7]
-
+    statement: |
+      Offer well-considered defaults that push toward stated goals and values. Always provide explicit opt-outs to accommodate unforeseen scenarios where the defaults fall short.
+    tags:
+      - framework
+      - usability
+      - extensibility
+    maps_to:
+      - gvp:G8
+      - gvp:G9
+      - gvp:V4
+      - gvp:V5
+      - gvp:V3
+      - gvp:V7
   - id: P9
     name: Optimize signal-to-noise ratio
-    statement: >
-      Present the right information at the right time. More is not better --
-      relevance matters more than comprehensiveness. Hide what is not actively
-      needed, but never lose it.
-    tags: [framework, usability]
-    maps_to: [gvp:G1, gvp:G2, gvp:V6, gvp:V4, gvp:V5]
-
+    statement: |
+      Present the right information at the right time. More is not better -- relevance matters more than comprehensiveness. Hide what is not actively needed, but never lose it.
+    tags:
+      - framework
+      - usability
+    maps_to:
+      - gvp:G1
+      - gvp:G2
+      - gvp:V6
+      - gvp:V4
+      - gvp:V5
   - id: P10
     name: Lean on established standards
-    statement: >
-      When facing a design or architectural choice, look to established
-      standards and conventions in the ecosystem for guidance. Proven patterns
-      from mature tools (language compilers, linters, frameworks) carry
-      hard-won lessons. Adopt them where they fit rather than inventing from
-      scratch. Deviate only with clear rationale for why the standard doesn't
-      apply.
-    tags: [framework, tooling]
-    maps_to: [gvp:G8, gvp:V4, gvp:V2, gvp:P7]
+    statement: |
+      When facing a design or architectural choice, look to established standards and conventions in the ecosystem for guidance. Proven patterns from mature tools (language compilers, linters, frameworks) carry hard-won lessons. Adopt them where they fit rather than inventing from scratch. Deviate only with clear rationale for why the standard doesn't apply.
+    tags:
+      - framework
+      - tooling
+    maps_to:
+      - gvp:G8
+      - gvp:V4
+      - gvp:V2
+      - gvp:P7
     origin:
-      - date: "2026-03-19"
-        note: "Added during v1 Theme 5 design review -- driven by DEC-5.7 (ESLint/Zod precedent for exception vs diagnostic split)"
-
+      - date: '2026-03-19'
+        note: Added during v1 Theme 5 design review -- driven by DEC-5.7 (ESLint/Zod precedent for exception vs diagnostic split)
   - id: P11
     name: Collapse redundant mechanisms
-    statement: >
-      When two mechanisms serve the same purpose, eliminate the weaker one
-      rather than adding coordination logic between them. When two mechanisms
-      look structurally similar but serve different purposes, keep them
-      distinct. Purpose -- not structural similarity -- determines whether
-      to merge.
-    tags: [framework, tooling]
-    maps_to: [gvp:G5, gvp:V4, gvp:V2]
+    statement: |
+      When two mechanisms serve the same purpose, eliminate the weaker one rather than adding coordination logic between them. When two mechanisms look structurally similar but serve different purposes, keep them distinct. Purpose -- not structural similarity -- determines whether to merge.
+    tags:
+      - framework
+      - tooling
+    maps_to:
+      - gvp:G5
+      - gvp:V4
+      - gvp:V2
     origin:
-      - date: "2026-03-26"
-        note: "Added during post-v1 heuristic mining -- driven by DEC-2.15 (drop libraries config), DEC-5.5 (suppress over conditional), DEC-9.3 (tags over custom categories)"
-
+      - date: '2026-03-26'
+        note: Added during post-v1 heuristic mining -- driven by DEC-2.15 (drop libraries config), DEC-5.5 (suppress over conditional), DEC-9.3 (tags over custom categories)
   - id: P12
     name: Surface tension, don't resolve it
-    statement: >
-      The framework records and traces the state of goals, values, principles,
-      and decisions -- creating a structured record that makes tensions, gaps,
-      and misalignments discoverable. It does not auto-detect or auto-resolve
-      these issues. The responsibility of finding misalignment largely rests
-      with humans or AI agents reviewing the traced state. When gaps or
-      conflicts are identified (whether by humans, AI agents, or optional
-      tooling like embedding-based analysis), the framework provides the
-      structured context needed to understand them -- but resolution is always
-      a human decision.
-    tags: [framework, alignment, integrity]
-    maps_to: [gvp:G4, gvp:G5, gvp:G10, gvp:V1, gvp:V3]
+    statement: |
+      The framework records and traces the state of goals, values, principles, and decisions -- creating a structured record that makes tensions, gaps, and misalignments discoverable. It does not auto-detect or auto-resolve these issues. The responsibility of finding misalignment largely rests with humans or AI agents reviewing the traced state. When gaps or conflicts are identified (whether by humans, AI agents, or optional tooling like embedding-based analysis), the framework provides the structured context needed to understand them -- but resolution is always a human decision.
+    tags:
+      - framework
+      - alignment
+      - integrity
+    maps_to:
+      - gvp:G4
+      - gvp:G5
+      - gvp:G10
+      - gvp:V1
+      - gvp:V3
     refs:
       - file: docs/philosophy.md
-        identifier: "The Framework Serves Alignment, Not People"
+        identifier: The Framework Serves Alignment, Not People
         role: defines
       - file: src/analysis/analyzer.ts
         identifier: findUnmappedRelationships
         role: implements
     origin:
-      - date: "2026-03-26"
-        note: "Added during post-v1 heuristic mining -- framework informs, humans decide"
-
+      - date: '2026-03-26'
+        note: Added during post-v1 heuristic mining -- framework informs, humans decide
   - id: P13
     name: Refuse to operate on a broken foundation
-    statement: >
-      When the system's structural invariants -- schemas, configuration,
-      category definitions -- cannot be fully validated, the system should
-      refuse to proceed rather than operating in a partially valid state.
-      Unreliable output is worse than no output. Core functionality either
-      works completely or fails clearly. Optional or peripheral features may
-      degrade gracefully (P8), but the foundation must be sound.
-    tags: [framework, integrity, tooling]
-    maps_to: [gvp:G5, gvp:V10, gvp:V2, gvp:V3, gvp:P4]
+    statement: |
+      When the system's structural invariants -- schemas, configuration, category definitions -- cannot be fully validated, the system should refuse to proceed rather than operating in a partially valid state. Unreliable output is worse than no output. Core functionality either works completely or fails clearly. Optional or peripheral features may degrade gracefully (P8), but the foundation must be sound.
+    tags:
+      - framework
+      - integrity
+      - tooling
+    maps_to:
+      - gvp:G5
+      - gvp:V10
+      - gvp:V2
+      - gvp:V3
+      - gvp:P4
     refs:
       - file: src/catalog/post-merge-validation.ts
         identifier: validateMergedCategories
@@ -372,19 +418,21 @@ principles:
         identifier: loadConfig
         role: implements
     origin:
-      - date: "2026-03-26"
-        note: "Added during post-v1 heuristic mining -- driven by DEC-5.7, DEC-5.13, DEC-3.6"
-
+      - date: '2026-03-26'
+        note: Added during post-v1 heuristic mining -- driven by DEC-5.7, DEC-5.13, DEC-3.6
   - id: P14
     name: Explicit over implicit
-    statement: >
-      When the choice is between a concise but implicit/inferred behavior and
-      a verbose but explicit one, prefer explicit. Accept verbosity when it
-      eliminates ambiguity. No auto-deriving, no wildcards, no "what did you
-      probably mean" inference. If the user must understand what the system is
-      doing, make them say it.
-    tags: [framework, tooling, integrity]
-    maps_to: [gvp:G5, gvp:V6, gvp:V10, gvp:P3]
+    statement: |
+      When the choice is between a concise but implicit/inferred behavior and a verbose but explicit one, prefer explicit. Accept verbosity when it eliminates ambiguity. No auto-deriving, no wildcards, no "what did you probably mean" inference. If the user must understand what the system is doing, make them say it.
+    tags:
+      - framework
+      - tooling
+      - integrity
+    maps_to:
+      - gvp:G5
+      - gvp:V6
+      - gvp:V10
+      - gvp:P3
     refs:
       - file: src/schema/reserved-fields.ts
         identifier: checkReservedFieldCollision
@@ -396,20 +444,20 @@ principles:
         identifier: GitSourceResolver
         role: implements
     origin:
-      - date: "2026-03-26"
-        note: "Added during post-v1 heuristic mining -- driven by DEC-2.13 (explicit mode/value), DEC-5.11 (exact-match suppression), DEC-6.6 (no magic git derivation)"
-
+      - date: '2026-03-26'
+        note: Added during post-v1 heuristic mining -- driven by DEC-2.13 (explicit mode/value), DEC-5.11 (exact-match suppression), DEC-6.6 (no magic git derivation)
   - id: P15
     name: Dogfood your own abstractions
-    statement: >
-      When the framework defines an abstraction -- a loading pipeline, a
-      validation system, an extension interface -- use that same abstraction
-      for all built-in functionality. Built-in defaults should load through
-      the same pipeline as user-defined data. This is especially important
-      for dynamic, modular frameworks where the extension points ARE the
-      product.
-    tags: [framework, tooling, integrity]
-    maps_to: [gvp:V10, gvp:V2, gvp:G8]
+    statement: |
+      When the framework defines an abstraction -- a loading pipeline, a validation system, an extension interface -- use that same abstraction for all built-in functionality. Built-in defaults should load through the same pipeline as user-defined data. This is especially important for dynamic, modular frameworks where the extension points ARE the product.
+    tags:
+      - framework
+      - tooling
+      - integrity
+    maps_to:
+      - gvp:V10
+      - gvp:V2
+      - gvp:G8
     refs:
       - file: src/schema/defaults-loader.ts
         identifier: loadDefaults
@@ -418,114 +466,136 @@ principles:
         identifier: categories
         role: defines
     origin:
-      - date: "2026-03-26"
-        note: "Added during post-v1 heuristic mining -- driven by DEC-9.4 (defaults.yaml through same pipeline as user files)"
-
+      - date: '2026-03-26'
+        note: Added during post-v1 heuristic mining -- driven by DEC-9.4 (defaults.yaml through same pipeline as user files)
   - id: P16
     name: Strict types end-to-end
-    statement: >
-      Every data structure -- from YAML parse output through model layer to CLI
-      output -- should be fully typed such that IDE autocomplete works at every
-      point in the chain. If a developer can't dot-into a field and see
-      completions, the typing is insufficient. Prefer typed interfaces over
-      Record<string, unknown>, typed discriminated unions over any, and
-      schema-derived types over hand-maintained ones. Transient untyped states
-      (e.g., raw YAML fragments awaiting schema resolution) are design smells --
-      restructure the pipeline so the data is typed from the moment it enters the
-      system.
-    tags: [tooling, code, integrity]
-    maps_to: [gvp:G7, gvp:V10, gvp:P3, gvp:P14]
-
+    statement: |
+      Every data structure -- from YAML parse output through model layer to CLI output -- should be fully typed such that IDE autocomplete works at every point in the chain. If a developer can't dot-into a field and see completions, the typing is insufficient. Prefer typed interfaces over Record<string, unknown>, typed discriminated unions over any, and schema-derived types over hand-maintained ones. Transient untyped states (e.g., raw YAML fragments awaiting schema resolution) are design smells -- restructure the pipeline so the data is typed from the moment it enters the system.
+    tags:
+      - tooling
+      - code
+      - integrity
+    maps_to:
+      - gvp:G7
+      - gvp:V10
+      - gvp:P3
+      - gvp:P14
+  - id: P17
+    name: Decreed inputs are not derived
+    statement: |
+      A stakeholder-decreed input (a user_requirement) may resonate with a value — it can and should map to the value it is partially-motivated-by — but it is NOT derived from that value. The value under-determines the requirement; the residual the value cannot re-derive IS the decreed core. Therefore tooling and reviewers must read a requirement→value link as "resonates-with / partially-motivated-by," never as "derived-from," and must never attempt to re-derive or re-open a decreed root from the values it maps to. The same holds for the other decreed/exogenous roots (constraint, exclusion): mapping them to a value records resonance, not derivation.
+    tags:
+      - framework
+      - alignment
+      - integrity
+    maps_to:
+      - gvp:G1
+      - gvp:V3
+    origin:
+      - id: 8a215be5-8888-4210-b2d9-29b7db2c8791
+        date: '2026-07-20T23:00:05.014Z'
+        note: Imported from guiding-patch.yaml
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
 heuristics:
   - id: H1
     name: Core vs. example placement
-    statement: >
-      If a feature or element type is domain-specific, put it in examples. If
-      it is structural and applies regardless of domain, put it in core.
-    tags: [framework, extensibility]
-    maps_to: [gvp:R4, gvp:G6, gvp:V7]
-
+    statement: |
+      If a feature or element type is domain-specific, put it in examples. If it is structural and applies regardless of domain, put it in core.
+    tags:
+      - framework
+      - extensibility
+    maps_to:
+      - gvp:R4
+      - gvp:G6
+      - gvp:V7
   - id: H2
     name: Review threshold
-    statement: >
-      If a change is trivial (typo fix, formatting), record it but skip
-      review. If it changes meaning, intent, or scope, track and review it
-      fully. Every change leaves a trace regardless -- the question is
-      whether it warrants the review cycle.
-    tags: [framework, integrity]
-    maps_to: [gvp:P4, gvp:V4, gvp:V9]
+    statement: |
+      If a change is trivial (typo fix, formatting), record it but skip review. If it changes meaning, intent, or scope, track and review it fully. Every change leaves a trace regardless -- the question is whether it warrants the review cycle.
+    tags:
+      - framework
+      - integrity
+    maps_to:
+      - gvp:P4
+      - gvp:V4
+      - gvp:V9
     updated_by:
       - id: d9670797-769f-4bf8-b36a-e7e4b253bd6d
-        date: "2026-03-19"
-        rationale: "Updated to reflect v1 design decision DEC-4.6 -- provenance is always recorded, only review is skippable"
+        date: '2026-03-19'
+        rationale: Updated to reflect v1 design decision DEC-4.6 -- provenance is always recorded, only review is skippable
     reviewed_by:
       - id: facdb118-826e-4d8c-9e52-d7c36b599773
-        date: "2026-04-13"
+        date: '2026-04-13'
         by:
-          name: "claude-worker PM session"
-          email: "noreply@anthropic.com"
-        updates_reviewed: ["d9670797-769f-4bf8-b36a-e7e4b253bd6d"]
-        note: "Bulk review of pre-v1 updates. Statement accurately reflects DEC-4.6."
-
+          name: claude-worker PM session
+          email: noreply@anthropic.com
+        updates_reviewed:
+          - d9670797-769f-4bf8-b36a-e7e4b253bd6d
+        note: Bulk review of pre-v1 updates. Statement accurately reflects DEC-4.6.
   - id: H3
     name: Simplicity vs. flex point trade-off
-    statement: >
-      Default to the simpler option. Then evaluate: (1) Is there a specific
-      plausible future change that this decision affects? If no, keep it
-      simple. (2) If yes, does designing around it now add significant
-      complexity or cost? If yes, document the deferred alternative and move
-      on. If no, design around it now. When in doubt, simplicity wins.
-    tags: [tooling, framework]
-    maps_to: [gvp:P5, gvp:V4, gvp:P1]
-
+    statement: |
+      Default to the simpler option. Then evaluate: (1) Is there a specific plausible future change that this decision affects? If no, keep it simple. (2) If yes, does designing around it now add significant complexity or cost? If yes, document the deferred alternative and move on. If no, design around it now. When in doubt, simplicity wins.
+    tags:
+      - tooling
+      - framework
+    maps_to:
+      - gvp:P5
+      - gvp:V4
+      - gvp:P1
   - id: H4
     name: Enforcement level selection
-    statement: >
-      Is the action low-risk and easily reversible? Allow it freely with
-      transparency. Could the action compromise coherency but is recoverable?
-      Add friction -- warnings, required confirmation, visible diffs. Is the
-      action destructive, irreversible, or a direct violation of a rule? Block
-      it entirely.
-    tags: [framework, integrity]
-    maps_to: [gvp:P4, gvp:P6, gvp:C1]
-
+    statement: |
+      Is the action low-risk and easily reversible? Allow it freely with transparency. Could the action compromise coherency but is recoverable? Add friction -- warnings, required confirmation, visible diffs. Is the action destructive, irreversible, or a direct violation of a rule? Block it entirely.
+    tags:
+      - framework
+      - integrity
+    maps_to:
+      - gvp:P4
+      - gvp:P6
+      - gvp:C1
   - id: H5
     name: Friction proportionality check
-    statement: >
-      Does the friction feel disproportionate to the significance of the
-      action? If yes, scale it down or provide an escape hatch -- friction
-      that feels unjustified breeds resentment and undermines adoption. If
-      no, the friction is appropriate.
-    tags: [framework, usability, integrity]
-    maps_to: [gvp:P4, gvp:P6, gvp:C1]
-
+    statement: |
+      Does the friction feel disproportionate to the significance of the action? If yes, scale it down or provide an escape hatch -- friction that feels unjustified breeds resentment and undermines adoption. If no, the friction is appropriate.
+    tags:
+      - framework
+      - usability
+      - integrity
+    maps_to:
+      - gvp:P4
+      - gvp:P6
+      - gvp:C1
   - id: H6
     name: Evaluate collapse by layer
-    statement: >
-      When deciding whether to collapse two systems into one, evaluate at
-      each layer independently. The engine layer should unify where purpose
-      is shared -- one mechanism, not two doing the same job. The interface
-      layer (CLI, API, class hierarchy) may keep distinct entry points for
-      different user intents, even when the engine underneath is shared.
-      Developer-facing APIs are UX too -- distinct method names serve mental
-      categorization, not just distinct implementations.
-    tags: [tooling, code]
-    maps_to: [gvp:P11, gvp:V4, gvp:P9]
+    statement: |
+      When deciding whether to collapse two systems into one, evaluate at each layer independently. The engine layer should unify where purpose is shared -- one mechanism, not two doing the same job. The interface layer (CLI, API, class hierarchy) may keep distinct entry points for different user intents, even when the engine underneath is shared. Developer-facing APIs are UX too -- distinct method names serve mental categorization, not just distinct implementations.
+    tags:
+      - tooling
+      - code
+    maps_to:
+      - gvp:P11
+      - gvp:V4
+      - gvp:P9
     origin:
-      - date: "2026-03-26"
-        note: "Added during post-v1 heuristic mining -- driven by DEC-7.2 (export + inspect share exporter layer but are distinct commands)"
-
+      - date: '2026-03-26'
+        note: Added during post-v1 heuristic mining -- driven by DEC-7.2 (export + inspect share exporter layer but are distinct commands)
   - id: H7
     name: Fail-fast at boundaries, collect all at analysis
-    statement: >
-      Prerequisites that must succeed before work can proceed should throw
-      exceptions (fail-fast) -- bad config, broken schema, structural
-      invariants. Analysis that inspects a valid system should collect all
-      findings and report them together (collect-all) -- validation warnings,
-      semantic checks, traceability gaps. The boundary is: "can the system
-      be built?" vs "is the built system good?"
-    tags: [tooling, code, integrity]
-    maps_to: [gvp:P13, gvp:V10, gvp:P4, gvp:P10]
+    statement: |
+      Prerequisites that must succeed before work can proceed should throw exceptions (fail-fast) -- bad config, broken schema, structural invariants. Analysis that inspects a valid system should collect all findings and report them together (collect-all) -- validation warnings, semantic checks, traceability gaps. The boundary is: "can the system be built?" vs "is the built system good?"
+    tags:
+      - tooling
+      - code
+      - integrity
+    maps_to:
+      - gvp:P13
+      - gvp:V10
+      - gvp:P4
+      - gvp:P10
     refs:
       - file: src/catalog/catalog.ts
         identifier: Catalog
@@ -540,150 +610,128 @@ heuristics:
         identifier: Diagnostic
         role: defines
     origin:
-      - date: "2026-03-26"
-        note: "Added during post-v1 heuristic mining -- driven by DEC-5.7 (exceptions vs diagnostics), DEC-5.13 (eager config validation)"
-
+      - date: '2026-03-26'
+        note: Added during post-v1 heuristic mining -- driven by DEC-5.7 (exceptions vs diagnostics), DEC-5.13 (eager config validation)
   - id: H8
     name: Error when it affects current output
-    statement: >
-      If missing, invalid, or unavailable data has any possible impact --
-      direct or indirect -- on the correctness of the current operation's
-      output, it is an error. Only skip the error when the gap has zero
-      possible impact on the outcome; a warning is still appropriate.
-    tags: [tooling, code, integrity]
-    maps_to: [gvp:V10, gvp:P13, gvp:P8, gvp:H4]
+    statement: |
+      If missing, invalid, or unavailable data has any possible impact -- direct or indirect -- on the correctness of the current operation's output, it is an error. Only skip the error when the gap has zero possible impact on the outcome; a warning is still appropriate.
+    tags:
+      - tooling
+      - code
+      - integrity
+    maps_to:
+      - gvp:V10
+      - gvp:P13
+      - gvp:P8
+      - gvp:H4
     origin:
-      - date: "2026-03-26"
-        note: "Added during post-v1 heuristic mining -- driven by DEC-7.11 (optional exporter failure timing), DEC-10.4 (ref parser graceful degradation)"
-
+      - date: '2026-03-26'
+        note: Added during post-v1 heuristic mining -- driven by DEC-7.11 (optional exporter failure timing), DEC-10.4 (ref parser graceful degradation)
+  - id: H9
+    name: Requirement vs Rule/Constraint/Goal delineation test
+    statement: |
+      To classify a decreed-or-standing element: (1) Who imposes it? An external stakeholder mandating it as input → candidate user_requirement; the team adopting it as a standing constraint on its own future decisions → candidate rule. (2) Is it derivable? Hand a reader every goal/value/principle: if the element falls out of them, it is a rule (derived, re-derivable from a value); if it does not fall out and must be handed over as a given, it is a user_requirement (it bottoms out at a stakeholder, not a value). (3) Shape: a binary, met-or-not-right-now condition decreed by a stakeholder → user_requirement; an open-ended state you steer toward → goal; an absolutely external, outside-our-control limitation → constraint; a self-imposed "we will not do X" boundary → exclusion. When (2) is decisive and the element is not derivable from any value, prefer user_requirement over rule.
+    tags:
+      - framework
+      - alignment
+    maps_to:
+      - gvp:P17
+      - gvp:P2
+    origin:
+      - id: 402a40ac-38b4-4abf-a838-dcd66afd12f1
+        date: '2026-07-20T23:00:05.014Z'
+        note: Imported from guiding-patch.yaml
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
 rules:
   - id: R1
     name: IDs are never reused
-    statement: >
-      Once an ID has been assigned, it is permanently consumed. Deprecated or
-      retired elements retain their IDs. New elements always receive the next
-      sequential ID.
-    tags: [framework, integrity]
-    maps_to: [gvp:G5, gvp:V2]
-
+    statement: |
+      Once an ID has been assigned, it is permanently consumed. Deprecated or retired elements retain their IDs. New elements always receive the next sequential ID.
+    tags:
+      - framework
+      - integrity
+    maps_to:
+      - gvp:G5
+      - gvp:V2
   - id: R2
     name: No element deletion
-    statement: >
-      Elements are never removed from a GVP file. To retire an element, set
-      status to deprecated. Retired elements may be moved to an archive
-      document within the same library to reduce noise, but they remain part
-      of the graph and their IDs are never reused (R1).
-    tags: [framework, integrity]
-    maps_to: [gvp:G3, gvp:V2, gvp:V3, gvp:R1]
-
+    statement: |
+      Elements are never removed from a GVP file. To retire an element, set status to deprecated. Retired elements may be moved to an archive document within the same library to reduce noise, but they remain part of the graph and their IDs are never reused (R1).
+    tags:
+      - framework
+      - integrity
+    maps_to:
+      - gvp:G3
+      - gvp:V2
+      - gvp:V3
+      - gvp:R1
   - id: R3
     name: All elements must trace to a goal and a value
-    statement: >
-      Every element that is not a root (goal, value, or constraint) must trace
-      its justification to at least one goal and at least one value -- directly
-      or transitively. Where alternative mapping paths are permitted (e.g., a
-      heuristic mapping to a principle instead of directly to a goal + value),
-      the alternative itself must trace through to a goal and a value. While
-      goals, values, and constraints are not required to map to anything,
-      mapping goals and values to each other is strongly encouraged -- it
-      surfaces alignment gaps and strengthens review.
-    tags: [framework, alignment]
-    maps_to: [gvp:G5, gvp:V1, gvp:V2]
-
+    statement: |
+      Every element that is not a root (goal, value, or constraint) must trace its justification to at least one goal and at least one value -- directly or transitively. Where alternative mapping paths are permitted (e.g., a heuristic mapping to a principle instead of directly to a goal + value), the alternative itself must trace through to a goal and a value. While goals, values, and constraints are not required to map to anything, mapping goals and values to each other is strongly encouraged -- it surfaces alignment gaps and strengthens review.
+    tags:
+      - framework
+      - alignment
+    maps_to:
+      - gvp:G5
+      - gvp:V1
+      - gvp:V2
   - id: R4
     name: Core stays domain-agnostic
-    statement: >
-      The core framework must not contain domain-specific categories or
-      terminology. Domain-specific elements belong in examples or user-defined
-      extensions, not in the schema or core documentation.
-    tags: [framework, extensibility]
-    maps_to: [gvp:G6, gvp:V5, gvp:V7]
-
+    statement: |
+      The core framework must not contain domain-specific categories or terminology. Domain-specific elements belong in examples or user-defined extensions, not in the schema or core documentation.
+    tags:
+      - framework
+      - extensibility
+    maps_to:
+      - gvp:G6
+      - gvp:V5
+      - gvp:V7
   - id: R5
     name: Manually tag 1.0.X-beta publishes with --tag latest
-    statement: >
-      While the cairn package is in the 1.0.X-beta prerelease series
-      (no stable 1.0.0 release yet), every `npm publish` MUST
-      manually advance the `latest` dist-tag. npm's default behavior
-      is to NOT update `latest` for prerelease versions, so the tag
-      stays pinned wherever it was last set. This is either
-      `npm publish --tag latest` during the publish or
-      `npm dist-tag add @principled/cairn@<version> latest` as a
-      post-publish step. Verify with `npm view @principled/cairn
-      version` which should return the newly published version.
-      This rule is a hard stop in the release procedure — skipping
-      it has concrete consequences: `latest` was stuck at 1.0.3-beta
-      for an extended period, a fatally broken version that crashed
-      on start because minimatch was in devDependencies
-      (fixed in commit 9d65ce4). Fresh `npm install
-      @principled/cairn` users got a non-functional package as
-      their default. Discovered 2026-04-08 while diagnosing a
-      TAStest consumer. This rule is superseded if a `postpublish`
-      script automation lands in package.json (flagged in
-      BACKLOG.md #5a as a follow-up); until then, the manual step
-      is mandatory on every publish.
-    tags: [tooling, integrity]
-    maps_to: [gvp:G8, gvp:V2, gvp:V10, gvp:P4, gvp:P13]
+    statement: |
+      While the cairn package is in the 1.0.X-beta prerelease series (no stable 1.0.0 release yet), every `npm publish` MUST manually advance the `latest` dist-tag. npm's default behavior is to NOT update `latest` for prerelease versions, so the tag stays pinned wherever it was last set. This is either `npm publish --tag latest` during the publish or `npm dist-tag add @principled/cairn@<version> latest` as a post-publish step. Verify with `npm view @principled/cairn version` which should return the newly published version. This rule is a hard stop in the release procedure — skipping it has concrete consequences: `latest` was stuck at 1.0.3-beta for an extended period, a fatally broken version that crashed on start because minimatch was in devDependencies (fixed in commit 9d65ce4). Fresh `npm install @principled/cairn` users got a non-functional package as their default. Discovered 2026-04-08 while diagnosing a TAStest consumer. This rule is superseded if a `postpublish` script automation lands in package.json (flagged in BACKLOG.md #5a as a follow-up); until then, the manual step is mandatory on every publish.
+    tags:
+      - tooling
+      - integrity
+    maps_to:
+      - gvp:G8
+      - gvp:V2
+      - gvp:V10
+      - gvp:P4
+      - gvp:P13
     origin:
-      - date: "2026-04-08"
-        note: "Requested by the human as a persistent release-procedure rule after diagnosing an ancient broken dist-tag during TAStest consumer debugging"
-
+      - date: '2026-04-08'
+        note: Requested by the human as a persistent release-procedure rule after diagnosing an ancient broken dist-tag during TAStest consumer debugging
+    status: deprecated
+    updated_by:
+      - id: 16c8fe42-cd3e-4d89-9507-e33e67068c83
+        date: '2026-07-20T23:04:08.949Z'
+        rationale: 'Retired: leaving the 1.0.X-beta prerelease series for stable semver (gvp:R7, gvp:D35); premise no longer applies and postpublish automation supersedes it'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
   - id: R6
     name: Subcommands and renderers dispatch on schema, not field names
-    statement: >
-      CLI subcommands, exporters, renderers, and validation passes must
-      remain dynamic: they iterate over schema definitions (category
-      field_schemas, registered category names, declared field types
-      from the shape engine) rather than hard-coding specific field
-      names or element category names. If a renderer needs to know that
-      the procedure category has a `steps` field, or that the decision
-      category has a `considered` field, that is a design failure --
-      the code should instead recognize `list<model>` or `dict<model>`
-      as generic shapes and dispatch on the declared type. The same
-      code path must handle any future field of the same shape without
-      modification.
-
-      The only permitted exception is the set of reserved fields
-      declared in src/schema/reserved-fields.ts (RESERVED_FIELD_NAMES):
-      id, name, status, tags, maps_to, priority, origin, updated_by,
-      reviewed_by. These are load-bearing core framework fields that
-      every element is guaranteed to have (they're part of
-      reservedFieldsSchema in combined-schema.ts), and referencing
-      them directly in CLI/renderer/validator code is permitted and
-      expected. Fields declared in `_all.field_schemas` (e.g. `refs`)
-      are NOT part of this exception surface yet, though they are
-      candidates for promotion if a future decision tightens the
-      universality guarantee.
-
-      This rule is the hard-stop version of P15 (dogfood your own
-      abstractions) and R4 (core stays domain-agnostic). The shape
-      renderer added in C.1 is the canonical example of correct
-      implementation -- its renderFieldByShape function dispatches
-      on schema.type with no field names or category names in the
-      switch. Its test suite includes a source-grep assertion
-      (tests/exporters/shape-renderer.test.ts) that fails if anyone
-      reintroduces field name string literals in the renderer code.
-      Similar source-grep guards should be added when refactoring
-      other generic code paths to comply with this rule.
-
-      **Known violations at the time this rule was written
-      (2026-04-08):** the structural-pass E001/E005 extensions for
-      procedure steps, the semantic-pass W010/W011 extensions for
-      step refs, and the parser's maybeAutoAssignStepIds function
-      all hard-code `steps` and in one case `procedure` directly.
-      These were added in Phase B before the generic shape-based
-      approach was established in Phase C, and they need refactoring
-      to iterate field_schemas generically. Tracked in
-      .claude-worker-pm/BACKLOG.md #6 and obligated by this rule --
-      surfacing the debt is intentional.
-
-      Does NOT apply to: src/data/defaults.yaml itself (that file IS
-      the schema), src/schema/reserved-fields.ts (it DEFINES the
-      exception surface), category-specific test files that exercise
-      generic behavior against concrete shapes, or consumer libraries
-      that declare their own user-specific categories.
-    tags: [framework, tooling, extensibility]
-    maps_to: [gvp:G6, gvp:V7, gvp:P15, gvp:R4]
+    statement: |
+      CLI subcommands, exporters, renderers, and validation passes must remain dynamic: they iterate over schema definitions (category field_schemas, registered category names, declared field types from the shape engine) rather than hard-coding specific field names or element category names. If a renderer needs to know that the procedure category has a `steps` field, or that the decision category has a `considered` field, that is a design failure -- the code should instead recognize `list<model>` or `dict<model>` as generic shapes and dispatch on the declared type. The same code path must handle any future field of the same shape without modification.
+      The only permitted exception is the set of reserved fields declared in src/schema/reserved-fields.ts (RESERVED_FIELD_NAMES): id, name, status, tags, maps_to, priority, origin, updated_by, reviewed_by. These are load-bearing core framework fields that every element is guaranteed to have (they're part of reservedFieldsSchema in combined-schema.ts), and referencing them directly in CLI/renderer/validator code is permitted and expected. Fields declared in `_all.field_schemas` (e.g. `refs`) are NOT part of this exception surface yet, though they are candidates for promotion if a future decision tightens the universality guarantee.
+      **Scoped exception (gvp:D33, 2026-07-20):** the coverage validation pass may read the `decision` category's declared `disposition` enum to gate the W013 (decision-no-refs) and W017 (root-no-decision) coverage checks. This is a deliberate, narrow extension of the exception surface -- the coverage pass is decision-centric by charter (it already keys on the `decision` category for W012/W013), and `disposition` is the facet that determines whether a decision's absence of refs is a coverage gap. It does NOT license field-name or category-name dispatch anywhere else: every other new pass still dispatches on schema, e.g. W016 (no-value-trace) and W017 dispatch on the `is_value_anchor` and `requires_decision` category flags, never on category-name literals.
+      This rule is the hard-stop version of P15 (dogfood your own abstractions) and R4 (core stays domain-agnostic). The shape renderer added in C.1 is the canonical example of correct implementation -- its renderFieldByShape function dispatches on schema.type with no field names or category names in the switch. Its test suite includes a source-grep assertion (tests/exporters/shape-renderer.test.ts) that fails if anyone reintroduces field name string literals in the renderer code. Similar source-grep guards should be added when refactoring other generic code paths to comply with this rule.
+      **Known violations at the time this rule was written (2026-04-08):** the structural-pass E001/E005 extensions for procedure steps, the semantic-pass W010/W011 extensions for step refs, and the parser's maybeAutoAssignStepIds function all hard-code `steps` and in one case `procedure` directly. These were added in Phase B before the generic shape-based approach was established in Phase C, and they need refactoring to iterate field_schemas generically. Tracked in .claude-worker-pm/BACKLOG.md #6 and obligated by this rule -- surfacing the debt is intentional.
+      Does NOT apply to: src/data/defaults.yaml itself (that file IS the schema), src/schema/reserved-fields.ts (it DEFINES the exception surface), category-specific test files that exercise generic behavior against concrete shapes, or consumer libraries that declare their own user-specific categories.
+    tags:
+      - framework
+      - tooling
+      - extensibility
+    maps_to:
+      - gvp:G6
+      - gvp:V7
+      - gvp:P15
+      - gvp:R4
     refs:
       - file: src/exporters/shape-renderer.ts
         identifier: renderFieldByShape
@@ -692,212 +740,295 @@ rules:
         identifier: RESERVED_FIELD_NAMES
         role: defines
     origin:
-      - date: "2026-04-08"
-        note: "Requested by the human after observing the PM correctly push back on a TAStest frontmatter feature request that implied hard-coded field knowledge. Guy's words: 'we want to make sure all GVP subcommands remain dynamic, never favoring specific fields or elements (except sometimes the... [reserved fields], those are fine to reference).' Landed under the autonomous-scope standing guidance from earlier in the same session."
-
+      - date: '2026-04-08'
+        note: 'Requested by the human after observing the PM correctly push back on a TAStest frontmatter feature request that implied hard-coded field knowledge. Guy''s words: ''we want to make sure all GVP subcommands remain dynamic, never favoring specific fields or elements (except sometimes the... [reserved fields], those are fine to reference).'' Landed under the autonomous-scope standing guidance from earlier in the same session.'
+    updated_by:
+      - id: 5951c7be-5f1c-4b0b-b15b-fee1ed909f93
+        date: '2026-07-20T22:59:04.330Z'
+        rationale: Amend R6 to name the scoped exception permitting the coverage pass to read the decision disposition enum (gvp:D33); leaves R6's general schema-dispatch prohibition intact
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+    reviewed_by:
+      - id: ea949e89-8da0-4776-9446-a1194650f55e
+        date: '2026-07-20T23:00:13.992Z'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+        updates_reviewed:
+          - 5951c7be-5f1c-4b0b-b15b-fee1ed909f93
+  - id: R7
+    name: Version bumps follow semantic versioning
+    statement: |
+      Cairn version numbers follow Semantic Versioning (semver.org). Given A.B.C: increment A (major) for backwards-incompatible / breaking changes, B (minor) for backwards-compatible features or enhancements, and C (patch) for backwards-compatible bug fixes. The published `latest` dist-tag always points at a stable A.B.C release; prerelease suffixes (e.g. 1.2.0-rc.1) may be used for previews under a non-`latest` tag. This supersedes the 1.0.X-beta prerelease convention (gvp:R5, deprecated); 1.1.0 is the first stable release.
+    tags:
+      - tooling
+      - documentation
+    maps_to:
+      - gvp:G8
+      - gvp:V6
+    refs:
+      - file: RELEASING.md
+        identifier: Versioning
+        role: defines
+    origin:
+      - id: 225d8ac5-8b62-4c30-a180-0d20ee98599e
+        date: '2026-07-20T23:04:08.588Z'
+        note: Imported from release-patch.yaml
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
 decisions:
   - id: D1
     name: Walk-backwards config discovery
-    rationale: >
-      Searching upward from the current directory for .gvp/ mirrors how tools
-      like git discover repositories. This allows project-level GVP stores to
-      be found automatically without global configuration.
-    tags: [tooling, usability]
-    maps_to: [gvp:G6, gvp:G8, gvp:P7, gvp:V4, gvp:V5]
-
+    rationale: |
+      Searching upward from the current directory for .gvp/ mirrors how tools like git discover repositories. This allows project-level GVP stores to be found automatically without global configuration.
+    tags:
+      - tooling
+      - usability
+    maps_to:
+      - gvp:G6
+      - gvp:G8
+      - gvp:P7
+      - gvp:V4
+      - gvp:V5
   - id: D2
     name: Multiple output formats from single source
-    rationale: >
-      Markdown for humans, CSV for spreadsheets, SQLite for queries, DOT for
-      graph visualization. One source of truth, many views. Users should not
-      maintain parallel representations.
-    tags: [tooling, extensibility]
-    maps_to: [gvp:G1, gvp:G2, gvp:P3, gvp:V5, gvp:V7]
-
+    rationale: |
+      Markdown for humans, CSV for spreadsheets, SQLite for queries, DOT for graph visualization. One source of truth, many views. Users should not maintain parallel representations.
+    tags:
+      - tooling
+      - extensibility
+    maps_to:
+      - gvp:G1
+      - gvp:G2
+      - gvp:P3
+      - gvp:V5
+      - gvp:V7
   - id: D3
     name: Single untyped maps_to field
-    rationale: >
-      Typed edge mappings (supports, implements, derives_from) were considered
-      and deferred. A single maps_to list is simpler and sufficient for current
-      needs. Typed edges can be added later without breaking existing files.
-    tags: [framework, tooling]
-    maps_to: [gvp:G2, gvp:V4, gvp:H3]
-
+    rationale: |
+      Typed edge mappings (supports, implements, derives_from) were considered and deferred. A single maps_to list is simpler and sufficient for current needs. Typed edges can be added later without breaking existing files.
+    tags:
+      - framework
+      - tooling
+    maps_to:
+      - gvp:G2
+      - gvp:V4
+      - gvp:H3
   - id: D4
     name: Tags over hierarchical categories
-    rationale: >
-      An element can be about reliability AND usability AND code quality
-      simultaneously. Tags let users express this without forcing a single
-      primary classification.
-    tags: [framework, usability]
-    maps_to: [gvp:G6, gvp:G9, gvp:P2, gvp:V5, gvp:V7]
-
+    rationale: |
+      An element can be about reliability AND usability AND code quality simultaneously. Tags let users express this without forcing a single primary classification.
+    tags:
+      - framework
+      - usability
+    maps_to:
+      - gvp:G6
+      - gvp:G9
+      - gvp:P2
+      - gvp:V5
+      - gvp:V7
   - id: D5
     name: Layered documentation
-    rationale: >
-      README and user-facing docs stay non-technical for easy onboarding and
-      minimal learning curve. Technical specs, schema details, and power-user
-      docs live in docs/ for those who want depth. Neither audience hits a
-      ceiling or a barrier.
-    tags: [documentation, usability]
-    maps_to: [gvp:G6, gvp:G8, gvp:V6, gvp:V4, gvp:V5, gvp:P9]
-
+    rationale: |
+      README and user-facing docs stay non-technical for easy onboarding and minimal learning curve. Technical specs, schema details, and power-user docs live in docs/ for those who want depth. Neither audience hits a ceiling or a barrier.
+    tags:
+      - documentation
+      - usability
+    maps_to:
+      - gvp:G6
+      - gvp:G8
+      - gvp:V6
+      - gvp:V4
+      - gvp:V5
+      - gvp:P9
   - id: D6
     name: Qualified IDs as universal references
-    rationale: >
-      All element references use document:id format. IDs are unique across the
-      lifetime of the project, never renumbered, never reused. This enables
-      deterministic mapping and tracing, preserves history for review and
-      future planning, and avoids errors from renumbering.
-    tags: [framework, integrity]
-    maps_to: [gvp:G1, gvp:G3, gvp:G5, gvp:G7, gvp:V2, gvp:V4, gvp:V6, gvp:R1, gvp:P3]
-
+    rationale: |
+      All element references use document:id format. IDs are unique across the lifetime of the project, never renumbered, never reused. This enables deterministic mapping and tracing, preserves history for review and future planning, and avoids errors from renumbering.
+    tags:
+      - framework
+      - integrity
+    maps_to:
+      - gvp:G1
+      - gvp:G3
+      - gvp:G5
+      - gvp:G7
+      - gvp:V2
+      - gvp:V4
+      - gvp:V6
+      - gvp:R1
+      - gvp:P3
   - id: D7
     name: Tiered validation (errors, warnings, strict)
-    rationale: >
-      Validation issues are categorized by severity. Errors block, warnings
-      inform, strict mode promotes warnings to errors. Individual warnings
-      are suppressible by code in config. This gives users control over how
-      strictly the tool enforces standards.
-    tags: [tooling, integrity]
-    maps_to: [gvp:G5, gvp:G6, gvp:V8, gvp:P4, gvp:P8, gvp:H4]
-
+    rationale: |
+      Validation issues are categorized by severity. Errors block, warnings inform, strict mode promotes warnings to errors. Individual warnings are suppressible by code in config. This gives users control over how strictly the tool enforces standards.
+    tags:
+      - tooling
+      - integrity
+    maps_to:
+      - gvp:G5
+      - gvp:G6
+      - gvp:V8
+      - gvp:P4
+      - gvp:P8
+      - gvp:H4
   - id: D8
     name: Status filtering with opt-in history
-    rationale: >
-      Deprecated and rejected elements are excluded from validation and
-      default renders to keep active state clean and reduce context pollution.
-      Historical elements are accessible via --include-deprecated for review
-      and future planning.
-    tags: [tooling, usability]
-    maps_to: [gvp:G1, gvp:G3, gvp:P9, gvp:R2, gvp:V6]
-
+    rationale: |
+      Deprecated and rejected elements are excluded from validation and default renders to keep active state clean and reduce context pollution. Historical elements are accessible via --include-deprecated for review and future planning.
+    tags:
+      - tooling
+      - usability
+    maps_to:
+      - gvp:G1
+      - gvp:G3
+      - gvp:P9
+      - gvp:R2
+      - gvp:V6
   - id: D9
     name: Editor selection cascade
-    rationale: >
-      Check $VISUAL, $EDITOR, which editor, vi, nano -- in that order.
-      Respects the user's configured environment first, falls back
-      progressively to ensure it works everywhere.
-    tags: [tooling, usability]
-    maps_to: [gvp:G6, gvp:G8, gvp:G9, gvp:P7, gvp:P8, gvp:V5]
-
+    rationale: |
+      Check $VISUAL, $EDITOR, which editor, vi, nano -- in that order. Respects the user's configured environment first, falls back progressively to ensure it works everywhere.
+    tags:
+      - tooling
+      - usability
+    maps_to:
+      - gvp:G6
+      - gvp:G8
+      - gvp:G9
+      - gvp:P7
+      - gvp:P8
+      - gvp:V5
   - id: D10
     name: Scope inheritance with two-direction priority
-    rationale: >
-      GVP documents form an inheritance chain. Priority follows one DFS
-      ordering but applies in two directions: for elements, ancestors win
-      (org-wide standards override project-level); for definitions (tags,
-      categories, field_schemas), descendants win (projects can extend and
-      customize). Both directions are configurable. Elements that apply
-      broadly live at higher scopes and are inherited by all descendants.
-      The depth of nesting is user-defined.
-    tags: [framework, tooling]
-    maps_to: [gvp:G5, gvp:G6, gvp:G9, gvp:V2, gvp:V7, gvp:V8, gvp:P7]
+    rationale: |
+      GVP documents form an inheritance chain. Priority follows one DFS ordering but applies in two directions: for elements, ancestors win (org-wide standards override project-level); for definitions (tags, categories, field_schemas), descendants win (projects can extend and customize). Both directions are configurable. Elements that apply broadly live at higher scopes and are inherited by all descendants. The depth of nesting is user-defined.
+    tags:
+      - framework
+      - tooling
+    maps_to:
+      - gvp:G5
+      - gvp:G6
+      - gvp:G9
+      - gvp:V2
+      - gvp:V7
+      - gvp:V8
+      - gvp:P7
     updated_by:
       - id: 9ee6ab92-7b2b-426d-b7fa-6d140eb4c3b8
-        date: "2026-03-19"
-        rationale: "Updated to reflect v1 design decisions DEC-1.3, DEC-2.1 -- two-direction priority model"
+        date: '2026-03-19'
+        rationale: Updated to reflect v1 design decisions DEC-1.3, DEC-2.1 -- two-direction priority model
     reviewed_by:
       - id: 3cdd0e54-4dbf-4a94-938d-2c5849f1eac5
-        date: "2026-04-13"
+        date: '2026-04-13'
         by:
-          name: "claude-worker PM session"
-          email: "noreply@anthropic.com"
-        updates_reviewed: ["9ee6ab92-7b2b-426d-b7fa-6d140eb4c3b8"]
-        note: "Bulk review of pre-v1 updates. Rationale reflects implemented DEC-1.3/DEC-2.1 two-direction priority."
-
+          name: claude-worker PM session
+          email: noreply@anthropic.com
+        updates_reviewed:
+          - 9ee6ab92-7b2b-426d-b7fa-6d140eb4c3b8
+        note: Bulk review of pre-v1 updates. Rationale reflects implemented DEC-1.3/DEC-2.1 two-direction priority.
   - id: D11
     name: Staleness detection via update UUIDs
-    rationale: >
-      Each update entry has a unique ID. Each review entry lists the specific
-      update IDs it reviewed (updates_reviewed). An element is stale when it
-      has non-skip-review updates whose IDs do not appear in any review's
-      updates_reviewed list. This is more precise than timestamp comparison --
-      it tracks exactly which changes have been reviewed and which haven't,
-      and it respects the reviewer's actual scope (they only mark what they
-      actually saw).
-    tags: [tooling, integrity]
-    maps_to: [gvp:G3, gvp:G4, gvp:V2, gvp:V3, gvp:P4]
+    rationale: |
+      Each update entry has a unique ID. Each review entry lists the specific update IDs it reviewed (updates_reviewed). An element is stale when it has non-skip-review updates whose IDs do not appear in any review's updates_reviewed list. This is more precise than timestamp comparison -- it tracks exactly which changes have been reviewed and which haven't, and it respects the reviewer's actual scope (they only mark what they actually saw).
+    tags:
+      - tooling
+      - integrity
+    maps_to:
+      - gvp:G3
+      - gvp:G4
+      - gvp:V2
+      - gvp:V3
+      - gvp:P4
     updated_by:
       - id: 2aa7ec03-73e0-4b23-b951-1230fa249ba7
-        date: "2026-03-19"
-        rationale: "Updated to reflect v1 design decisions DEC-4.1, DEC-4.2, DEC-4.7"
+        date: '2026-03-19'
+        rationale: Updated to reflect v1 design decisions DEC-4.1, DEC-4.2, DEC-4.7
     reviewed_by:
       - id: 5001eee3-855d-4b67-9221-7dd79af082b7
-        date: "2026-04-13"
+        date: '2026-04-13'
         by:
-          name: "claude-worker PM session"
-          email: "noreply@anthropic.com"
-        updates_reviewed: ["2aa7ec03-73e0-4b23-b951-1230fa249ba7"]
-        note: "Bulk review of pre-v1 updates. Rationale reflects implemented DEC-4.1/DEC-4.2/DEC-4.7 staleness model."
-
+          name: claude-worker PM session
+          email: noreply@anthropic.com
+        updates_reviewed:
+          - 2aa7ec03-73e0-4b23-b951-1230fa249ba7
+        note: Bulk review of pre-v1 updates. Rationale reflects implemented DEC-4.1/DEC-4.2/DEC-4.7 staleness model.
   - id: D12
     name: Three input modes (CLI flags, interactive, editor)
-    rationale: >
-      The add and edit commands support CLI flags (for scripts and AI),
-      interactive prompts (for guided input), and $EDITOR (for complex
-      edits). This meets different users and workflows without forcing a
-      single interaction style.
-    tags: [tooling, usability]
-    maps_to: [gvp:G8, gvp:G9, gvp:P7, gvp:P8, gvp:V5, gvp:V8]
-
+    rationale: |
+      The add and edit commands support CLI flags (for scripts and AI), interactive prompts (for guided input), and $EDITOR (for complex edits). This meets different users and workflows without forcing a single interaction style.
+    tags:
+      - tooling
+      - usability
+    maps_to:
+      - gvp:G8
+      - gvp:G9
+      - gvp:P7
+      - gvp:P8
+      - gvp:V5
+      - gvp:V8
   - id: D13
-    name: --skip-review flag for trivial changes
-    rationale: >
-      The --skip-review flag writes a full provenance entry but marks it with
-      skip_review: true, opting out of the review cycle. This is an escape
-      hatch for genuinely trivial changes (typo fixes, formatting) where
-      full review tracking would add noise without value. A 10-second typo
-      fix should not trigger a review cycle. Unlike the previous
-      --no-provenance approach, the full audit trail is preserved -- every
-      change is recorded, but trivial changes don't trigger downstream
-      review. Opting out is explicit, not silent, and nothing is lost.
-    tags: [tooling, integrity]
-    maps_to: [gvp:G8, gvp:P8, gvp:H2, gvp:H5, gvp:V4, gvp:P9, gvp:V9, gvp:C1]
+    name: '--skip-review flag for trivial changes'
+    rationale: |
+      The --skip-review flag writes a full provenance entry but marks it with skip_review: true, opting out of the review cycle. This is an escape hatch for genuinely trivial changes (typo fixes, formatting) where full review tracking would add noise without value. A 10-second typo fix should not trigger a review cycle. Unlike the previous --no-provenance approach, the full audit trail is preserved -- every change is recorded, but trivial changes don't trigger downstream review. Opting out is explicit, not silent, and nothing is lost.
+    tags:
+      - tooling
+      - integrity
+    maps_to:
+      - gvp:G8
+      - gvp:P8
+      - gvp:H2
+      - gvp:H5
+      - gvp:V4
+      - gvp:P9
+      - gvp:V9
+      - gvp:C1
     updated_by:
       - id: bf66b7ca-5aab-4d3b-9bde-dc9346809f45
-        date: "2026-03-19"
-        rationale: "Updated to reflect v1 design decision DEC-4.6 -- renamed from --no-provenance, now records full provenance"
+        date: '2026-03-19'
+        rationale: Updated to reflect v1 design decision DEC-4.6 -- renamed from --no-provenance, now records full provenance
     reviewed_by:
       - id: 61d7e2d6-072b-462f-85b4-91c71a2480e5
-        date: "2026-04-13"
+        date: '2026-04-13'
         by:
-          name: "claude-worker PM session"
-          email: "noreply@anthropic.com"
-        updates_reviewed: ["bf66b7ca-5aab-4d3b-9bde-dc9346809f45"]
-        note: "Bulk review of pre-v1 updates. Rationale reflects implemented DEC-4.6 skip-review semantics."
-
+          name: claude-worker PM session
+          email: noreply@anthropic.com
+        updates_reviewed:
+          - bf66b7ca-5aab-4d3b-9bde-dc9346809f45
+        note: Bulk review of pre-v1 updates. Rationale reflects implemented DEC-4.6 skip-review semantics.
   - id: D14
     name: Validate output distinguishes structural from semantic correctness
-    rationale: >
-      The validate command's success message explicitly notes that only
-      deterministic structural checks passed and suggests using gvp export for
-      semantic review. This prevents humans and especially AI from reading "OK"
-      and assuming full alignment -- structural validity does not guarantee
-      semantic coherence. Manual review is still required.
-    tags: [tooling, integrity, alignment]
-    maps_to: [gvp:G5, gvp:P9, gvp:V6, gvp:V1, gvp:H5]
-
+    rationale: |
+      The validate command's success message explicitly notes that only deterministic structural checks passed and suggests using gvp export for semantic review. This prevents humans and especially AI from reading "OK" and assuming full alignment -- structural validity does not guarantee semantic coherence. Manual review is still required.
+    tags:
+      - tooling
+      - integrity
+      - alignment
+    maps_to:
+      - gvp:G5
+      - gvp:P9
+      - gvp:V6
+      - gvp:V1
+      - gvp:H5
   - id: D15
     name: Inherits references documents by meta.name
-    rationale: >
-      The `inherits:` field in document meta references parent documents by
-      their `meta.name`, not by their filesystem-relative `docPath`. The name
-      is the document's stable identity; the path is an organizational
-      convenience that may change as a library is reshaped (subdirectories
-      added, files moved between groups). Referencing by name lets users
-      organize files however suits them without rewriting every inherits
-      entry, and aligns with the same principle that drives qualified IDs
-      (D6) -- references should be stable across reorganization. The CLI
-      catalog loader and the structural validation pass both look up parents
-      by name first, falling back to docPath for backward compatibility, so
-      existing libraries that happen to use path-based references continue
-      to work. This was surfaced by a bug where a doc at `code/common.yaml`
-      with `meta.name: code-common` could not be inherited by sibling docs
-      using `inherits: code-common` because the loader only matched against
-      docPath -- it now matches both, with name as the canonical form.
-    tags: [framework, tooling, integrity]
-    maps_to: [gvp:G6, gvp:G8, gvp:V2, gvp:V6, gvp:V7, gvp:P7, gvp:P14, gvp:D6]
+    rationale: |
+      The `inherits:` field in document meta references parent documents by their `meta.name`, not by their filesystem-relative `docPath`. The name is the document's stable identity; the path is an organizational convenience that may change as a library is reshaped (subdirectories added, files moved between groups). Referencing by name lets users organize files however suits them without rewriting every inherits entry, and aligns with the same principle that drives qualified IDs (D6) -- references should be stable across reorganization. The CLI catalog loader and the structural validation pass both look up parents by name first, falling back to docPath for backward compatibility, so existing libraries that happen to use path-based references continue to work. This was surfaced by a bug where a doc at `code/common.yaml` with `meta.name: code-common` could not be inherited by sibling docs using `inherits: code-common` because the loader only matched against docPath -- it now matches both, with name as the canonical form.
+    tags:
+      - framework
+      - tooling
+      - integrity
+    maps_to:
+      - gvp:G6
+      - gvp:G8
+      - gvp:V2
+      - gvp:V6
+      - gvp:V7
+      - gvp:P7
+      - gvp:P14
+      - gvp:D6
     refs:
       - file: src/cli/helpers.ts
         identifier: buildCatalog
@@ -905,28 +1036,21 @@ decisions:
       - file: src/validation/passes/structural-pass.ts
         identifier: structuralPass
         role: implements
-
   - id: D16
-    name: --document filter is consistent across subcommands with exact matching
-    rationale: >
-      The `query` subcommand had a `--document` filter using substring
-      matching (`documentPath.includes(opts.document)`), while `inspect`,
-      `export`, and `validate` had no equivalent filter at all. Both facts
-      are wrong under P14 (explicit over implicit) and P11 (collapse
-      redundant mechanisms) -- a filter that exists on one subcommand but
-      not others is inconsistent UX, and substring matching silently
-      succeeds on typos or overlapping names. `--document <name>` now
-      exists on all four subcommands (query, inspect, export, validate)
-      and matches by exact `meta.name` or exact `documentPath` only. A
-      filter that matches nothing exits 1 with a loud error instead of
-      silently returning zero results. This also aligns with D15 -- the
-      inherits-by-name convention -- so that the same identifier resolves
-      a document whether it appears in `inherits:` or `--document`. The
-      original substring behavior in `query` was intentionally removed,
-      not preserved for backward compatibility, because substring matching
-      was a latent footgun rather than a documented feature.
-    tags: [tooling, usability, integrity]
-    maps_to: [gvp:G5, gvp:V6, gvp:V10, gvp:P11, gvp:P14, gvp:D15]
+    name: '--document filter is consistent across subcommands with exact matching'
+    rationale: |
+      The `query` subcommand had a `--document` filter using substring matching (`documentPath.includes(opts.document)`), while `inspect`, `export`, and `validate` had no equivalent filter at all. Both facts are wrong under P14 (explicit over implicit) and P11 (collapse redundant mechanisms) -- a filter that exists on one subcommand but not others is inconsistent UX, and substring matching silently succeeds on typos or overlapping names. `--document <name>` now exists on all four subcommands (query, inspect, export, validate) and matches by exact `meta.name` or exact `documentPath` only. A filter that matches nothing exits 1 with a loud error instead of silently returning zero results. This also aligns with D15 -- the inherits-by-name convention -- so that the same identifier resolves a document whether it appears in `inherits:` or `--document`. The original substring behavior in `query` was intentionally removed, not preserved for backward compatibility, because substring matching was a latent footgun rather than a documented feature.
+    tags:
+      - tooling
+      - usability
+      - integrity
+    maps_to:
+      - gvp:G5
+      - gvp:V6
+      - gvp:V10
+      - gvp:P11
+      - gvp:P14
+      - gvp:D15
     refs:
       - file: src/cli/helpers.ts
         identifier: resolveDocumentFilter
@@ -944,33 +1068,22 @@ decisions:
         identifier: validateCommand
         role: implements
     origin:
-      - date: "2026-04-08"
-        note: "Requested by TAStest project during PM Phase A -- generic filter plumbing to support upcoming procedure element rendering"
-
+      - date: '2026-04-08'
+        note: Requested by TAStest project during PM Phase A -- generic filter plumbing to support upcoming procedure element rendering
   - id: D17
-    name: --hops <n> bounds maps_to expansion for readable inline rendering
-    rationale: >
-      The existing `cairn inspect` text output shows `maps_to` as bare
-      IDs, and `--trace` walks the full ancestor DAG. Neither is ideal for
-      rendering a guide with meaningful context: bare IDs force the reader
-      to cross-reference the library to understand what each mapping
-      means, and a full trace drowns the element being inspected in
-      transitive ancestors that rarely matter at the point of reading.
-      `--hops <n>` is a bounded middle ground: `--hops 1` expands the
-      element's direct maps_to inline with the parent's id, name,
-      category, and a truncated preview of its primary field;
-      `--hops 2` recurses one more level; etc. This keeps the reader's
-      context window focused on the hops that matter while still linking
-      each mapping to enough content that it is self-explanatory. The
-      renderer reads `primary_field` from the category registry and does
-      not branch on `element.categoryName`, so the same expansion shape
-      works for goals, values, principles, rules, heuristics, decisions,
-      and any future category -- consistent with P15 (dogfood your own
-      abstractions) and R4 (core stays domain-agnostic). The hop count is
-      an integer, bounded by natural graph depth; cycles are broken by a
-      seen-set keyed on element hashKey.
-    tags: [tooling, usability]
-    maps_to: [gvp:G1, gvp:G2, gvp:P9, gvp:P15, gvp:R4, gvp:V6]
+    name: '--hops <n> bounds maps_to expansion for readable inline rendering'
+    rationale: |
+      The existing `cairn inspect` text output shows `maps_to` as bare IDs, and `--trace` walks the full ancestor DAG. Neither is ideal for rendering a guide with meaningful context: bare IDs force the reader to cross-reference the library to understand what each mapping means, and a full trace drowns the element being inspected in transitive ancestors that rarely matter at the point of reading. `--hops <n>` is a bounded middle ground: `--hops 1` expands the element's direct maps_to inline with the parent's id, name, category, and a truncated preview of its primary field; `--hops 2` recurses one more level; etc. This keeps the reader's context window focused on the hops that matter while still linking each mapping to enough content that it is self-explanatory. The renderer reads `primary_field` from the category registry and does not branch on `element.categoryName`, so the same expansion shape works for goals, values, principles, rules, heuristics, decisions, and any future category -- consistent with P15 (dogfood your own abstractions) and R4 (core stays domain-agnostic). The hop count is an integer, bounded by natural graph depth; cycles are broken by a seen-set keyed on element hashKey.
+    tags:
+      - tooling
+      - usability
+    maps_to:
+      - gvp:G1
+      - gvp:G2
+      - gvp:P9
+      - gvp:P15
+      - gvp:R4
+      - gvp:V6
     refs:
       - file: src/cli/commands/inspect.ts
         identifier: renderHops
@@ -979,97 +1092,43 @@ decisions:
         identifier: renderInlineElement
         role: implements
     origin:
-      - date: "2026-04-08"
-        note: "Requested by TAStest project during PM Phase A -- part of the bridge that unblocks prose-first procedural guides while the procedure element is being designed"
-
+      - date: '2026-04-08'
+        note: Requested by TAStest project during PM Phase A -- part of the bridge that unblocks prose-first procedural guides while the procedure element is being designed
   - id: D18
     name: meta.description as first-class document field
-    rationale: >
-      Documents need a short human-readable "what is this about" string
-      that renderers, hook indexers, and CLI listings can surface without
-      reading every element. This was previously available via
-      `.passthrough()` on documentMetaSchema but was not a declared field
-      and could not be relied upon by consumers. Promoting it to an
-      explicit optional field is a small application of P14 (explicit
-      over implicit) and V2 (Transparency): the shape is now documented
-      in the schema, validated like every other meta field, and visible
-      to anyone reading the type. The TAStest team's specific motivation
-      was a SessionStart hook that builds an index of available procedure
-      guides without parsing every YAML file -- `meta.description` is
-      the obvious home for that string because it's universal across all
-      document types, not a process-specific field. Process-level trigger
-      context (the "when to use this guide" string) stays on the element,
-      not on meta, because it describes element-specific data rather than
-      document-level metadata.
-    tags: [framework, integrity]
-    maps_to: [gvp:G1, gvp:G7, gvp:V2, gvp:V6, gvp:V10, gvp:P14]
+    rationale: |
+      Documents need a short human-readable "what is this about" string that renderers, hook indexers, and CLI listings can surface without reading every element. This was previously available via `.passthrough()` on documentMetaSchema but was not a declared field and could not be relied upon by consumers. Promoting it to an explicit optional field is a small application of P14 (explicit over implicit) and V2 (Transparency): the shape is now documented in the schema, validated like every other meta field, and visible to anyone reading the type. The TAStest team's specific motivation was a SessionStart hook that builds an index of available procedure guides without parsing every YAML file -- `meta.description` is the obvious home for that string because it's universal across all document types, not a process-specific field. Process-level trigger context (the "when to use this guide" string) stays on the element, not on meta, because it describes element-specific data rather than document-level metadata.
+    tags:
+      - framework
+      - integrity
+    maps_to:
+      - gvp:G1
+      - gvp:G7
+      - gvp:V2
+      - gvp:V6
+      - gvp:V10
+      - gvp:P14
     refs:
       - file: src/model/document-meta.ts
         identifier: documentMetaSchema
         role: defines
     origin:
-      - date: "2026-04-08"
-        note: "Requested by TAStest project during PM Phase A -- part of the bridge to their planned SessionStart guide index"
-
+      - date: '2026-04-08'
+        note: Requested by TAStest project during PM Phase A -- part of the bridge to their planned SessionStart guide index
   - id: D19
     name: Procedure category for ordered step-governed workflows
-    rationale: >
-      The existing eight core categories (goal, value, constraint,
-      principle, rule, heuristic, decision, milestone) are all stative --
-      they describe what is or should be true. None cleanly expresses
-      procedural knowledge: a sequence of ordered steps, each governed
-      by its own guiding elements. Heuristics are if/then decision
-      procedures, but they lose ordering and per-step traceability.
-      Rules are unconditional hard stops, also no ordering. Modeling a
-      guide like "writing a Phase 2 cross-platform test" as a sequence
-      of decisions or as a heuristic loses both the sequence and the
-      step-local `maps_to` that connect each step back to the rules and
-      principles that govern it specifically.
-
-      The procedure category fills this gap. It is structurally
-      domain-agnostic (R4): any cairn user needs a way to capture
-      procedural knowledge, and the shape -- ordered steps with per-step
-      traceability -- is universal even though any individual procedure
-      is domain-specific. Steps use the same `maps_to` and `refs`
-      mechanisms as element-level maps_to and refs -- no new
-      relationship type, no new graph concept. A process-level `when`
-      field captures runtime trigger context ("starting a new test or
-      migrating a v1 test"), a process-level `related` list groups
-      decisions/rules/heuristics that apply throughout rather than to a
-      specific step.
-
-      Step IDs follow dotted form: `{parent.id}.{N}` (1-indexed). They
-      are auto-assigned at parse time when missing, with W015 emitted
-      to nudge the user toward persisting explicit IDs. R1 preservation
-      across step deletions requires persisted IDs, since load-time
-      numbering is position-based and would silently renumber
-      survivors. The `name` attribute carries the human-readability
-      burden; no separate slug override exists, because two identity
-      mechanisms for the same thing would violate V1 simplicity (the
-      consumer's words: "keeps step IDs purely structural identifiers
-      and avoids two ways to say the same thing").
-
-      The category id_prefix is `S` (for Step / Sequence), a single
-      character, per DEC-9.2 (all core category id prefixes are single
-      characters; keep it simple and use 2+ chars only where required
-      for uniqueness). The mnemonic points directly at the defining
-      structural feature of a procedure -- the `steps` field -- so
-      anyone who reads `S1.1` once understands what the letter stands
-      for. The full ID form (`S1`, `S1.1`, `S1.2`) is visually
-      unambiguous in every font, avoiding letter/numeral confusion.
-      The category name itself stays `procedure`; `S` is strictly the
-      ID prefix mnemonic.
-
-      Considered alternatives for the id_prefix:
-      - `P` (procedure): collides with principle. Rejected.
-      - `T` (task): "task" is narrower than "procedure"; a procedure
+    rationale: |
+      The existing eight core categories (goal, value, constraint, principle, rule, heuristic, decision, milestone) are all stative -- they describe what is or should be true. None cleanly expresses procedural knowledge: a sequence of ordered steps, each governed by its own guiding elements. Heuristics are if/then decision procedures, but they lose ordering and per-step traceability. Rules are unconditional hard stops, also no ordering. Modeling a guide like "writing a Phase 2 cross-platform test" as a sequence of decisions or as a heuristic loses both the sequence and the step-local `maps_to` that connect each step back to the rules and principles that govern it specifically.
+      The procedure category fills this gap. It is structurally domain-agnostic (R4): any cairn user needs a way to capture procedural knowledge, and the shape -- ordered steps with per-step traceability -- is universal even though any individual procedure is domain-specific. Steps use the same `maps_to` and `refs` mechanisms as element-level maps_to and refs -- no new relationship type, no new graph concept. A process-level `when` field captures runtime trigger context ("starting a new test or migrating a v1 test"), a process-level `related` list groups decisions/rules/heuristics that apply throughout rather than to a specific step.
+      Step IDs follow dotted form: `{parent.id}.{N}` (1-indexed). They are auto-assigned at parse time when missing, with W015 emitted to nudge the user toward persisting explicit IDs. R1 preservation across step deletions requires persisted IDs, since load-time numbering is position-based and would silently renumber survivors. The `name` attribute carries the human-readability burden; no separate slug override exists, because two identity mechanisms for the same thing would violate V1 simplicity (the consumer's words: "keeps step IDs purely structural identifiers and avoids two ways to say the same thing").
+      The category id_prefix is `S` (for Step / Sequence), a single character, per DEC-9.2 (all core category id prefixes are single characters; keep it simple and use 2+ chars only where required for uniqueness). The mnemonic points directly at the defining structural feature of a procedure -- the `steps` field -- so anyone who reads `S1.1` once understands what the letter stands for. The full ID form (`S1`, `S1.1`, `S1.2`) is visually unambiguous in every font, avoiding letter/numeral confusion. The category name itself stays `procedure`; `S` is strictly the ID prefix mnemonic.
+      Considered alternatives for the id_prefix: - `P` (procedure): collides with principle. Rejected. - `T` (task): "task" is narrower than "procedure"; a procedure
         can contain multiple tasks, not the other way around. Rejected
         for semantic drift.
       - `W` (workflow): cleaner than Q, but "workflow" implies a
         cross-actor orchestration concept that a cairn procedure does
         not require. Still a reasonable fallback.
-      - `O` (operation): similar semantic drift to task.
-      - `Q` (initially chosen for neutrality): rejected post-review
+      - `O` (operation): similar semantic drift to task. - `Q` (initially chosen for neutrality): rejected post-review
         because it reads strongly as "question" and creates cognitive
         friction every time it appears in IDs and queries. Originally
         committed in 08bb667 and corrected in a follow-up commit
@@ -1082,28 +1141,24 @@ decisions:
         guide); (c) natural-language collision -- "look at I3" reads
         awkwardly because I is a personal pronoun.
 
-      S was chosen because the mnemonic matches the field, the
-      character is visually unambiguous in every font, and it reads
-      naturally in spoken and written English. Users who want a
-      different mnemonic can override via a user-defined category in
-      their own library.
-
-      Validation: E001 (BROKEN_REFERENCE) is extended to walk step
-      maps_to; E005 (DUPLICATE_STEP_ID) fires on explicit step id
-      collisions within a procedure; W010/W011 are extended to step
-      refs; W015 (AUTO_ASSIGNED_STEP_ID) nudges toward persisted IDs.
-      All diagnostics reuse existing codes where the semantic is the
-      same; E005 and W015 are the only new codes.
-
-      Phase B deliberately does NOT add a `cairn add procedure` or
-      `cairn add step` CLI command, a procedure-aware renderer, or a
-      step-level graph node. Those belong to later phases (add command
-      is out-of-scope; renderer is phase C). Phase B is the structural
-      foundation that makes procedures parseable, queryable, exportable
-      (as structured JSON), and validatable. Pretty rendering comes in
-      phase C.
-    tags: [framework, tooling, extensibility]
-    maps_to: [gvp:G1, gvp:G2, gvp:G6, gvp:G7, gvp:V2, gvp:V4, gvp:V7, gvp:P2, gvp:P14, gvp:R4]
+      S was chosen because the mnemonic matches the field, the character is visually unambiguous in every font, and it reads naturally in spoken and written English. Users who want a different mnemonic can override via a user-defined category in their own library.
+      Validation: E001 (BROKEN_REFERENCE) is extended to walk step maps_to; E005 (DUPLICATE_STEP_ID) fires on explicit step id collisions within a procedure; W010/W011 are extended to step refs; W015 (AUTO_ASSIGNED_STEP_ID) nudges toward persisted IDs. All diagnostics reuse existing codes where the semantic is the same; E005 and W015 are the only new codes.
+      Phase B deliberately does NOT add a `cairn add procedure` or `cairn add step` CLI command, a procedure-aware renderer, or a step-level graph node. Those belong to later phases (add command is out-of-scope; renderer is phase C). Phase B is the structural foundation that makes procedures parseable, queryable, exportable (as structured JSON), and validatable. Pretty rendering comes in phase C.
+    tags:
+      - framework
+      - tooling
+      - extensibility
+    maps_to:
+      - gvp:G1
+      - gvp:G2
+      - gvp:G6
+      - gvp:G7
+      - gvp:V2
+      - gvp:V4
+      - gvp:V7
+      - gvp:P2
+      - gvp:P14
+      - gvp:R4
     refs:
       - file: src/data/defaults.yaml
         identifier: categories
@@ -1121,44 +1176,15 @@ decisions:
         identifier: semanticPass
         role: implements
     origin:
-      - date: "2026-04-08"
-        note: "Requested by TAStest project during PM Phase B -- motivated by their need to migrate procedural prose guides (writing tests, debugging, updating helpers) into traceable GVP elements so the underlying rules and principles governing each step remain visible"
-
+      - date: '2026-04-08'
+        note: Requested by TAStest project during PM Phase B -- motivated by their need to migrate procedural prose guides (writing tests, debugging, updating helpers) into traceable GVP elements so the underlying rules and principles governing each step remain visible
   - id: D20a
     name: Reference field type for semantic element-id annotation
-    rationale: >
-      Extends the field_schemas type enum with a `reference` type,
-      structurally equivalent to `string` (accepts any valid string at
-      the Zod level) but semantically annotated as "this string is a
-      qualified element id". Replaces the alternative approach of
-      sniffing the data at runtime to decide whether a list of strings
-      should be rendered as a reference-expansion list or a plain
-      string list.
-
-      The data-sniffing approach -- "try to resolve each string value
-      as an element ID and dispatch based on whether any resolve" --
-      was considered and rejected. It is clever but data-sensitive:
-      a typo in an ID would silently change rendering behavior for
-      the whole field (one broken ref flips the list from
-      "references" to "plain strings"), and renderer output would
-      depend on catalog state at render time rather than on the
-      schema. Both are V2 transparency violations (the user cannot
-      tell what rendering they will get without running the tool).
-
-      The reference type fixes this with one small schema engine
-      addition: `FieldType` gains a new `reference` variant,
-      `fieldEntryToZod` dispatches it to `z.string()` (same structure
-      as string), and `FIELD_TYPES` + `isFieldType` + the Zod field
-      schema validator pick it up automatically because they derive
-      from the same enum. The existing `procedure.related` and
-      `procedure.steps[].maps_to` fields in defaults.yaml are
-      migrated from `list<string>` to `list<reference>` -- no user
-      visible change today (both still validate the same YAML), but
-      renderers and graph tooling now have explicit annotation to
-      dispatch on.
-
-      Design notes:
-      - Backwards compatible: any existing `list<string>` field that
+    rationale: |
+      Extends the field_schemas type enum with a `reference` type, structurally equivalent to `string` (accepts any valid string at the Zod level) but semantically annotated as "this string is a qualified element id". Replaces the alternative approach of sniffing the data at runtime to decide whether a list of strings should be rendered as a reference-expansion list or a plain string list.
+      The data-sniffing approach -- "try to resolve each string value as an element ID and dispatch based on whether any resolve" -- was considered and rejected. It is clever but data-sensitive: a typo in an ID would silently change rendering behavior for the whole field (one broken ref flips the list from "references" to "plain strings"), and renderer output would depend on catalog state at render time rather than on the schema. Both are V2 transparency violations (the user cannot tell what rendering they will get without running the tool).
+      The reference type fixes this with one small schema engine addition: `FieldType` gains a new `reference` variant, `fieldEntryToZod` dispatches it to `z.string()` (same structure as string), and `FIELD_TYPES` + `isFieldType` + the Zod field schema validator pick it up automatically because they derive from the same enum. The existing `procedure.related` and `procedure.steps[].maps_to` fields in defaults.yaml are migrated from `list<string>` to `list<reference>` -- no user visible change today (both still validate the same YAML), but renderers and graph tooling now have explicit annotation to dispatch on.
+      Design notes: - Backwards compatible: any existing `list<string>` field that
         happens to hold element ids continues to validate. Opting in
         to `reference` is a per-field choice; it is not enforced on
         existing user libraries.
@@ -1175,15 +1201,20 @@ decisions:
         matches how `enum` already adds semantic annotation on top of
         a structural string.
 
-      This decision lands in phase C.0 of the renderer refactor
-      sequence (C.0 = reference type, C.1 = shape-renderer module,
-      C.2 = markdown-exporter swap, C.3 = inspect swap). Landing it
-      first means the shape renderer in C.1 can dispatch on the
-      declared type from the start without data-sniffing fallback
-      logic, and the procedure category already models the new type
-      at the moment C.0 ships.
-    tags: [framework, tooling, integrity]
-    maps_to: [gvp:G5, gvp:V2, gvp:V6, gvp:V10, gvp:P3, gvp:P11, gvp:P14, gvp:D19]
+      This decision lands in phase C.0 of the renderer refactor sequence (C.0 = reference type, C.1 = shape-renderer module, C.2 = markdown-exporter swap, C.3 = inspect swap). Landing it first means the shape renderer in C.1 can dispatch on the declared type from the start without data-sniffing fallback logic, and the procedure category already models the new type at the moment C.0 ships.
+    tags:
+      - framework
+      - tooling
+      - integrity
+    maps_to:
+      - gvp:G5
+      - gvp:V2
+      - gvp:V6
+      - gvp:V10
+      - gvp:P3
+      - gvp:P11
+      - gvp:P14
+      - gvp:D19
     refs:
       - file: src/schema/types.ts
         identifier: FIELD_TYPES
@@ -1195,24 +1226,13 @@ decisions:
         identifier: categories
         role: uses
     origin:
-      - date: "2026-04-08"
-        note: "Requested by TAStest project during PM Phase C.0 investigation -- preferred over data-sniffing for reference-list detection to avoid silent behavior changes on typo'd ids; aligns with P14 explicit over implicit"
-
+      - date: '2026-04-08'
+        note: Requested by TAStest project during PM Phase C.0 investigation -- preferred over data-sniffing for reference-list detection to avoid silent behavior changes on typo'd ids; aligns with P14 explicit over implicit
   - id: D21
     name: Project identity via .gvp/config.yaml project_id with preflight backfill
-    rationale: >
-      Cairn projects need a stable identity that survives clones,
-      worktrees, filesystem moves, and git origin URL changes. The
-      obvious identifier (git origin, local path, directory name)
-      is volatile; something stored inside the library itself is
-      stable. This decision adds a `project_id` UUID field as the
-      authoritative project identity, generated once per project
-      and never changed.
-
-      **Location chosen: `.gvp/config.yaml`** as a top-level key,
-      not `meta.project_id` in a document and not a `.gvp/.uuid`
-      sidecar file. Reasons:
-
+    rationale: |
+      Cairn projects need a stable identity that survives clones, worktrees, filesystem moves, and git origin URL changes. The obvious identifier (git origin, local path, directory name) is volatile; something stored inside the library itself is stable. This decision adds a `project_id` UUID field as the authoritative project identity, generated once per project and never changed.
+      **Location chosen: `.gvp/config.yaml`** as a top-level key, not `meta.project_id` in a document and not a `.gvp/.uuid` sidecar file. Reasons:
       - `.gvp/config.yaml` already exists as a first-class concept
         with its own schema (configSchema) and walk-back discovery.
         Adding a field is a one-line schema addition with Zod UUID
@@ -1229,54 +1249,30 @@ decisions:
         project-scoped state (format_version, created_at, ...), and
         hides important state inside a dotfile.
 
-      **Backfill via preflight:** the first cairn invocation that
-      finds a `.gvp/` directory without a `project_id` generates
-      one and writes it to `.gvp/config.yaml`, creating the file
-      if necessary and preserving any existing keys. A one-line
-      stderr notice tells the user what happened:
+      **Backfill via preflight:** the first cairn invocation that finds a `.gvp/` directory without a `project_id` generates one and writes it to `.gvp/config.yaml`, creating the file if necessary and preserving any existing keys. A one-line stderr notice tells the user what happened:
 
           cairn: generated project_id <uuid> and wrote it to <path>
 
-      An explicit migration command was considered and rejected
-      for discoverability: users who initialized their library
-      months ago won't know to run it. Auto-backfill on first
-      invocation is invisible when it doesn't matter and loud when
-      it does.
-
-      **Write side effects on read commands:** the preflight writes
-      exactly ONCE per project, ever — not on every invocation.
-      This is qualitatively different from a registry cache that
-      writes every time (the rejected earlier shape of feature 2).
-      The one-time nature makes the side effect acceptable: users
-      who dislike it see exactly one stderr line ever per project
-      and can delete the config file to undo. A registry that
-      wrote every time would be a continuous side effect and is
-      gated behind an explicit config flag (see D22).
-
-      **Immutability via IMMUTABLE_CONFIG_FIELDS:** the project_id
-      is registered in a generic Set that edit commands and future
-      config-mutation paths check before allowing a write. Separate
-      Set from RESERVED_FIELD_NAMES because the enforcement surface
-      is config fields vs element meta fields — two different
-      namespaces. Future immutable config fields (format_version,
-      created_at) join the Set and get enforcement for free.
-      Generic mechanism per R6: no hard-coded
-      "if field === 'project_id'" branches anywhere.
-
-      **Preflight target: cwd, not --library override.** If the
-      user invokes cairn from project A while passing
-      `--library ~/.cwork/pm/gvp/` to read the PM library, preflight
-      backfills A's identity, not the PM library's. This matches
-      the intuition that "project identity" tracks the working
-      directory, not whichever library happens to be loaded. The
-      PM library has its own config managed separately.
-
-      **UUID version:** any valid UUID accepted (per configSchema's
-      `.uuid()` validator). New IDs generated via
-      `crypto.randomUUID()` which produces v4. Users pasting v7
-      or other versions into config by hand will validate fine.
-    tags: [framework, tooling, integrity]
-    maps_to: [gvp:G1, gvp:G5, gvp:G8, gvp:V2, gvp:V6, gvp:V10, gvp:P4, gvp:P13, gvp:P14, gvp:R1]
+      An explicit migration command was considered and rejected for discoverability: users who initialized their library months ago won't know to run it. Auto-backfill on first invocation is invisible when it doesn't matter and loud when it does.
+      **Write side effects on read commands:** the preflight writes exactly ONCE per project, ever — not on every invocation. This is qualitatively different from a registry cache that writes every time (the rejected earlier shape of feature 2). The one-time nature makes the side effect acceptable: users who dislike it see exactly one stderr line ever per project and can delete the config file to undo. A registry that wrote every time would be a continuous side effect and is gated behind an explicit config flag (see D22).
+      **Immutability via IMMUTABLE_CONFIG_FIELDS:** the project_id is registered in a generic Set that edit commands and future config-mutation paths check before allowing a write. Separate Set from RESERVED_FIELD_NAMES because the enforcement surface is config fields vs element meta fields — two different namespaces. Future immutable config fields (format_version, created_at) join the Set and get enforcement for free. Generic mechanism per R6: no hard-coded "if field === 'project_id'" branches anywhere.
+      **Preflight target: cwd, not --library override.** If the user invokes cairn from project A while passing `--library ~/.cwork/pm/gvp/` to read the PM library, preflight backfills A's identity, not the PM library's. This matches the intuition that "project identity" tracks the working directory, not whichever library happens to be loaded. The PM library has its own config managed separately.
+      **UUID version:** any valid UUID accepted (per configSchema's `.uuid()` validator). New IDs generated via `crypto.randomUUID()` which produces v4. Users pasting v7 or other versions into config by hand will validate fine.
+    tags:
+      - framework
+      - tooling
+      - integrity
+    maps_to:
+      - gvp:G1
+      - gvp:G5
+      - gvp:G8
+      - gvp:V2
+      - gvp:V6
+      - gvp:V10
+      - gvp:P4
+      - gvp:P13
+      - gvp:P14
+      - gvp:R1
     refs:
       - file: src/config/schema.ts
         identifier: IMMUTABLE_CONFIG_FIELDS
@@ -1288,26 +1284,13 @@ decisions:
         identifier: parseConfigOptions
         role: implements
     origin:
-      - date: "2026-04-08"
-        note: "Requested by the claude-worker PM to support PM-identity state that's stable across cloned/moved/renamed projects. Design locked in a two-round evaluation with multiple location options considered; .gvp/config.yaml chosen over meta.project_id and .gvp/.uuid sidecar per human's recommendation to Guy."
-
+      - date: '2026-04-08'
+        note: Requested by the claude-worker PM to support PM-identity state that's stable across cloned/moved/renamed projects. Design locked in a two-round evaluation with multiple location options considered; .gvp/config.yaml chosen over meta.project_id and .gvp/.uuid sidecar per human's recommendation to Guy.
   - id: D22
     name: Opt-in global project registry at ~/.gvp/registry/by-id
-    rationale: >
-      Builds on D21 (project_id) to enable cross-project discovery:
-      a global directory where cairn maintains one YAML file per
-      known project, keyed by the project's stable UUID. PMs and
-      other consumers can walk the registry to answer questions
-      like "what projects exist on this machine" and "when was
-      project X last touched" without knowing where those projects
-      live on disk.
-
-      **Opt-in via config flag:** `registry.enabled: true` in any
-      config layer (system, global, project, local) turns on the
-      registry upsert. Default is disabled. The claude-worker PM
-      and the PM's initial evaluation of this feature both
-      independently landed on opt-in as the right default because:
-
+    rationale: |
+      Builds on D21 (project_id) to enable cross-project discovery: a global directory where cairn maintains one YAML file per known project, keyed by the project's stable UUID. PMs and other consumers can walk the registry to answer questions like "what projects exist on this machine" and "when was project X last touched" without knowing where those projects live on disk.
+      **Opt-in via config flag:** `registry.enabled: true` in any config layer (system, global, project, local) turns on the registry upsert. Default is disabled. The claude-worker PM and the PM's initial evaluation of this feature both independently landed on opt-in as the right default because:
       - Read commands (query, validate, export, inspect) are
         filesystem-read-only today. Adding unconditional write side
         effects would break CI sandboxes, multi-user environments,
@@ -1318,30 +1301,9 @@ decisions:
         once in `~/.config/gvp/config.yaml` and every subsequent
         cairn command on any project will upsert transparently.
 
-      The earlier "explicit `cairn project register` command"
-      design was considered and rejected in favor of transparent
-      auto-upsert because (1) the claude-worker PM's use case
-      needs the registry to stay fresh automatically as PMs move
-      between projects, and (2) the explicit command has the same
-      discoverability problem that D21's preflight already solves
-      for identity backfill — users who don't know the command
-      exists would never run it.
-
-      **"Registry" naming, not "cache":** the data is persistent
-      state that can't be regenerated without re-running cairn in
-      every project that has ever been touched. The word "cache"
-      implies "safe to delete, tool will rebuild" which is not
-      true here.
-
-      **Location: `~/.gvp/registry/by-id/`:** chosen over XDG
-      (`$XDG_STATE_HOME/gvp/registry/`) for simplicity and to
-      match the existing `~/.gvp/` convention used for personal
-      libraries. Overridable via `GVP_REGISTRY_ROOT` env var for
-      test isolation and custom setups. If a strict XDG user
-      wants proper $XDG_STATE_HOME support later, it's a
-      surface-level addition that doesn't require a decision
-      change.
-
+      The earlier "explicit `cairn project register` command" design was considered and rejected in favor of transparent auto-upsert because (1) the claude-worker PM's use case needs the registry to stay fresh automatically as PMs move between projects, and (2) the explicit command has the same discoverability problem that D21's preflight already solves for identity backfill — users who don't know the command exists would never run it.
+      **"Registry" naming, not "cache":** the data is persistent state that can't be regenerated without re-running cairn in every project that has ever been touched. The word "cache" implies "safe to delete, tool will rebuild" which is not true here.
+      **Location: `~/.gvp/registry/by-id/`:** chosen over XDG (`$XDG_STATE_HOME/gvp/registry/`) for simplicity and to match the existing `~/.gvp/` convention used for personal libraries. Overridable via `GVP_REGISTRY_ROOT` env var for test isolation and custom setups. If a strict XDG user wants proper $XDG_STATE_HOME support later, it's a surface-level addition that doesn't require a decision change.
       **Entry schema (minimal, additive-extensible):**
 
           project_id: <uuid>
@@ -1352,43 +1314,11 @@ decisions:
             - path: <absolute path>
               last_seen: <ISO 8601>
 
-      project_name is derived from the project directory
-      basename. locations is a list so the same project moved
-      between machines or cloned to multiple directories on one
-      machine shows up with multiple entries under the same
-      project_id. last_seen is updated on every upsert for the
-      location that matches the current path; a new path produces
-      a new locations entry. Future fields can be added to the
-      entry schema without breaking older readers, because the
-      upsert code reads the existing entry, merges the new data,
-      and writes back without enforcing an exhaustive schema.
-
-      **Auto-prune on access:** when the registry upsert runs, it
-      also walks the registry dir and removes any entry whose
-      recorded locations are ALL gone from disk. Entries with at
-      least one still-valid location are kept (with the gone
-      locations trimmed). Simpler than a separate
-      `cairn registry prune` command and keeps the registry tidy
-      without user action.
-
-      **Preflight integration:** the registry upsert is Phase 2
-      of the D21 preflight. Phase 1 (identity backfill) runs
-      before loadConfig so the backfilled project_id is visible
-      to the loaded config. Phase 2 runs after loadConfig because
-      it needs to check the merged `registry.enabled` flag. Both
-      phases are no-ops when there's no project context
-      (`.gvp/` not found walking back from cwd).
-
-      **Resilience:** all registry file operations are wrapped
-      in try/catch and return silently on failure. Registry
-      errors never block the main cairn command — the feature
-      is non-load-bearing for correctness, and a read-only home
-      directory or a full disk should not cause `cairn query`
-      to fail. Corrupt registry entries are replaced on upsert
-      and removed on prune.
-
-      **Out of scope for this decision:**
-      - A `cairn registry query` command to inspect/search the
+      project_name is derived from the project directory basename. locations is a list so the same project moved between machines or cloned to multiple directories on one machine shows up with multiple entries under the same project_id. last_seen is updated on every upsert for the location that matches the current path; a new path produces a new locations entry. Future fields can be added to the entry schema without breaking older readers, because the upsert code reads the existing entry, merges the new data, and writes back without enforcing an exhaustive schema.
+      **Auto-prune on access:** when the registry upsert runs, it also walks the registry dir and removes any entry whose recorded locations are ALL gone from disk. Entries with at least one still-valid location are kept (with the gone locations trimmed). Simpler than a separate `cairn registry prune` command and keeps the registry tidy without user action.
+      **Preflight integration:** the registry upsert is Phase 2 of the D21 preflight. Phase 1 (identity backfill) runs before loadConfig so the backfilled project_id is visible to the loaded config. Phase 2 runs after loadConfig because it needs to check the merged `registry.enabled` flag. Both phases are no-ops when there's no project context (`.gvp/` not found walking back from cwd).
+      **Resilience:** all registry file operations are wrapped in try/catch and return silently on failure. Registry errors never block the main cairn command — the feature is non-load-bearing for correctness, and a read-only home directory or a full disk should not cause `cairn query` to fail. Corrupt registry entries are replaced on upsert and removed on prune.
+      **Out of scope for this decision:** - A `cairn registry query` command to inspect/search the
         registry. Consumers walk the directory themselves via
         filesystem tools; cairn just maintains the data. A
         dedicated query command can be added as a separate
@@ -1397,8 +1327,18 @@ decisions:
         strictly per-user ($HOME-scoped).
       - Integration with external project indexers (IDEs,
         launchers). That's a consumer concern.
-    tags: [framework, tooling, integrity]
-    maps_to: [gvp:G2, gvp:G5, gvp:V2, gvp:V8, gvp:P4, gvp:P8, gvp:D21]
+    tags:
+      - framework
+      - tooling
+      - integrity
+    maps_to:
+      - gvp:G2
+      - gvp:G5
+      - gvp:V2
+      - gvp:V8
+      - gvp:P4
+      - gvp:P8
+      - gvp:D21
     refs:
       - file: src/config/registry.ts
         identifier: upsertRegistryEntry
@@ -1410,94 +1350,89 @@ decisions:
         identifier: configSchema
         role: defines
     origin:
-      - date: "2026-04-08"
-        note: "Requested by the claude-worker PM as feature 2 of the PM lifecycle architecture, building on D21 project_id as the registry key. Landed in the same session as D21 since the two features are tightly coupled; registry is useless without stable identity, and D21 is nearly useless without a way to correlate IDs across projects."
-
+      - date: '2026-04-08'
+        note: Requested by the claude-worker PM as feature 2 of the PM lifecycle architecture, building on D21 project_id as the registry key. Landed in the same session as D21 since the two features are tightly coupled; registry is useless without stable identity, and D21 is nearly useless without a way to correlate IDs across projects.
   - id: D23
     name: Scalar example field on procedure steps
-    rationale: >
-      Procedure steps need a dedicated field for concrete code/JSON/prose
-      examples, separate from the description field which carries the
-      "what and why". Scalar string shape chosen over list<model> because
-      YAML anchors handle reuse across steps, and a structured sub-model
-      would be scope creep. Backwards compatible — if a richer shape is
-      needed later, the scalar can be promoted without breaking existing
-      procedures.
-    tags: [framework, tooling]
-    maps_to: [gvp:G9, gvp:V4, gvp:V7, gvp:P15, gvp:R4, gvp:R6, gvp:D19]
+    rationale: |
+      Procedure steps need a dedicated field for concrete code/JSON/prose examples, separate from the description field which carries the "what and why". Scalar string shape chosen over list<model> because YAML anchors handle reuse across steps, and a structured sub-model would be scope creep. Backwards compatible — if a richer shape is needed later, the scalar can be promoted without breaking existing procedures.
+    tags:
+      - framework
+      - tooling
+    maps_to:
+      - gvp:G9
+      - gvp:V4
+      - gvp:V7
+      - gvp:P15
+      - gvp:R4
+      - gvp:R6
+      - gvp:D19
     refs:
       - file: src/data/defaults.yaml
         identifier: example
         role: implements
     origin:
-      - date: "2026-04-09"
-        note: "Requested by TAStest consumer (chat:tastest-process-element). Implemented as a schema-only change in defaults.yaml — zero source code modifications. R6 compliant: handled entirely by the existing generic shape-dispatch pipeline."
-
+      - date: '2026-04-09'
+        note: 'Requested by TAStest consumer (chat:tastest-process-element). Implemented as a schema-only change in defaults.yaml — zero source code modifications. R6 compliant: handled entirely by the existing generic shape-dispatch pipeline.'
   - id: D24
     name: File-based field input via --field-file on cairn edit
-    rationale: >
-      AI assistants and scripts need to set rich multi-line field content
-      (descriptions, rationale, examples) without invoking $EDITOR. The
-      --field-file flag reads file contents and sets a top-level element
-      field, following the established CLI pattern from kubectl -F and
-      git commit -F. Scoped to top-level fields only; step-level editing
-      deferred to a separate design conversation.
-    tags: [tooling, usability]
-    maps_to: [gvp:G7, gvp:G9, gvp:V5, gvp:V7, gvp:P7, gvp:D12]
+    rationale: |
+      AI assistants and scripts need to set rich multi-line field content (descriptions, rationale, examples) without invoking $EDITOR. The --field-file flag reads file contents and sets a top-level element field, following the established CLI pattern from kubectl -F and git commit -F. Scoped to top-level fields only; step-level editing deferred to a separate design conversation.
+    tags:
+      - tooling
+      - usability
+    maps_to:
+      - gvp:G7
+      - gvp:G9
+      - gvp:V5
+      - gvp:V7
+      - gvp:P7
+      - gvp:D12
     refs:
       - file: src/cli/commands/edit.ts
         identifier: editCommand
         role: implements
     origin:
-      - date: "2026-04-09"
-        note: "Requested by TAStest consumer (chat:tastest-process-element). --field-file wins over --field for the same key (last-write-wins). Uses Commander variadic <entries...> pattern processed as key/path pairs."
-
+      - date: '2026-04-09'
+        note: Requested by TAStest consumer (chat:tastest-process-element). --field-file wins over --field for the same key (last-write-wins). Uses Commander variadic <entries...> pattern processed as key/path pairs.
   - id: D25
     name: Optional summary field on all elements via _all.field_schemas
-    rationale: >
-      The description field serves two conflicting purposes: short form for
-      indices, frontmatter, and list views, and long form for full inspection
-      and teaching material. Enriched procedures with multi-paragraph
-      descriptions produce bloated frontmatter and unusable list-view previews.
-      Adding an optional summary field gives elements an explicit short-form
-      representation without requiring silent truncation of description (P14).
-      Declared in _all.field_schemas so every category (including custom
-      categories) gets it for free, following the same mechanism as refs. Field
-      ordering in defaults.yaml controls rendering order via Object.entries()
-      insertion order -- summary is positioned first in _all.field_schemas so
-      it renders before refs. Fallback on absence is blank (no emission), not
-      truncation.
-    tags: [framework, tooling, usability]
-    maps_to: [gvp:G1, gvp:G9, gvp:V4, gvp:V6, gvp:P5, gvp:P14, gvp:P15, gvp:R4, gvp:R6]
+    rationale: |
+      The description field serves two conflicting purposes: short form for indices, frontmatter, and list views, and long form for full inspection and teaching material. Enriched procedures with multi-paragraph descriptions produce bloated frontmatter and unusable list-view previews. Adding an optional summary field gives elements an explicit short-form representation without requiring silent truncation of description (P14). Declared in _all.field_schemas so every category (including custom categories) gets it for free, following the same mechanism as refs. Field ordering in defaults.yaml controls rendering order via Object.entries() insertion order -- summary is positioned first in _all.field_schemas so it renders before refs. Fallback on absence is blank (no emission), not truncation.
+    tags:
+      - framework
+      - tooling
+      - usability
+    maps_to:
+      - gvp:G1
+      - gvp:G9
+      - gvp:V4
+      - gvp:V6
+      - gvp:P5
+      - gvp:P14
+      - gvp:P15
+      - gvp:R4
+      - gvp:R6
     refs:
       - file: src/data/defaults.yaml
         identifier: summary
         role: implements
     origin:
-      - date: "2026-04-09"
-        note: "Requested by TAStest consumer (chat:tastest-process-element). Guy pre-approved. Enables explicit short-form representation for all elements without truncation."
-
+      - date: '2026-04-09'
+        note: Requested by TAStest consumer (chat:tastest-process-element). Guy pre-approved. Enables explicit short-form representation for all elements without truncation.
   - id: D26
-    name: --store flag for explicit GVP store root addressing
-    rationale: >
-      The .gvp/ directory (containing config.yaml, library/, and project
-      state) and the library/ subdirectory were conflated under the name
-      "library". The --library flag only addresses the document directory;
-      config discovery always walks back from CWD. Non-CWD libraries had
-      no way to reach their own config. The --store flag resolves this by
-      pointing at the store directory itself (the .gvp/ directory), which
-      directly contains config.yaml and library/. The flag does NOT point
-      at the parent project directory -- the .gvp/ directory IS the store,
-      and the parent is the project directory (revised per human feedback:
-      the initial design appended .gvp/ to the path, but Guy corrected
-      this -- pointing at the store directly is more explicit and avoids
-      magic path appending). "Store" was chosen because the docs already
-      use "GVP store" in 10+ places. The flag hierarchy is explicit:
-      --store governs both config and library by default; --library
-      overrides just the library path; --config overrides just the config
-      path.
-    tags: [tooling, usability]
-    maps_to: [gvp:G9, gvp:V6, gvp:P7, gvp:P14, gvp:D1]
+    name: '--store flag for explicit GVP store root addressing'
+    rationale: |
+      The .gvp/ directory (containing config.yaml, library/, and project state) and the library/ subdirectory were conflated under the name "library". The --library flag only addresses the document directory; config discovery always walks back from CWD. Non-CWD libraries had no way to reach their own config. The --store flag resolves this by pointing at the store directory itself (the .gvp/ directory), which directly contains config.yaml and library/. The flag does NOT point at the parent project directory -- the .gvp/ directory IS the store, and the parent is the project directory (revised per human feedback: the initial design appended .gvp/ to the path, but Guy corrected this -- pointing at the store directly is more explicit and avoids magic path appending). "Store" was chosen because the docs already use "GVP store" in 10+ places. The flag hierarchy is explicit: --store governs both config and library by default; --library overrides just the library path; --config overrides just the config path.
+    tags:
+      - tooling
+      - usability
+    maps_to:
+      - gvp:G9
+      - gvp:V6
+      - gvp:P7
+      - gvp:P14
+      - gvp:D1
     refs:
       - file: src/cli/index.ts
         identifier: program
@@ -1509,63 +1444,282 @@ decisions:
         identifier: discoverConfigPaths
         role: implements
     origin:
-      - date: "2026-04-11"
-        note: "Guy pre-approved the concept, routed via claude-worker PM. Design review confirmed 'store' as the canonical name matching existing docs terminology. Revised post-implementation: --store points at the store directory itself (not parent), per human feedback that the .gvp/ dir IS the store. Ticket 015."
-
+      - date: '2026-04-11'
+        note: 'Guy pre-approved the concept, routed via claude-worker PM. Design review confirmed ''store'' as the canonical name matching existing docs terminology. Revised post-implementation: --store points at the store directory itself (not parent), per human feedback that the .gvp/ dir IS the store. Ticket 015.'
   - id: D27
     name: cairn import command with candidate elements and multi-document patches
-    rationale: >
-      Building prototype GVP libraries requires drafting elements in formal
-      YAML that can be reviewed, refined, then imported cleanly. Manual YAML
-      edits bypass validation and miss origin/timestamp tracking. The import
-      command accepts patch files with ?-prefixed pseudo-IDs, auto-assigns
-      sequential real IDs, rewrites cross-references generically (R6), adds
-      provenance automatically (P1), and shows a preview before writing (P4).
-      Two modes: single-file with --into for quick additions, and directory
-      mode where file structure mirrors library structure for full
-      restructuring operations. Element deprecation follows R2, document
-      deletion requires explicit manifest + --confirm-delete flag.
-    tags: [tooling, usability]
-    maps_to: [gvp:G7, gvp:G9, gvp:V4, gvp:V9, gvp:P1, gvp:P4, gvp:P14, gvp:R2, gvp:R6]
+    rationale: |
+      Building prototype GVP libraries requires drafting elements in formal YAML that can be reviewed, refined, then imported cleanly. Manual YAML edits bypass validation and miss origin/timestamp tracking. The import command accepts patch files with ?-prefixed pseudo-IDs, auto-assigns sequential real IDs, rewrites cross-references generically (R6), adds provenance automatically (P1), and shows a preview before writing (P4). Two modes: single-file with --into for quick additions, and directory mode where file structure mirrors library structure for full restructuring operations. Element deprecation follows R2, document deletion requires explicit manifest + --confirm-delete flag.
+    tags:
+      - tooling
+      - usability
+    maps_to:
+      - gvp:G7
+      - gvp:G9
+      - gvp:V4
+      - gvp:V9
+      - gvp:P1
+      - gvp:P4
+      - gvp:P14
+      - gvp:R2
+      - gvp:R6
     refs:
       - file: src/cli/commands/import.ts
         identifier: importCommand
         role: implements
     origin:
-      - date: "2026-04-13"
-        note: "RHC consumer + Guy (human-approved). Design reviewed through S1 process. Ticket 017."
-
+      - date: '2026-04-13'
+        note: RHC consumer + Guy (human-approved). Design reviewed through S1 process. Ticket 017.
   - id: D28
     name: Multi-document patch format for cairn import
-    rationale: >
-      Single-file patches with --into address single-document updates. Directory
-      mode mirrors library structure for filesystem-mapped restructuring. But
-      consumers need a third pattern: one reviewable file that updates multiple
-      documents in a single reviewable artifact. The multi_document patch format
-      fills this gap — meta.multi_document: true triggers the mode, each named
-      top-level sub-patch has document (target) + patch (content following cairn
-      document schema). patch.meta merges into target document metadata.
-      Cross-sub-patch pseudo-ID references resolve via the same R6 generic
-      rewriting pipeline as directory mode. Distinct purpose from directory mode
-      (single reviewable file vs. filesystem-mirrored multi-file) per H6
-      (collapse by layer). Shape was locked with human signoff 2026-04-14 after
-      the to_document → document rename.
-    tags: [tooling, usability]
-    maps_to: [gvp:G7, gvp:G9, gvp:V4, gvp:V9, gvp:P11, gvp:P14, gvp:R6, gvp:D27]
+    rationale: |
+      Single-file patches with --into address single-document updates. Directory mode mirrors library structure for filesystem-mapped restructuring. But consumers need a third pattern: one reviewable file that updates multiple documents in a single reviewable artifact. The multi_document patch format fills this gap — meta.multi_document: true triggers the mode, each named top-level sub-patch has document (target) + patch (content following cairn document schema). patch.meta merges into target document metadata. Cross-sub-patch pseudo-ID references resolve via the same R6 generic rewriting pipeline as directory mode. Distinct purpose from directory mode (single reviewable file vs. filesystem-mirrored multi-file) per H6 (collapse by layer). Shape was locked with human signoff 2026-04-14 after the to_document → document rename.
+    tags:
+      - tooling
+      - usability
+    maps_to:
+      - gvp:G7
+      - gvp:G9
+      - gvp:V4
+      - gvp:V9
+      - gvp:P11
+      - gvp:P14
+      - gvp:R6
+      - gvp:D27
     refs:
       - file: src/cli/commands/import.ts
         identifier: importCommand
         role: implements
     origin:
-      - date: "2026-04-14"
-        note: "RHC consumer (human-approved shape 2026-04-14). Ticket 018."
-
+      - date: '2026-04-14'
+        note: RHC consumer (human-approved shape 2026-04-14). Ticket 018.
+  - id: D29
+    name: Requirement and Exclusion as core identity-lattice roots
+    disposition: accepted
+    rationale: |
+      Two new root categories capture parts of a project's identity the existing taxonomy could not express. user_requirement (prefix U) is a stakeholder-decreed mandate asserted as input and NOT derivable from any value — that non-derivability is what makes it a requirement and not a rule. exclusion (prefix X) is a self-imposed out-of-scope boundary, the negative space of goals, turning "is X out of scope?" into an actual graph query. Both are structural and domain-agnostic (generic requirements-engineering vocabulary), so per R4 and H1 they belong in core, alongside goal, value, and constraint — not as user-defined custom categories. Mapping a requirement to a value means "resonates-with / partially-motivated-by," NOT "derived-from"; the under-determination residual is the decreed core.
+    tags:
+      - framework
+      - alignment
+      - extensibility
+    maps_to:
+      - gvp:G6
+      - gvp:G9
+      - gvp:V7
+    considered:
+      exclusion_as_polarity_facet:
+        rationale: |
+          Modeling exclusion as a polarity:exclude facet on requirement was rejected in favor of a named Exclusion type: one more type buys a glanceable prefix (X) and standard requirements-engineering vocabulary.
+      requirement_as_source_facet_on_goal:
+        rationale: |
+          Folding requirement into goal with a source facet was rejected — the decreed/binary vs self-authored/open-ended distinction is crisp, teachable, and load-bearing for tooling that must tell derived guidance from decreed input.
+    refs:
+      - file: src/schema/category-definition.ts
+        identifier: CategoryDefinition
+        role: defines
+      - file: src/data/defaults.yaml
+        identifier: categories
+        role: defines
+    origin:
+      - id: 5d9305c5-615d-406e-8744-473818a0add2
+        date: '2026-07-20T22:43:46.809Z'
+        note: Imported from identity-lattice-patch.yaml
+  - id: D30
+    name: Generalize mapping anchors to any non-value root
+    disposition: accepted
+    rationale: |
+      mapping_rules generalizes the hard-coded goal slot to "any non-value root" (goal+value | constraint | user_requirement | exclusion), keeping the [goal, value] pair intact so nothing existing breaks — a strict superset. Because traceabilityPass already evaluates mapping_rules data-driven, this is a data change in defaults.yaml with no W003 code change. Applied to all guided categories, not decision-only: leaving rule/principle/heuristic unable to anchor to the new roots would be incoherent (V2, G5).
+    tags:
+      - framework
+      - alignment
+    maps_to:
+      - gvp:G5
+      - gvp:V2
+    considered:
+      decision_first:
+        rationale: |
+          Applying the new OR-groups to the decision category only was rejected for coherency — the reform's point is that the new roots are valid anchor targets for every derived element, not just decisions.
+    refs:
+      - file: src/validation/passes/traceability-pass.ts
+        identifier: traceabilityPass
+        role: implements
+    origin:
+      - id: 2374e6bf-8e62-4824-afa2-dde6e846a779
+        date: '2026-07-20T22:43:46.809Z'
+        note: Imported from identity-lattice-patch.yaml
+    updated_by:
+      - id: 52f71fa4-8a0f-4814-af12-f6f494971c9f
+        date: '2026-07-20T22:45:45.231Z'
+        rationale: Align to defined tag vocabulary
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+    reviewed_by:
+      - id: a7d2ca75-de58-43f0-abf7-dd7e538a9195
+        date: '2026-07-20T22:46:09.686Z'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+        updates_reviewed:
+          - 52f71fa4-8a0f-4814-af12-f6f494971c9f
+  - id: D31
+    name: Soft transitive value anchor as a separate warning (W016)
+    disposition: accepted
+    rationale: |
+      The value requirement is enforced softly and transitively by a separate pass (W016 NO_VALUE_TRACE), not by mapping_rules. When no value is reachable anywhere in the graph it is a warning, not an error, promotable under --strict and suppressible. Hard-erroring during incremental library-building would force a hollow local value stub — the exact smell we are avoiding (C1, P6) — because the acceptance value often lives upstream in an org/personal library. Keeping the hard structural anchor (W003) and the soft value nudge (W016) as distinct passes honors P11.
+    tags:
+      - framework
+      - alignment
+      - integrity
+    maps_to:
+      - gvp:G5
+      - gvp:V3
+      - gvp:C1
+    considered:
+      severity_in_mapping_rules:
+        rationale: |
+          Encoding the soft/hard severity split inside a single mapping_rules list was rejected — mapping_rules expresses hard structural anchors; overloading it with per-group severity would violate P11 (distinct purposes stay distinct).
+    refs:
+      - file: src/validation/passes/traceability-pass.ts
+        identifier: traceabilityPass
+        role: implements
+    origin:
+      - id: 4fe60599-77d4-4e87-8d36-765ff6163891
+        date: '2026-07-20T22:43:46.809Z'
+        note: Imported from identity-lattice-patch.yaml
+  - id: D32
+    name: Decision disposition facet {accepted, declined, deferred}
+    disposition: accepted
+    rationale: |
+      A decision is redefined as "a resolved choice with rationale," not "a choice with material impact in files" — a decline or defer produces no artifacts yet is a real, consequential choice. The disposition enum field on the decision category records this; W013 (decision-no-refs) is scoped to accepted decisions only, so a declined decision's rationale and considered alternatives ARE the record and its absence of refs is encoded, not a gap. Absent disposition defaults to accepted, preserving all prior decisions' behavior. disposition is a field_schema on the decision category (R4: decision-specific data stays in the category def), not a reserved field.
+    tags:
+      - framework
+      - integrity
+    maps_to:
+      - gvp:G4
+      - gvp:V9
+    considered:
+      reserved_field:
+        rationale: |
+          Making disposition a reserved field was rejected — reserved fields are universal to every element, but disposition is meaningful only on decisions; reserving it would dilute that guarantee.
+      promote_to_all_field_schemas:
+        rationale: |
+          Promoting disposition to _all.field_schemas (every element) was rejected as semantically wrong — a goal or value has no disposition.
+    refs:
+      - file: src/data/defaults.yaml
+        identifier: categories
+        role: defines
+      - file: src/validation/passes/coverage-pass.ts
+        identifier: coveragePass
+        role: implements
+    origin:
+      - id: fdcf9da9-2475-4b82-a345-2d16c270a723
+        date: '2026-07-20T22:43:46.809Z'
+        note: Imported from identity-lattice-patch.yaml
+    updated_by:
+      - id: b4434d67-6bfb-4441-9a2f-a8b766a0ccbc
+        date: '2026-07-20T22:45:45.633Z'
+        rationale: Align to defined tag vocabulary
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+    reviewed_by:
+      - id: d19f39d7-9de6-4a10-951b-c163f7cee27f
+        date: '2026-07-20T22:46:10.297Z'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+        updates_reviewed:
+          - b4434d67-6bfb-4441-9a2f-a8b766a0ccbc
+  - id: D33
+    name: Scoped R6 exception — validation may read a declared coverage-gating enum
+    disposition: accepted
+    rationale: |
+      To scope W013 to accepted decisions, the coverage pass must read the decision category's declared disposition enum. R6 restricts validator/renderer code to the reserved field set, but explicitly anticipates promotion "if a future decision tightens the universality guarantee." This is that decision: a narrow, documented exception permitting the coverage pass — which is decision-centric by charter (it already keys on the decision category for W012/W013) — to read a declared enum field that gates coverage severity. The exception is deliberately minimal so it does not reopen R6's general prohibition on field-name and category-name dispatch elsewhere.
+    tags:
+      - framework
+      - integrity
+    maps_to:
+      - gvp:G5
+      - gvp:V10
+    refs:
+      - file: src/validation/passes/coverage-pass.ts
+        identifier: coveragePass
+        role: uses
+    origin:
+      - id: d5245d51-b57b-4af4-9311-4981bcce5c4d
+        date: '2026-07-20T22:43:46.809Z'
+        note: Imported from identity-lattice-patch.yaml
+    updated_by:
+      - id: c879ecd6-6149-4eb4-b185-96357100411b
+        date: '2026-07-20T22:45:45.960Z'
+        rationale: Align to defined tag vocabulary
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+    reviewed_by:
+      - id: cdcdcc28-8162-41ee-abe7-92c693317370
+        date: '2026-07-20T22:46:10.964Z'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+        updates_reviewed:
+          - c879ecd6-6149-4eb4-b185-96357100411b
+  - id: D34
+    name: Top-side decision coverage via requires_decision flag (W017)
+    disposition: accepted
+    rationale: |
+      Every root whose category declares requires_decision:true is an "actionable point-root" that should have at least one Decision tracing to it (any disposition — accept/decline/defer all count as actioned). W017 iterates the schema flag and hard-codes no category names (R6). goal, constraint, and user_requirement carry the flag; value (a direction, not a point) and exclusion (already its own resolution) omit it and are exempt by construction. Together with W012/W013 this closes the loop: nothing decreed goes silently unaddressed, nothing built goes silently unjustified. It is a coverage-pass warning (runs under --coverage), promotable under --strict.
+    tags:
+      - framework
+      - integrity
+      - alignment
+    maps_to:
+      - gvp:G4
+      - gvp:V9
+    considered:
+      hardcoded_exemption_list:
+        rationale: |
+          Hard-coding "exclusion and value are exempt" in the coverage pass was rejected as an R6 violation (category names in code) and less DRY; a schema-driven requires_decision flag drives the check generically and subsumes the value-exemption guard.
+    refs:
+      - file: src/schema/category-definition.ts
+        identifier: CategoryDefinition
+        role: defines
+      - file: src/validation/passes/coverage-pass.ts
+        identifier: coveragePass
+        role: implements
+    origin:
+      - id: 82bae1ee-7980-4df5-9d72-38e125b88e8f
+        date: '2026-07-20T22:43:46.809Z'
+        note: Imported from identity-lattice-patch.yaml
+  - id: D35
+    name: Release 1.1.0 as the first stable version and retire the beta publish rule
+    disposition: accepted
+    rationale: |
+      Cairn leaves the 1.0.X-beta prerelease series with 1.1.0, the first stable release, carrying the identity-lattice reform (#6/#7/#8): the user_requirement and exclusion root types, the mapping-anchor generalization, and decision disposition with top-side coverage. Going forward, version bumps follow semantic versioning (gvp:R7). R5 — the manual `--tag latest` step for beta publishes — is deprecated (R2, retired not deleted): its premise (npm does not advance `latest` for prerelease versions) does not apply to stable publishes, and the `postpublish` dist-tag automation that R5 named as its own superseding condition has since landed in package.json.
+    tags:
+      - tooling
+      - integrity
+    maps_to:
+      - gvp:G8
+      - gvp:V10
+    refs:
+      - file: RELEASING.md
+        identifier: Publish steps
+        role: implements
+    origin:
+      - id: 4ecb4c06-d317-437c-94bb-900d3f012f9a
+        date: '2026-07-20T23:04:08.588Z'
+        note: Imported from release-patch.yaml
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
 constraints:
   - id: C1
     name: Agents optimize for minimal effort
-    impact: >
-      Humans and AI alike tend toward the path of least resistance. Any
-      friction the framework introduces must justify its cost against this
-      tendency.
-    tags: [framework, usability]
+    impact: |
+      Humans and AI alike tend toward the path of least resistance. Any friction the framework introduces must justify its cost against this tendency.
+    tags:
+      - framework
+      - usability
     maps_to: []

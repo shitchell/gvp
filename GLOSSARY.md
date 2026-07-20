@@ -33,19 +33,29 @@ Canonical definitions for GVP terminology. For how the framework works, see [REA
 
 ## Built-in Categories
 
-The framework ships with 9 core categories:
+The framework ships with 11 core categories:
 
 | Category | YAML Key | Prefix | Root | Primary Field |
 |----------|----------|--------|------|---------------|
 | Goal | `goals` | G | yes | statement |
 | Value | `values` | V | yes | statement |
 | Constraint | `constraints` | C | yes | impact |
+| User Requirement | `user_requirements` | U | yes | statement |
+| Exclusion | `exclusions` | X | yes | statement |
 | Principle | `principles` | P | no | statement |
 | Rule | `rules` | R | no | statement |
 | Heuristic | `heuristics` | H | no | statement |
 | Decision | `decisions` | D | no | rationale |
 | Milestone | `milestones` | M | no | description |
 | Procedure | `procedures` | S | no | description |
+
+A **User Requirement** is a stakeholder-decreed mandate asserted as input -- *not*
+derivable from any value (that non-derivability is what makes it a requirement and
+not a rule). An **Exclusion** is a self-imposed out-of-scope boundary: the negative
+space of goals, making "is X out of scope?" an answerable graph query. Both are
+roots. A **Decision** carries a `disposition` -- `accepted`, `declined`, or
+`deferred` -- so a deliberate "we will not build this" is a first-class, recorded
+choice rather than a silent gap.
 
 Additional categories (e.g., `implementation_rule`, `coding_principle`) can be defined via `meta.definitions.categories` in any GVP document. The `software-project` example demonstrates this with domain-specific categories.
 
