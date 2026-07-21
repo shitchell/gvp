@@ -19,12 +19,20 @@ describe('matchRef — library short address (#11)', () => {
     expect(resolveRef('root:V1', els, NO_ALIAS)).toBe(els[0]);
   });
 
-  it('resolves meta.name:id when the file path differs from meta.name', () => {
+  it('resolves by meta.name, with documentPath as a lenient fallback', () => {
     const els = [mk('CP7', '@local', 'code/common', 'code-common')];
-    // meta.name form works…
+    // meta.name form (the stable identity) resolves…
     expect(resolveRef('code-common:CP7', els, NO_ALIAS)).toBe(els[0]);
-    // …and the old path form does NOT (the #11 bug is fixed by inversion).
-    expect(resolveRef('code/common:CP7', els, NO_ALIAS)).toBeUndefined();
+    // …and the old file-path form still resolves as a fallback (#13/path-fallback).
+    expect(resolveRef('code/common:CP7', els, NO_ALIAS)).toBe(els[0]);
+  });
+
+  it('meta.name takes precedence over documentPath on collision', () => {
+    // Two docs: A's meta.name equals B's documentPath ("shared").
+    const a = mk('X1', '@local', 'a-path', 'shared');
+    const b = mk('X1', '@local', 'shared', 'b-name');
+    // "shared:X1" matches A by meta.name and B by path → name wins.
+    expect(resolveRef('shared:X1', [a, b], NO_ALIAS)).toBe(a);
   });
 
   it('resolves the canonical source:documentPath:id escape hatch', () => {

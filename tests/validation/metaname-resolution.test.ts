@@ -35,14 +35,26 @@ describe('meta.name reference resolution + E006 (#11, #12)', () => {
     expect(e001().map(d => d.context.elementId)).not.toContain('D1');
   });
 
-  it('does NOT resolve the old file-path form (bug #11 inverted)', () => {
+  it('still resolves the old file-path form as a lenient fallback (#13/path-fallback)', () => {
     write('root.yaml', `meta: {name: root}\ngoals: [{id: G1, name: G, statement: x, maps_to: []}]\nvalues: [{id: V1, name: V, statement: x, maps_to: []}]\n`);
     write('code/common.yaml', `meta: {name: code-common, inherits: root}\nprinciples: [{id: CP7, name: P, statement: x, maps_to: [root:G1, root:V1]}]\n`);
     write('proj.yaml', `meta: {name: proj, inherits: code-common}\ndecisions: [{id: D1, name: D, rationale: x, maps_to: [root:G1, root:V1, "code/common:CP7"]}]\n`);
 
-    const broken = e001().filter(d => d.context.elementId === 'D1');
-    expect(broken).toHaveLength(1);
-    expect(broken[0]!.description).toContain('code/common:CP7');
+    // path-form ref no longer breaks — meta.name is primary, path is a fallback.
+    expect(e001().map(d => d.context.elementId)).not.toContain('D1');
+  });
+
+  it('resolves an inherited alias-prefixed ref across multiple leaf documents (#13)', () => {
+    // Source library (separate source) with an element to reference via alias.
+    fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, 'src', 'personal.yaml'), `meta: {name: personal}\nvalues: [{id: V1, name: V, statement: x, maps_to: []}]\n`);
+    const src = path.join(tmpDir, 'src');
+    // Leaf A declares the alias and uses it; leaf B is a second leaf whose (empty)
+    // alias map must NOT clobber A's alias.
+    write('aaa-main.yaml', `meta: {name: aaa-main, inherits: [{source: ${src}, as: me}]}\ndecisions: [{id: D1, name: D, rationale: x, maps_to: ["me:personal:V1"]}]\n`);
+    write('zzz-other.yaml', `meta: {name: zzz-other}\ngoals: [{id: G1, name: G, statement: x, maps_to: []}]\n`);
+
+    expect(e001().map(d => d.context.elementId)).not.toContain('D1');
   });
 
   it('fires E006 for two documents in one library sharing a meta.name (#12)', () => {

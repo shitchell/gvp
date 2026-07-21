@@ -356,7 +356,9 @@ export function buildCatalog(
         allOrderedDocs.push(doc);
       }
     }
-    mergedAliasMap = resolved.aliasMap;
+    // Merge (not overwrite) alias maps across leaves — otherwise a later leaf's
+    // map clobbers earlier leaves' aliases, silently dropping them (#13).
+    for (const [alias, src] of resolved.aliasMap) mergedAliasMap.set(alias, src);
     mergedSccs.push(...resolved.sccs);
   }
 

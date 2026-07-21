@@ -1855,6 +1855,40 @@ decisions:
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
+  - id: D38
+    name: Restore documentPath as a lenient reference fallback
+    disposition: accepted
+    rationale: |
+      Dropping path-based short references (gvp:D37) was never required by the meta.name/alias resolution fix — the two are orthogonal. #11 only required meta.name resolution to *work* (additive) and the `as:` alias to be wired in (additive); *removing* path resolution was a separate choice justified by P11 (avoid a dual scheme), which in practice made the change breaking and forced downstream ref migrations for no correctness gain. documentPath:id is restored as a lenient fallback: meta.name — the reorg-stable identity — always takes precedence, and path resolves only when no meta.name matches. This supersedes D37's *drop* while preserving its core (meta.name/alias primary). Shipped alongside the #13 fix (an inheritance `as:` alias was silently dropped for multi-document libraries because leaf alias maps were overwritten rather than merged in buildCatalog).
+    tags:
+      - framework
+      - extensibility
+    maps_to:
+      - gvp:G9
+      - gvp:V7
+    considered:
+      keep_path_dropped:
+        description: Leave 2.0.0's behavior (path-based short refs unresolved).
+        rationale: |
+          Rejected — it breaks existing libraries for no correctness benefit; the meta.name fix stands on its own without removing path resolution.
+        would_have_served:
+          - gvp:V4
+        conflicts_with:
+          - gvp:V7
+    refs:
+      - file: src/refs/resolve-ref.ts
+        identifier: matchRef
+        role: implements
+      - file: src/cli/helpers.ts
+        identifier: buildCatalog
+        role: implements
+    origin:
+      - id: 6bc6c81e-2d7d-4257-ab9c-39bdf213aa9c
+        date: '2026-07-21T07:10:13.833Z'
+        note: Imported from d38-patch.yaml
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
 constraints:
   - id: C1
     name: Agents optimize for minimal effort

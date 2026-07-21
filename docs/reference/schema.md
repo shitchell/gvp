@@ -315,7 +315,9 @@ the qualified ID with the inheriting document's `as:` alias:
 `<alias>:<document_name>:<element_id>` (e.g. `org:values:V1`). A bare
 `document_name:element_id` resolves across all libraries, preferring the local one on
 a collision; if still ambiguous, qualify with the alias. The canonical
-`source:documentPath:id` remains an absolute escape hatch.
+`source:documentPath:id` remains an absolute escape hatch. A `documentPath:id`
+form still resolves as a **lenient fallback** (`gvp:D38`), but `meta.name` is
+preferred and always takes precedence — it is the reorg-stable identity.
 
 Qualified IDs are used in `maps_to` lists to create traceability links between
 elements, including across document boundaries. IDs are never reused within a
