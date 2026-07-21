@@ -1517,9 +1517,17 @@ decisions:
       exclusion_as_polarity_facet:
         rationale: |
           Modeling exclusion as a polarity:exclude facet on requirement was rejected in favor of a named Exclusion type: one more type buys a glanceable prefix (X) and standard requirements-engineering vocabulary.
+        would_have_served:
+          - gvp:V4
+        conflicts_with:
+          - gvp:V6
       requirement_as_source_facet_on_goal:
         rationale: |
           Folding requirement into goal with a source facet was rejected — the decreed/binary vs self-authored/open-ended distinction is crisp, teachable, and load-bearing for tooling that must tell derived guidance from decreed input.
+        would_have_served:
+          - gvp:V4
+        conflicts_with:
+          - gvp:V6
     refs:
       - file: src/schema/category-definition.ts
         identifier: CategoryDefinition
@@ -1734,6 +1742,51 @@ decisions:
       - id: 4ecb4c06-d317-437c-94bb-900d3f012f9a
         date: '2026-07-20T23:04:08.588Z'
         note: Imported from release-patch.yaml
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+  - id: D36
+    name: Tradeoff links on considered alternatives (would_have_served / conflicts_with)
+    disposition: accepted
+    rationale: |
+      A considered alternative could carry only prose (description, rationale); the honest tradeoff — what an alternative would have advanced, and which guiding element it worked against — was invisible to tooling. Two optional list<reference> sub-fields on the considered model capture it: would_have_served (the sacrifice) and conflicts_with (the reason). Both are alternative-scoped, validated for resolvability (E001), and rendered with resolved element names — deliberately NOT the decision's maps_to, since conflicts_with is a veto edge and would_have_served is counterfactual (the #7 veto-value guardrail, and the "later" that gvp:D3 deferred typed edges for). Implemented by generalizing the E001 reference walker to recurse both list<model> and dict<model> and validate any list<reference> sub-field (dispatch on declared type, not the maps_to literal) — an R6 cleanup.
+    tags:
+      - framework
+      - alignment
+      - integrity
+    maps_to:
+      - gvp:G1
+      - gvp:V3
+    considered:
+      negative_only:
+        description: A single conflicts_with field.
+        rationale: |
+          Rejected — records only why we said no, not what we gave up; the sacrifice is lost.
+        would_have_served:
+          - gvp:V4
+        conflicts_with:
+          - gvp:V3
+      generic_typed_edge:
+        description: A general {relation, target} typed-edge mechanism (reopening gvp:D3).
+        rationale: Rejected — largest surface and a real design project; premature.
+        would_have_served:
+          - gvp:V7
+        conflicts_with:
+          - gvp:V4
+    refs:
+      - file: src/data/defaults.yaml
+        identifier: categories
+        role: defines
+      - file: src/validation/passes/structural-pass.ts
+        identifier: structuralPass
+        role: implements
+      - file: src/exporters/shape-renderer.ts
+        identifier: renderElementMarkdown
+        role: implements
+    origin:
+      - id: 77efc853-d200-4101-b886-81e1ea8f42eb
+        date: '2026-07-21T04:02:58.173Z'
+        note: Imported from tradeoff-patch.yaml
         by:
           name: shaun mitchell
           email: shaun@shitchell.com

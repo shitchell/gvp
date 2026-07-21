@@ -474,16 +474,24 @@ function renderNamedDictEntry(
   const fields = itemSchema.fields ?? {};
   const bodyField = pickBodyField(fields, model);
   const bodyValue = bodyField ? model[bodyField] : undefined;
-  if (typeof bodyValue === 'string' && bodyValue.trim() !== '') {
-    return `- **${displayName}** — *${bodyValue.trim()}*`;
-  }
-  // No obvious body field — render each declared sub-field
-  const lines: string[] = [`- **${displayName}**`];
+
+  const heading = (typeof bodyValue === 'string' && bodyValue.trim() !== '')
+    ? `- **${displayName}** — *${bodyValue.trim()}*`
+    : `- **${displayName}**`;
+  const lines: string[] = [heading];
+
+  // Render the remaining declared sub-fields (e.g. a considered alternative's
+  // would_have_served / conflicts_with tradeoff links) indented under the entry.
+  // The body field is already shown inline in the heading.
   for (const [subField, subSchema] of Object.entries(fields)) {
+    if (subField === bodyField) continue;
     const subValue = model[subField];
     if (subValue === undefined || subValue === null) continue;
+    if (Array.isArray(subValue) && subValue.length === 0) continue;
     const rendered = renderFieldByShape(displayLabel(subField, subSchema), subValue, subSchema, catalog, depth + 1, maxDepth);
-    if (rendered) lines.push(`  ${rendered}`);
+    if (rendered) {
+      for (const line of rendered.split('\n')) lines.push(line === '' ? '' : `  ${line}`);
+    }
   }
   return lines.join('\n');
 }

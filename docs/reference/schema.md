@@ -181,6 +181,8 @@ decisions:
       go:
         description: Fast compiled language.
         rationale: Marginal benefit didn't justify switching.
+        would_have_served: [proj:G_perf]        # what picking Go would have advanced
+        conflicts_with:     [proj:V_npm_reach]   # what it worked against
       python:
         rationale: Not as strong for npm distribution.
 ```
@@ -189,7 +191,15 @@ decisions:
 |-------------|------|----------|-------------|
 | `rationale` | string | Yes | Why this alternative was rejected. |
 | `description` | string | No | Brief description of the alternative. |
+| `would_have_served` | list\<reference\> | No | Elements this alternative *would have advanced* had it been chosen — the sacrifice you accepted by rejecting it. |
+| `conflicts_with` | list\<reference\> | No | Elements this alternative *works against* — the reason it was rejected. |
 | *(any other)* | any | No | Additional context fields are preserved. |
+
+`would_have_served` and `conflicts_with` are **alternative-scoped** links, validated
+for resolvability like any reference (broken id → E001). They are deliberately
+*not* the decision's own `maps_to`: `conflicts_with` is a negative/veto edge and
+`would_have_served` is a counterfactual one, so neither may be read as a driver of
+the decision that rejected the alternative.
 
 Validation rules (only checked when `considered` is present):
 - `considered` must be a dict (error if string, list, etc.)

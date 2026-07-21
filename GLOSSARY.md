@@ -55,7 +55,11 @@ not a rule). An **Exclusion** is a self-imposed out-of-scope boundary: the negat
 space of goals, making "is X out of scope?" an answerable graph query. Both are
 roots. A **Decision** carries a `disposition` -- `accepted`, `declined`, or
 `deferred` -- so a deliberate "we will not build this" is a first-class, recorded
-choice rather than a silent gap.
+choice rather than a silent gap. Each rejected alternative in a decision's
+`considered` map can also link to elements via `would_have_served` (what choosing
+it would have advanced -- the sacrifice) and `conflicts_with` (what it worked
+against -- the reason it lost), turning a tradeoff into a traceable graph rather
+than prose.
 
 Additional categories (e.g., `implementation_rule`, `coding_principle`) can be defined via `meta.definitions.categories` in any GVP document. The `software-project` example demonstrates this with domain-specific categories.
 

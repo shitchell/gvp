@@ -118,6 +118,24 @@ categories:
             description:
               type: string
               required: false
+            # Tradeoff links, scoped to this rejected alternative. These are NOT
+            # decision drivers (not the decision's maps_to): would_have_served is a
+            # counterfactual edge (what picking this would have advanced — the
+            # sacrifice) and conflicts_with is a negative/veto edge (what it works
+            # against — the reason for rejection). See the #7 veto-value guardrail
+            # and gvp:D3 (deferred typed edges).
+            would_have_served:
+              type: list
+              required: false
+              display_name: "Would have served"
+              items:
+                type: reference
+            conflicts_with:
+              type: list
+              required: false
+              display_name: "Conflicts with"
+              items:
+                type: reference
     color: "#795548"
 
   milestone:

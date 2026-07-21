@@ -2,6 +2,7 @@ import type { Catalog } from '../../catalog/catalog.js';
 import type { GVPConfig } from '../../config/schema.js';
 import type { Diagnostic } from '../diagnostic.js';
 import { createDiagnostic } from '../diagnostic.js';
+import type { FieldSchemaEntry } from '../../schema/field-schema.js';
 
 const PASS_NAME = 'structural';
 
@@ -33,58 +34,79 @@ export function structuralPass(catalog: Catalog, _config: GVPConfig): Diagnostic
       }
     }
 
-    // E001 (generic): broken references in list<model> sub-field maps_to and list<reference> fields
+    // E001 (generic): broken references in list<reference> fields, and in the
+    // list<reference> sub-fields of contained models — both list<model> (e.g.
+    // procedure.steps) and dict<model> (e.g. decision.considered) containers.
+    // Dispatches on the declared field type (R6): no field-name hard-coding, so it
+    // covers step maps_to, the considered.* tradeoff links, and any future reference
+    // sub-field in any container, uniformly.
     const catDefE001 = catalog.registry.getByName(element.categoryName);
     if (catDefE001) {
       const mergedSchemas = { ...catalog.registry.allFieldSchemas, ...(catDefE001.field_schemas ?? {}) };
-      for (const [fieldName, schema] of Object.entries(mergedSchemas)) {
-        if (schema.type === 'list' && schema.items) {
-          // list<model> with maps_to sub-field
-          if (schema.items.type === 'model' && schema.items.fields?.maps_to) {
-            const items = element.get(fieldName) as Array<Record<string, unknown>> | undefined;
-            if (!Array.isArray(items)) continue;
-            for (const item of items) {
-              if (!item || typeof item !== 'object') continue;
-              const itemMapsTo = item.maps_to;
-              if (!Array.isArray(itemMapsTo)) continue;
-              for (const ref of itemMapsTo) {
-                if (typeof ref !== 'string') continue;
-                if (!knownIds.has(ref)) {
-                  const itemLabel = (item.id as string) ?? (item.name as string) ?? '?';
-                  diagnostics.push(createDiagnostic(
-                    'E001',
-                    'BROKEN_REFERENCE',
-                    `Element ${element.toLibraryId()} ${fieldName} '${itemLabel}' references '${ref}' in maps_to, but no matching element was found`,
-                    'error',
-                    PASS_NAME,
-                    {
-                      elementId: element.id,
-                      documentPath: element.documentPath,
-                      details: `${fieldName}:${itemLabel}`,
-                    },
-                  ));
-                }
-              }
-            }
-          }
-          // list<reference> — each entry is a direct element reference
-          if (schema.items.type === 'reference') {
-            const refs = element.get(fieldName) as string[] | undefined;
+
+      const reportBrokenRef = (ref: unknown, humanLoc: string, detailsKey: string): void => {
+        if (typeof ref !== 'string' || knownIds.has(ref)) return;
+        diagnostics.push(createDiagnostic(
+          'E001',
+          'BROKEN_REFERENCE',
+          `Element ${element.toLibraryId()} references '${ref}' in ${humanLoc}, but no matching element was found`,
+          'error',
+          PASS_NAME,
+          { elementId: element.id, documentPath: element.documentPath, details: detailsKey },
+        ));
+      };
+
+      // Validate every list<reference> sub-field of one contained model instance.
+      // The details key is `${container}:${ownerLabel}` (stable locator, e.g.
+      // `steps:S1.2`); the human message names the exact sub-field.
+      const checkModelRefs = (
+        model: unknown,
+        modelSchema: FieldSchemaEntry,
+        containerField: string,
+        ownerLabel: string,
+      ): void => {
+        if (!model || typeof model !== 'object' || !modelSchema.fields) return;
+        const m = model as Record<string, unknown>;
+        for (const [subName, subSchema] of Object.entries(modelSchema.fields)) {
+          if (subSchema.type === 'list' && subSchema.items?.type === 'reference') {
+            const refs = m[subName];
             if (!Array.isArray(refs)) continue;
             for (const ref of refs) {
-              if (typeof ref !== 'string') continue;
-              if (!knownIds.has(ref)) {
-                diagnostics.push(createDiagnostic(
-                  'E001',
-                  'BROKEN_REFERENCE',
-                  `Element ${element.toLibraryId()} references '${ref}' in ${fieldName}, but no matching element was found`,
-                  'error',
-                  PASS_NAME,
-                  { elementId: element.id, documentPath: element.documentPath },
-                ));
-              }
+              reportBrokenRef(ref, `${containerField}.${subName} ('${ownerLabel}')`, `${containerField}:${ownerLabel}`);
             }
           }
+        }
+      };
+
+      for (const [fieldName, schema] of Object.entries(mergedSchemas)) {
+        // Top-level list<reference>
+        if (schema.type === 'list' && schema.items?.type === 'reference') {
+          const refs = element.get(fieldName);
+          if (Array.isArray(refs)) for (const ref of refs) reportBrokenRef(ref, fieldName, fieldName);
+          continue;
+        }
+        // list<model> container → validate each item's list<reference> sub-fields
+        if (schema.type === 'list' && schema.items?.type === 'model') {
+          const items = element.get(fieldName);
+          if (Array.isArray(items)) {
+            items.forEach((item, i) => {
+              const rec = (item && typeof item === 'object') ? (item as Record<string, unknown>) : undefined;
+              const label = (rec?.id as string) ?? (rec?.name as string) ?? String(i + 1);
+              checkModelRefs(item, schema.items as FieldSchemaEntry, fieldName, label);
+            });
+          }
+          continue;
+        }
+        // dict<model> container → validate each value's list<reference> sub-fields,
+        // keyed by the dict key (e.g. the considered alternative name).
+        if (schema.type === 'dict' && schema.values && !Array.isArray(schema.values) && schema.values.type === 'model') {
+          const dict = element.get(fieldName);
+          if (dict && typeof dict === 'object' && !Array.isArray(dict)) {
+            for (const [key, val] of Object.entries(dict as Record<string, unknown>)) {
+              checkModelRefs(val, schema.values as FieldSchemaEntry, fieldName, key);
+            }
+          }
+          continue;
         }
       }
     }
