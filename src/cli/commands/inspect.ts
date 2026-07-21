@@ -53,9 +53,7 @@ function renderHops(
   function walk(current: Element, depth: number, indent: string): void {
     if (depth > hops) return;
     for (const ref of current.maps_to) {
-      const target = allElements.find(
-        (e) => e.toLibraryId() === ref || e.hashKey() === ref,
-      );
+      const target = catalog.resolveRef(ref);
       if (!target) continue;
       if (seen.has(target.hashKey())) continue;
       seen.add(target.hashKey());
@@ -136,12 +134,13 @@ export function inspectCommand(): Command {
           }
         }
 
-        // Find element (optionally scoped to --document)
+        // Find element (optionally scoped to --document). Match by bare id or via
+        // the unified reference resolver (meta.name / alias / canonical, #11) so
+        // inherited elements resolve the same way they do in maps_to.
+        const resolved = elementArg ? catalog.resolveRef(elementArg) : undefined;
         const candidates = catalog.getAllElements().filter(e =>
           (!allowedDocs || allowedDocs.has(e.documentPath)) &&
-          (e.id === elementArg ||
-           e.toLibraryId() === elementArg ||
-           e.hashKey() === elementArg)
+          (e.id === elementArg || e === resolved)
         );
 
         if (candidates.length === 0) {

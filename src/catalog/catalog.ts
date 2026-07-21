@@ -16,6 +16,7 @@ import {
   buildAncestorsGraph,
   buildDescendantsGraph,
 } from '../model/graph.js';
+import { matchRef, resolveRef, type RefMatch, type AliasMap } from '../refs/resolve-ref.js';
 
 /**
  * The assembled, validated, queryable GVP catalog (DEC-5.7: construction fails fast).
@@ -28,10 +29,12 @@ export class Catalog {
   private readonly _elements: Map<string, Element>; // hashKey -> Element
   private readonly _elementsByCategory: Map<string, Element[]>;
   private readonly _mergedDefinitions: MergedDefinitions;
+  private readonly _aliasMap: AliasMap;
 
   constructor(resolvedInheritance: ResolvedInheritance, config: GVPConfig) {
     this._config = config;
     this._documents = resolvedInheritance.orderedDocuments;
+    this._aliasMap = resolvedInheritance.aliasMap ?? new Map();
 
     // Step 0: Apply config_overrides from documents (DEC-2.4, DEC-2.13)
     // Iterate in DFS order (ancestors first = ancestor-wins)
@@ -93,13 +96,14 @@ export class Catalog {
       }
     }
 
-    // E006: Invariant guard — no silent element drops (P13).
-    // If documents contain more elements than the index, something
-    // was silently overwritten (e.g., duplicate hashKeys across
-    // documents). This is a bug, not a user error.
+    // Invariant guard — no silent element drops (P13). If documents contain more
+    // elements than the index, something was silently overwritten (e.g. duplicate
+    // hashKeys across documents). This is an internal bug, not a user diagnostic —
+    // it is deliberately NOT an E-code (E006 is the DUPLICATE_DOCUMENT_NAME
+    // diagnostic).
     if (this._elements.size !== totalDocElements) {
       throw new CatalogError(
-        `E006 CATALOG_ELEMENT_DROP: documents contain ${totalDocElements} elements but catalog indexed ${this._elements.size}. This is a bug — elements were silently lost during catalog construction.`,
+        `CATALOG_ELEMENT_DROP: documents contain ${totalDocElements} elements but catalog indexed ${this._elements.size}. This is a bug — elements were silently lost during catalog construction.`,
       );
     }
   }
@@ -129,6 +133,26 @@ export class Catalog {
     return this._elements.get(hashKey);
   }
 
+  /** The alias → source map for this catalog's inheritance chain. */
+  get aliasMap(): AliasMap {
+    return this._aliasMap;
+  }
+
+  /**
+   * Resolve a reference string to an element (DEC-6.4 revised, #11).
+   * Accepts `[<alias>:]<meta.name>:<id>` and the canonical `source:documentPath:id`.
+   * Returns undefined if not found or ambiguous — use resolveRefResult to
+   * distinguish those for diagnostics.
+   */
+  resolveRef(ref: string): Element | undefined {
+    return resolveRef(ref, this.getAllElements(), this._aliasMap);
+  }
+
+  /** Resolve a reference with a discriminated result (ok | ambiguous | notfound). */
+  resolveRefResult(ref: string): RefMatch {
+    return matchRef(ref, this.getAllElements(), this._aliasMap);
+  }
+
   /** Get merged tag definitions */
   getTags(): Record<string, { description: string }> {
     return this._mergedDefinitions.tags;
@@ -141,15 +165,11 @@ export class Catalog {
 
   /** Build ancestors graph for an element (DEC-6.1, DEC-6.5) */
   ancestors(element: Element): Graph {
-    return buildAncestorsGraph(element, (ref) => {
-      return this.getAllElements().find(
-        (e) => e.toLibraryId() === ref || e.hashKey() === ref,
-      );
-    });
+    return buildAncestorsGraph(element, (ref) => this.resolveRef(ref));
   }
 
   /** Build descendants graph for an element (DEC-6.1, DEC-6.5) */
   descendants(element: Element): Graph {
-    return buildDescendantsGraph(element, this.getAllElements());
+    return buildDescendantsGraph(element, this.getAllElements(), (ref) => this.resolveRef(ref));
   }
 }

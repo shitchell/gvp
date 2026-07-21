@@ -159,19 +159,22 @@ export function buildAncestorsGraph(
 export function buildDescendantsGraph(
   element: Element,
   allElements: Element[],
+  resolveRef?: (ref: string) => Element | undefined,
 ): Graph {
   const nodes = new Map<string, Element>();
   const edges = new Map<string, Set<string>>();
+
+  // Resolve a ref via the unified resolver when provided (meta.name / alias /
+  // canonical, #11); otherwise fall back to bare-name/canonical matching.
+  const resolve = resolveRef
+    ?? ((ref: string) => allElements.find((e) => e.toLibraryId() === ref || e.hashKey() === ref));
 
   // Build reverse index: element hashKey -> elements that map to it
   const reverseIndex = new Map<string, Element[]>();
   for (const el of allElements) {
     for (const ref of el.maps_to) {
-      // Try matching by libraryId or hashKey
-      const targets = allElements.filter(
-        (e) => e.toLibraryId() === ref || e.hashKey() === ref,
-      );
-      for (const target of targets) {
+      const target = resolve(ref);
+      if (target) {
         const targetKey = target.hashKey();
         if (!reverseIndex.has(targetKey)) reverseIndex.set(targetKey, []);
         reverseIndex.get(targetKey)!.push(el);

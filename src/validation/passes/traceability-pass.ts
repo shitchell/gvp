@@ -12,13 +12,8 @@ const PASS_NAME = 'traceability';
 export function traceabilityPass(catalog: Catalog, _config: GVPConfig): Diagnostic[] {
   const diagnostics: Diagnostic[] = [];
 
-  // Build lookup: libraryId/hashKey -> element
-  const elementLookup = new Map<string, import('../../model/element.js').Element>();
-  for (const el of catalog.getAllElements()) {
-    elementLookup.set(el.toLibraryId(), el);
-    elementLookup.set(el.hashKey(), el);
-  }
-
+  // Reference strings resolve through the catalog's unified resolver (meta.name +
+  // alias + canonical, #11); BFS-queued hash keys look up via getElement.
   for (const element of catalog.getAllElements()) {
     if (element.status === 'deprecated' || element.status === 'rejected') continue;
 
@@ -30,7 +25,7 @@ export function traceabilityPass(catalog: Catalog, _config: GVPConfig): Diagnost
     // means element must map to (goal AND value) OR (principle)
     const mappedCategories = new Set<string>();
     for (const ref of element.maps_to) {
-      const target = elementLookup.get(ref);
+      const target = catalog.resolveRef(ref);
       if (target) {
         mappedCategories.add(target.categoryName);
       }
@@ -80,7 +75,7 @@ export function traceabilityPass(catalog: Catalog, _config: GVPConfig): Diagnost
         if (visited.has(current)) continue;
         visited.add(current);
 
-        const currentEl = elementLookup.get(current);
+        const currentEl = catalog.getElement(current);
         if (!currentEl) continue;
 
         if (rootCategories.has(currentEl.categoryName)) {
@@ -89,7 +84,7 @@ export function traceabilityPass(catalog: Catalog, _config: GVPConfig): Diagnost
         }
 
         for (const ref of currentEl.maps_to) {
-          const target = elementLookup.get(ref);
+          const target = catalog.resolveRef(ref);
           if (target && !visited.has(target.hashKey())) {
             queue.push(target.hashKey());
           }
@@ -140,7 +135,7 @@ export function traceabilityPass(catalog: Catalog, _config: GVPConfig): Diagnost
           if (visited.has(current)) continue;
           visited.add(current);
 
-          const currentEl = elementLookup.get(current);
+          const currentEl = catalog.getElement(current);
           if (!currentEl) continue;
 
           // The starting element is non-root, so it can never be a value anchor
@@ -151,7 +146,7 @@ export function traceabilityPass(catalog: Catalog, _config: GVPConfig): Diagnost
           }
 
           for (const ref of currentEl.maps_to) {
-            const target = elementLookup.get(ref);
+            const target = catalog.resolveRef(ref);
             if (target && !visited.has(target.hashKey())) {
               queue.push(target.hashKey());
             }

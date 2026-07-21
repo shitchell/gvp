@@ -79,9 +79,10 @@ Errors cause `cairn validate` to exit with code 1.
 
 | Code | Name | Description |
 |------|------|-------------|
-| E001 | BROKEN_REFERENCE | A qualified ID in an element's `maps_to` list does not match any loaded element in the catalog. |
+| E001 | BROKEN_REFERENCE | A reference does not uniquely resolve to a loaded element. References use the library short address `[<alias>:]<meta.name>:<id>` (or the canonical `source:documentPath:id`); the message distinguishes *not found* from *ambiguous* (a bare `meta.name:id` matching more than one library — qualify it with the inherited-source alias). |
 | E003 | BROKEN_INHERITANCE | A document's `meta.inherits` names a document that was not found in any loaded library. |
 | E004 | SCHEMA_VALIDATION | Element fails schema validation (missing required fields, wrong types, etc.). |
+| E006 | DUPLICATE_DOCUMENT_NAME | Two documents in the same library (one `source`) resolve to the same `meta.name`. The library short address `[<alias>:]<meta.name>:<id>` requires names to be unique within a library. Cross-library duplicates are fine (disambiguated by the `as:` alias). |
 
 
 ## Warnings

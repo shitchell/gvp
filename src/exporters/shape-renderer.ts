@@ -543,10 +543,7 @@ function titleCaseDictKey(key: string): string {
 }
 
 function resolveElementRef(ref: string, catalog: Catalog): Element | undefined {
-  for (const el of catalog.getAllElements()) {
-    if (el.toLibraryId() === ref || el.hashKey() === ref) return el;
-  }
-  return undefined;
+  return catalog.resolveRef(ref);
 }
 
 function renderJsonFallback(label: string, value: unknown): string {

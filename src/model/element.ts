@@ -15,6 +15,13 @@ export class Element {
   readonly categoryName: string;
   readonly source: string;
   readonly documentPath: string;
+  /**
+   * The document's stable identity (meta.name), used for the library short
+   * address `meta.name:id`. Falls back to documentPath when unknown (e.g. tests
+   * constructing Elements directly). Identity/hashKey key on documentPath, not
+   * this — reorganizing files changes documentPath but not documentName.
+   */
+  readonly documentName: string;
 
   /** All data including reserved + dynamic fields */
   private readonly _data: Record<string, unknown>;
@@ -24,6 +31,7 @@ export class Element {
     categoryName: string,
     source: string,
     documentPath: string,
+    documentName?: string,
   ) {
     this.id = data.id as string;
     this.name = data.name as string;
@@ -34,6 +42,7 @@ export class Element {
     this.categoryName = categoryName;
     this.source = source;
     this.documentPath = documentPath;
+    this.documentName = documentName ?? documentPath;
     this._data = data;
   }
 
@@ -56,11 +65,13 @@ export class Element {
   }
 
   /**
-   * Within-library qualified reference (DEC-6.4, DEC-1.1c 2-segment).
-   * E.g., 'values:V1'
+   * Library short address (DEC-6.4, revised): `<meta.name>:<id>` (2-segment).
+   * meta.name (not documentPath) so the address is stable across file reorg.
+   * E.g., 'values:V1'. Disambiguate across inherited libraries with the
+   * `as:` alias prefix (`org:values:V1`), resolved by Catalog.resolveRef.
    */
   toLibraryId(): string {
-    return `${this.documentPath}:${this.id}`;
+    return `${this.documentName}:${this.id}`;
   }
 
   /**

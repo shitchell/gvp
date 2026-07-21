@@ -40,7 +40,7 @@ describe('shape-renderer', () => {
       'root.yaml',
       `
 meta:
-  name: demo
+  name: root
   scope: project
 goals:
   - id: G1

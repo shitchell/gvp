@@ -77,7 +77,7 @@ export function parseDocument(
       // Validate against category schema
       try {
         const validated = schema.parse(processed);
-        elements.push(new Element(validated as Record<string, unknown>, categoryName, source, documentPath));
+        elements.push(new Element(validated as Record<string, unknown>, categoryName, source, documentPath, meta.name ?? documentPath));
       } catch (e) {
         throw new ValidationError(
           `Invalid element at ${filePath}:${yamlKey}[${i}] (${(rawElement as Record<string, unknown>).id ?? 'unknown'}): ${(e as Error).message}`

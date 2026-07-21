@@ -308,6 +308,15 @@ document_name:element_id
 
 Examples: `gvp:G1`, `personal:V3`, `project-abc:D2`.
 
+`document_name` (`meta.name`) — not the file path — is the stable identity, so
+references survive upstream file reorganization. It must be unique within a library
+(error `E006`, `gvp:R8`). To reference an element in an **inherited** library, prefix
+the qualified ID with the inheriting document's `as:` alias:
+`<alias>:<document_name>:<element_id>` (e.g. `org:values:V1`). A bare
+`document_name:element_id` resolves across all libraries, preferring the local one on
+a collision; if still ambiguous, qualify with the alias. The canonical
+`source:documentPath:id` remains an absolute escape hatch.
+
 Qualified IDs are used in `maps_to` lists to create traceability links between
 elements, including across document boundaries. IDs are never reused within a
 document -- once assigned, an ID is permanently consumed even if the element is

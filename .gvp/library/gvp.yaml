@@ -785,6 +785,27 @@ rules:
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
+  - id: R8
+    name: Document names are unique within a library
+    statement: |
+      Every document's name (meta.name, falling back to documentPath) must be unique within its library — one source (`@local`, or one cloned repo). The library short address `[<alias>:]<meta.name>:<id>` resolves a document by name within a library, so a duplicate name makes references ambiguous — a broken foundation (P13/H8). Enforced as error E006 (DUPLICATE_DOCUMENT_NAME). Cross-library duplicates are permitted and disambiguated by the inheriting document's `as:` alias.
+    tags:
+      - framework
+      - integrity
+    maps_to:
+      - gvp:G5
+      - gvp:V10
+    refs:
+      - file: src/validation/passes/structural-pass.ts
+        identifier: structuralPass
+        role: implements
+    origin:
+      - id: a161e72d-1105-481a-86bf-b574c27e3264
+        date: '2026-07-21T06:00:12.298Z'
+        note: Imported from metaname-patch.yaml
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
 decisions:
   - id: D1
     name: Walk-backwards config discovery
@@ -1787,6 +1808,50 @@ decisions:
       - id: 77efc853-d200-4101-b886-81e1ea8f42eb
         date: '2026-07-21T04:02:58.173Z'
         note: Imported from tradeoff-patch.yaml
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+  - id: D37
+    name: meta.name-based library references with alias disambiguation
+    disposition: accepted
+    rationale: |
+      Element references resolve by the library short address `[<alias>:]<meta.name>:<id>`, not by file path. meta.name is the stable document identity (DEC-1.5/D15), so references survive file reorganization — the path-based DEC-6.4 form did not, inverting the stated design (the #11 bug: path resolved, meta.name did not, and the `as:` alias was inert). The alias selects the library (source); absent, resolution spans all libraries preferring the local one, and a bare name matching multiple libraries is reported ambiguous (qualify with the alias). Path-based short refs are dropped (breaking, acceptable in alpha); canonical `source:documentPath:id` remains the absolute escape hatch. All nine ad-hoc resolvers were centralized onto Catalog.resolveRef (P11), which also fixed `inspect`. Depends on document-name uniqueness (gvp:R8). This amends DEC-6.4/DEC-1.1c (2-segment short form: path → meta.name).
+    tags:
+      - framework
+      - alignment
+    maps_to:
+      - gvp:G5
+      - gvp:V2
+    considered:
+      keep_path_based_fallback:
+        description: Keep documentPath:id resolving alongside meta.name:id.
+        rationale: |
+          Rejected — a dual resolution scheme (path AND name) is a redundant mechanism (P11) and a source of ambiguity; alpha tolerates the break.
+        would_have_served:
+          - gvp:V7
+        conflicts_with:
+          - gvp:V4
+      full_typed_edges:
+        description: Reopen gvp:D3 with a general typed-edge system.
+        rationale: Rejected — far larger surface than the bug requires; premature.
+        would_have_served:
+          - gvp:V7
+        conflicts_with:
+          - gvp:V4
+    refs:
+      - file: src/refs/resolve-ref.ts
+        identifier: matchRef
+        role: implements
+      - file: src/model/element.ts
+        identifier: Element
+        role: defines
+      - file: src/catalog/catalog.ts
+        identifier: Catalog
+        role: implements
+    origin:
+      - id: e4f84eab-67f3-4e72-bc92-01a313a4bd90
+        date: '2026-07-21T06:00:12.298Z'
+        note: Imported from metaname-patch.yaml
         by:
           name: shaun mitchell
           email: shaun@shitchell.com

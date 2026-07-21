@@ -99,6 +99,7 @@ cairn export --format markdown
 | E003 | BROKEN_INHERITANCE | Inherited document not found |
 | E004 | SCHEMA_VALIDATION | Element fails schema validation |
 | E005 | DUPLICATE_STEP_ID | Duplicate step ID within a procedure |
+| E006 | DUPLICATE_DOCUMENT_NAME | Two documents in one library share a `meta.name` |
 
 ### Warnings
 
@@ -209,13 +210,18 @@ Supported providers:
 The commit-ish must be an immutable reference (tag or SHA) — branches are not
 allowed. Sources are cached at `~/.cache/cairn/sources/` and only cloned once.
 
-Elements in inherited libraries are accessible via aliased references:
+Elements resolve by the library short address `[<alias>:]<meta.name>:<id>` — the
+`as:` alias selects the inherited library, and `meta.name` (not the file path)
+selects the document, so references survive upstream file reorganization. A bare
+`<meta.name>:<id>` resolves across all libraries (preferring the local one on a
+name collision); qualify with the alias when it is ambiguous. `meta.name` must be
+unique within each library (enforced by `E006`).
 
 ```yaml
 decisions:
   - id: D1
     name: Follow org coding standards
-    maps_to: [org:values:V1, my-project:G1]
+    maps_to: [org:values:V1, my-project:G1]   # org:<meta.name>:<id>
 ```
 
 ## Refs — Linking Decisions to Artifacts

@@ -12,26 +12,29 @@ const PASS_NAME = 'structural';
 export function structuralPass(catalog: Catalog, _config: GVPConfig): Diagnostic[] {
   const diagnostics: Diagnostic[] = [];
 
-  // Build a set of all known element identifiers for fast lookup
-  const knownIds = new Set<string>();
+  // E001: Broken references. Resolution goes through the catalog's unified
+  // resolver (DEC-6.4 revised, #11): meta.name short refs + `as:` alias +
+  // canonical hashKey, with ambiguity reported distinctly from not-found.
   for (const element of catalog.getAllElements()) {
-    knownIds.add(element.toLibraryId());
-    knownIds.add(element.hashKey());
-  }
+    const checkRef = (ref: unknown, humanLoc: string, detailsKey?: string): void => {
+      if (typeof ref !== 'string') return;
+      const res = catalog.resolveRefResult(ref);
+      if (res.status === 'ok') return;
+      const tail = res.status === 'ambiguous'
+        ? `but it is ambiguous across ${res.matches.length} libraries — qualify it with the inherited-source alias`
+        : 'but no matching element was found';
+      diagnostics.push(createDiagnostic(
+        'E001',
+        'BROKEN_REFERENCE',
+        `Element ${element.toLibraryId()} references '${ref}' in ${humanLoc}, ${tail}`,
+        'error',
+        PASS_NAME,
+        { elementId: element.id, documentPath: element.documentPath, ...(detailsKey ? { details: detailsKey } : {}) },
+      ));
+    };
 
-  // E001: Broken maps_to references (element-level)
-  for (const element of catalog.getAllElements()) {
     for (const ref of element.maps_to) {
-      if (!knownIds.has(ref)) {
-        diagnostics.push(createDiagnostic(
-          'E001',
-          'BROKEN_REFERENCE',
-          `Element ${element.toLibraryId()} references '${ref}' in maps_to, but no matching element was found`,
-          'error',
-          PASS_NAME,
-          { elementId: element.id, documentPath: element.documentPath },
-        ));
-      }
+      checkRef(ref, 'maps_to');
     }
 
     // E001 (generic): broken references in list<reference> fields, and in the
@@ -43,18 +46,6 @@ export function structuralPass(catalog: Catalog, _config: GVPConfig): Diagnostic
     const catDefE001 = catalog.registry.getByName(element.categoryName);
     if (catDefE001) {
       const mergedSchemas = { ...catalog.registry.allFieldSchemas, ...(catDefE001.field_schemas ?? {}) };
-
-      const reportBrokenRef = (ref: unknown, humanLoc: string, detailsKey: string): void => {
-        if (typeof ref !== 'string' || knownIds.has(ref)) return;
-        diagnostics.push(createDiagnostic(
-          'E001',
-          'BROKEN_REFERENCE',
-          `Element ${element.toLibraryId()} references '${ref}' in ${humanLoc}, but no matching element was found`,
-          'error',
-          PASS_NAME,
-          { elementId: element.id, documentPath: element.documentPath, details: detailsKey },
-        ));
-      };
 
       // Validate every list<reference> sub-field of one contained model instance.
       // The details key is `${container}:${ownerLabel}` (stable locator, e.g.
@@ -72,7 +63,7 @@ export function structuralPass(catalog: Catalog, _config: GVPConfig): Diagnostic
             const refs = m[subName];
             if (!Array.isArray(refs)) continue;
             for (const ref of refs) {
-              reportBrokenRef(ref, `${containerField}.${subName} ('${ownerLabel}')`, `${containerField}:${ownerLabel}`);
+              checkRef(ref, `${containerField}.${subName} ('${ownerLabel}')`, `${containerField}:${ownerLabel}`);
             }
           }
         }
@@ -82,7 +73,7 @@ export function structuralPass(catalog: Catalog, _config: GVPConfig): Diagnostic
         // Top-level list<reference>
         if (schema.type === 'list' && schema.items?.type === 'reference') {
           const refs = element.get(fieldName);
-          if (Array.isArray(refs)) for (const ref of refs) reportBrokenRef(ref, fieldName, fieldName);
+          if (Array.isArray(refs)) for (const ref of refs) checkRef(ref, fieldName, fieldName);
           continue;
         }
         // list<model> container → validate each item's list<reference> sub-fields
@@ -329,6 +320,38 @@ export function structuralPass(catalog: Catalog, _config: GVPConfig): Diagnostic
           PASS_NAME,
           { documentPath: doc.documentPath },
         ));
+      }
+    }
+  }
+
+  // E006: Document name (meta.name) must be unique within a library (one source).
+  // The library short address `[<alias>:]<meta.name>:<id>` (#11) relies on this —
+  // a duplicate makes references ambiguous, a broken foundation (P13/H8). The
+  // effective name (meta.name, falling back to documentPath) is used, so a declared
+  // name colliding with another document's path is also caught. Cross-library
+  // duplicates are fine — they are disambiguated by the `as:` alias.
+  {
+    const namesBySource = new Map<string, Map<string, string[]>>();
+    for (const doc of catalog.documents) {
+      let names = namesBySource.get(doc.source);
+      if (!names) { names = new Map(); namesBySource.set(doc.source, names); }
+      const paths = names.get(doc.name) ?? [];
+      paths.push(doc.documentPath);
+      names.set(doc.name, paths);
+    }
+    for (const [source, names] of namesBySource) {
+      for (const [name, paths] of names) {
+        if (paths.length > 1) {
+          diagnostics.push(createDiagnostic(
+            'E006',
+            'DUPLICATE_DOCUMENT_NAME',
+            `Documents [${paths.join(', ')}] in library '${source}' all resolve to document name '${name}'; ` +
+              `document names (meta.name) must be unique within a library`,
+            'error',
+            PASS_NAME,
+            { details: `${source}:${name}` },
+          ));
+        }
       }
     }
   }

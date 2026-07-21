@@ -85,14 +85,14 @@ decisions:
     name: Reuse personal lib
     rationale: cross-source.
     tags: []
-    maps_to: [personal:V2, code/common:CP7]
+    maps_to: [personal:V2, code-common:CP7]
 `);
     const catalog = buildCatalog(projConfig(), projRoot);
     const libIds = catalog.getAllElements().map((e) => e.toLibraryId());
 
     expect(libIds).toContain('personal:V1');
     expect(libIds).toContain('personal:V2');
-    expect(libIds).toContain('code/common:CP7');
+    expect(libIds).toContain('code-common:CP7');
     expect(libIds).toContain('main:D1');
   });
 

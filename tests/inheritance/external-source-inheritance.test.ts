@@ -32,7 +32,7 @@ decisions:
     name: Use the personal library
     rationale: Reuse cross-project values.
     tags: []
-    maps_to: [personal:V2, code/common:CP7]
+    maps_to: [personal:V2, code-common:CP7]
 `;
 
   // A personal-style source library: top-level personal.yaml + nested code/common.yaml
@@ -120,7 +120,7 @@ principles:
     expect(paths[paths.length - 1]).toBe('project');
   });
 
-  it('cross-source refs resolve by document:element (personal:V2, code/common:CP7)', () => {
+  it('cross-source refs resolve by meta.name:element (personal:V2, code-common:CP7)', () => {
     const srcRoot = makeSourceLib();
     const projectDoc = parseDocument(
       projectYaml.replace('SOURCE_PLACEHOLDER', srcRoot),
@@ -136,7 +136,7 @@ principles:
     );
 
     expect(byLibId.get('personal:V2')?.name).toBe('Transparency');
-    expect(byLibId.get('code/common:CP7')?.name).toBe('Fail loudly');
+    expect(byLibId.get('code-common:CP7')?.name).toBe('Fail loudly');
   });
 
   it('records the alias from the `as` field', () => {
