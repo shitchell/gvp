@@ -101,7 +101,7 @@ export function coveragePass(catalog: Catalog, config: GVPConfig): Diagnostic[] 
     }
   }
 
-  // W017: Top-side root coverage (#8). Every root whose category declares
+  // W018: Top-side root coverage (#8). Every root whose category declares
   // `requires_decision: true` is an "actionable point-root" that should have at
   // least one Decision tracing to it (any disposition — accept/decline/defer all
   // count as actioned). `value` (a direction, not a point) and `exclusion`
@@ -153,7 +153,7 @@ export function coveragePass(catalog: Catalog, config: GVPConfig): Diagnostic[] 
 
       if (!covered) {
         diagnostics.push(createDiagnostic(
-          'W017',
+          'W018',
           'ROOT_NO_DECISION',
           `Root ${root.toLibraryId()} has no Decision tracing to it — ` +
             `it may be decreed-but-unaddressed; record an accepted/declined/deferred decision`,

@@ -14,16 +14,16 @@ export interface CategoryDefinition {
   is_root?: boolean;
   /**
    * When true, a root of this category is an "actionable point-root": top-side
-   * coverage (W017) expects at least one Decision to trace to it. Non-root
+   * coverage (W018) expects at least one Decision to trace to it. Non-root
    * categories ignore this flag. `value` and `exclusion` deliberately omit it —
    * a value is a direction (not a point) and an exclusion is already its own
-   * resolution. Drives W017 generically so no category names are hard-coded (R6).
+   * resolution. Drives W018 generically so no category names are hard-coded (R6).
    */
   requires_decision?: boolean;
   /**
    * Marks the "value axis" — a directional root (not a point) that derived
    * elements should trace to. Drives the soft, transitive value-anchor check
-   * (W016) generically, so no category name is hard-coded (R6). Only `value`
+   * (W017) generically, so no category name is hard-coded (R6). Only `value`
    * carries this by default; a user library may designate its own.
    */
   is_value_anchor?: boolean;

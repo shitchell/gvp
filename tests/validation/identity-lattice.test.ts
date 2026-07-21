@@ -83,13 +83,13 @@ describe('#6 mapping_rules generalization — any non-value root satisfies W003'
   });
 });
 
-describe('#6 W016 — soft, transitive value anchor', () => {
+describe('#6 W017 — soft, transitive value anchor', () => {
   it('fires when no value is reachable (decision anchored only to an exclusion)', () => {
     const ds = traceabilityPass(makeCatalog([
       { categoryName: 'exclusion', data: { id: 'X1', name: 'No accounts', maps_to: [] } },
       { categoryName: 'decision', data: { id: 'D1', name: 'Decline', rationale: 'x', maps_to: ['main:X1'] } },
     ]), config);
-    expect(codes(ds, 'W016')).toContain('D1');
+    expect(codes(ds, 'W017')).toContain('D1');
   });
 
   it('is silent when a value is reachable transitively through a requirement', () => {
@@ -98,7 +98,7 @@ describe('#6 W016 — soft, transitive value anchor', () => {
       { categoryName: 'user_requirement', data: { id: 'U1', name: 'U', maps_to: ['main:V1'] } },
       { categoryName: 'decision', data: { id: 'D1', name: 'D', rationale: 'x', maps_to: ['main:U1'] } },
     ]), config);
-    expect(codes(ds, 'W016')).not.toContain('D1');
+    expect(codes(ds, 'W017')).not.toContain('D1');
   });
 
   it('is a warning, not an error', () => {
@@ -106,7 +106,7 @@ describe('#6 W016 — soft, transitive value anchor', () => {
       { categoryName: 'exclusion', data: { id: 'X1', name: 'X', maps_to: [] } },
       { categoryName: 'decision', data: { id: 'D1', name: 'D', rationale: 'x', maps_to: ['main:X1'] } },
     ]), config);
-    expect(ds.find(d => d.code === 'W016')?.severity).toBe('warning');
+    expect(ds.find(d => d.code === 'W017')?.severity).toBe('warning');
   });
 });
 
@@ -137,12 +137,12 @@ describe('#8 W013 — disposition scopes the decision-no-refs check', () => {
   });
 });
 
-describe('#8 W017 — top-side root coverage via requires_decision flag', () => {
+describe('#8 W018 — top-side root coverage via requires_decision flag', () => {
   it('fires for a goal with no decision tracing to it', () => {
     const ds = coveragePass(makeCatalog([
       { categoryName: 'goal', data: { id: 'G1', name: 'G', statement: 'x', maps_to: [] } },
     ]), config);
-    expect(codes(ds, 'W017')).toContain('G1');
+    expect(codes(ds, 'W018')).toContain('G1');
   });
 
   it('is silent for a goal with a decision tracing to it (transitively)', () => {
@@ -152,20 +152,20 @@ describe('#8 W017 — top-side root coverage via requires_decision flag', () => 
       { categoryName: 'rule', data: { id: 'R1', name: 'R', statement: 'x', maps_to: ['main:G1', 'main:V1'] } },
       { categoryName: 'decision', data: { id: 'D1', name: 'D', rationale: 'x', maps_to: ['main:R1'], refs: [{ file: 'a', identifier: 'b', role: 'implements' }] } },
     ]), config);
-    expect(codes(ds, 'W017')).not.toContain('G1');
+    expect(codes(ds, 'W018')).not.toContain('G1');
   });
 
   it('fires for a user_requirement with no decision, silent once one traces to it', () => {
     const uncovered = coveragePass(makeCatalog([
       { categoryName: 'user_requirement', data: { id: 'U1', name: 'U', maps_to: [] } },
     ]), config);
-    expect(codes(uncovered, 'W017')).toContain('U1');
+    expect(codes(uncovered, 'W018')).toContain('U1');
 
     const covered = coveragePass(makeCatalog([
       { categoryName: 'user_requirement', data: { id: 'U1', name: 'U', maps_to: [] } },
       { categoryName: 'decision', data: { id: 'D1', name: 'D', rationale: 'x', maps_to: ['main:U1'] } },
     ]), config);
-    expect(codes(covered, 'W017')).not.toContain('U1');
+    expect(codes(covered, 'W018')).not.toContain('U1');
   });
 
   it('exempts exclusion (self-satisfies) and value (a direction, not a point)', () => {
@@ -173,8 +173,8 @@ describe('#8 W017 — top-side root coverage via requires_decision flag', () => 
       { categoryName: 'exclusion', data: { id: 'X1', name: 'X', maps_to: [] } },
       { categoryName: 'value', data: { id: 'V9', name: 'V', maps_to: [] } },
     ]), config);
-    expect(codes(ds, 'W017')).not.toContain('X1');
-    expect(codes(ds, 'W017')).not.toContain('V9');
+    expect(codes(ds, 'W018')).not.toContain('X1');
+    expect(codes(ds, 'W018')).not.toContain('V9');
   });
 });
 

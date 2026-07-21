@@ -426,8 +426,8 @@ meta:
 | `display_label` | string | No | Human-readable label for rendered output. Defaults to titlecased `yaml_key`. |
 | `color` | string | No | Hex color for graph rendering. Defaults to `#CCCCCC`. |
 | `is_root` | boolean | No | If true, this category is exempt from the traceability anchor requirement (it *is* a root of the graph). Defaults to false. |
-| `requires_decision` | boolean | No | If true, roots of this category are "actionable point-roots": top-side coverage (W017) expects at least one Decision to trace to each. Non-root categories ignore it. Built-in on `goal`, `constraint`, and `user_requirement`; deliberately omitted from `value` and `exclusion`. Defaults to false. |
-| `is_value_anchor` | boolean | No | Marks the "value axis" -- the directional root that the soft transitive value check (W016) looks for. Built-in on `value` only; a library may designate its own. Defaults to false. |
+| `requires_decision` | boolean | No | If true, roots of this category are "actionable point-roots": top-side coverage (W018) expects at least one Decision to trace to each. Non-root categories ignore it. Built-in on `goal`, `constraint`, and `user_requirement`; deliberately omitted from `value` and `exclusion`. Defaults to false. |
+| `is_value_anchor` | boolean | No | Marks the "value axis" -- the directional root that the soft transitive value check (W017) looks for. Built-in on `value` only; a library may designate its own. Defaults to false. |
 | `mapping_rules` | list[list[string]] | Required if not root | Traceability rules. Each inner list is a group of categories that must ALL be present (AND). Groups are alternatives (OR). The built-in guided categories accept any non-value root: `[[goal, value], [constraint], [user_requirement], [exclusion]]`. |
 | `tier` | integer | No | Vertical tier for DOT graph rendering. Lower numbers appear at bottom. |
 | `field_schemas` | mapping | No | Schema definitions for category-specific fields. See [Field Schemas](#field-schemas). |

@@ -719,7 +719,7 @@ rules:
     statement: |
       CLI subcommands, exporters, renderers, and validation passes must remain dynamic: they iterate over schema definitions (category field_schemas, registered category names, declared field types from the shape engine) rather than hard-coding specific field names or element category names. If a renderer needs to know that the procedure category has a `steps` field, or that the decision category has a `considered` field, that is a design failure -- the code should instead recognize `list<model>` or `dict<model>` as generic shapes and dispatch on the declared type. The same code path must handle any future field of the same shape without modification.
       The only permitted exception is the set of reserved fields declared in src/schema/reserved-fields.ts (RESERVED_FIELD_NAMES): id, name, status, tags, maps_to, priority, origin, updated_by, reviewed_by. These are load-bearing core framework fields that every element is guaranteed to have (they're part of reservedFieldsSchema in combined-schema.ts), and referencing them directly in CLI/renderer/validator code is permitted and expected. Fields declared in `_all.field_schemas` (e.g. `refs`) are NOT part of this exception surface yet, though they are candidates for promotion if a future decision tightens the universality guarantee.
-      **Scoped exception (gvp:D33, 2026-07-20):** the coverage validation pass may read the `decision` category's declared `disposition` enum to gate the W013 (decision-no-refs) and W017 (root-no-decision) coverage checks. This is a deliberate, narrow extension of the exception surface -- the coverage pass is decision-centric by charter (it already keys on the `decision` category for W012/W013), and `disposition` is the facet that determines whether a decision's absence of refs is a coverage gap. It does NOT license field-name or category-name dispatch anywhere else: every other new pass still dispatches on schema, e.g. W016 (no-value-trace) and W017 dispatch on the `is_value_anchor` and `requires_decision` category flags, never on category-name literals.
+      **Scoped exception (gvp:D33, 2026-07-20):** the coverage validation pass may read the `decision` category's declared `disposition` enum to gate the W013 (decision-no-refs) and W018 (root-no-decision) coverage checks. This is a deliberate, narrow extension of the exception surface -- the coverage pass is decision-centric by charter (it already keys on the `decision` category for W012/W013), and `disposition` is the facet that determines whether a decision's absence of refs is a coverage gap. It does NOT license field-name or category-name dispatch anywhere else: every other new pass still dispatches on schema, e.g. W017 (no-value-trace) and W018 dispatch on the `is_value_anchor` and `requires_decision` category flags, never on category-name literals.
       This rule is the hard-stop version of P15 (dogfood your own abstractions) and R4 (core stays domain-agnostic). The shape renderer added in C.1 is the canonical example of correct implementation -- its renderFieldByShape function dispatches on schema.type with no field names or category names in the switch. Its test suite includes a source-grep assertion (tests/exporters/shape-renderer.test.ts) that fails if anyone reintroduces field name string literals in the renderer code. Similar source-grep guards should be added when refactoring other generic code paths to comply with this rule.
       **Known violations at the time this rule was written (2026-04-08):** the structural-pass E001/E005 extensions for procedure steps, the semantic-pass W010/W011 extensions for step refs, and the parser's maybeAutoAssignStepIds function all hard-code `steps` and in one case `procedure` directly. These were added in Phase B before the generic shape-based approach was established in Phase C, and they need refactoring to iterate field_schemas generically. Tracked in .claude-worker-pm/BACKLOG.md #6 and obligated by this rule -- surfacing the debt is intentional.
       Does NOT apply to: src/data/defaults.yaml itself (that file IS the schema), src/schema/reserved-fields.ts (it DEFINES the exception surface), category-specific test files that exercise generic behavior against concrete shapes, or consumer libraries that declare their own user-specific categories.
@@ -749,6 +749,13 @@ rules:
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
+      - id: 9c5c3773-c5e4-41f2-9aba-81d861ce8713
+        date: '2026-07-21T01:22:47.405Z'
+        rationale: skip-review update
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+        skip_review: true
     reviewed_by:
       - id: ea949e89-8da0-4776-9446-a1194650f55e
         date: '2026-07-20T23:00:13.992Z'
@@ -1563,10 +1570,10 @@ decisions:
         updates_reviewed:
           - 52f71fa4-8a0f-4814-af12-f6f494971c9f
   - id: D31
-    name: Soft transitive value anchor as a separate warning (W016)
+    name: Soft transitive value anchor as a separate warning (W017)
     disposition: accepted
     rationale: |
-      The value requirement is enforced softly and transitively by a separate pass (W016 NO_VALUE_TRACE), not by mapping_rules. When no value is reachable anywhere in the graph it is a warning, not an error, promotable under --strict and suppressible. Hard-erroring during incremental library-building would force a hollow local value stub — the exact smell we are avoiding (C1, P6) — because the acceptance value often lives upstream in an org/personal library. Keeping the hard structural anchor (W003) and the soft value nudge (W016) as distinct passes honors P11.
+      The value requirement is enforced softly and transitively by a separate pass (W017 NO_VALUE_TRACE), not by mapping_rules. When no value is reachable anywhere in the graph it is a warning, not an error, promotable under --strict and suppressible. Hard-erroring during incremental library-building would force a hollow local value stub — the exact smell we are avoiding (C1, P6) — because the acceptance value often lives upstream in an org/personal library. Keeping the hard structural anchor (W003) and the soft value nudge (W017) as distinct passes honors P11.
     tags:
       - framework
       - alignment
@@ -1587,6 +1594,14 @@ decisions:
       - id: 4fe60599-77d4-4e87-8d36-765ff6163891
         date: '2026-07-20T22:43:46.809Z'
         note: Imported from identity-lattice-patch.yaml
+    updated_by:
+      - id: 62cf8a81-bebf-4006-9bcc-1468a08fc4be
+        date: '2026-07-21T01:22:47.708Z'
+        rationale: skip-review update
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+        skip_review: true
   - id: D32
     name: Decision disposition facet {accepted, declined, deferred}
     disposition: accepted
@@ -1666,10 +1681,10 @@ decisions:
         updates_reviewed:
           - c879ecd6-6149-4eb4-b185-96357100411b
   - id: D34
-    name: Top-side decision coverage via requires_decision flag (W017)
+    name: Top-side decision coverage via requires_decision flag (W018)
     disposition: accepted
     rationale: |
-      Every root whose category declares requires_decision:true is an "actionable point-root" that should have at least one Decision tracing to it (any disposition — accept/decline/defer all count as actioned). W017 iterates the schema flag and hard-codes no category names (R6). goal, constraint, and user_requirement carry the flag; value (a direction, not a point) and exclusion (already its own resolution) omit it and are exempt by construction. Together with W012/W013 this closes the loop: nothing decreed goes silently unaddressed, nothing built goes silently unjustified. It is a coverage-pass warning (runs under --coverage), promotable under --strict.
+      Every root whose category declares requires_decision:true is an "actionable point-root" that should have at least one Decision tracing to it (any disposition — accept/decline/defer all count as actioned). W018 iterates the schema flag and hard-codes no category names (R6). goal, constraint, and user_requirement carry the flag; value (a direction, not a point) and exclusion (already its own resolution) omit it and are exempt by construction. Together with W012/W013 this closes the loop: nothing decreed goes silently unaddressed, nothing built goes silently unjustified. It is a coverage-pass warning (runs under --coverage), promotable under --strict.
     tags:
       - framework
       - integrity
@@ -1692,6 +1707,14 @@ decisions:
       - id: 82bae1ee-7980-4df5-9d72-38e125b88e8f
         date: '2026-07-20T22:43:46.809Z'
         note: Imported from identity-lattice-patch.yaml
+    updated_by:
+      - id: a79ba80a-6633-49cf-b88c-d0b48e0c6f6e
+        date: '2026-07-21T01:22:48.012Z'
+        rationale: skip-review update
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+        skip_review: true
   - id: D35
     name: Release 1.1.0 as the first stable version and retire the beta publish rule
     disposition: accepted

@@ -109,7 +109,7 @@ export function traceabilityPass(catalog: Catalog, _config: GVPConfig): Diagnost
     }
   }
 
-  // W016: Soft, transitive value anchor (#6). Non-root active elements should
+  // W017: Soft, transitive value anchor (#6). Non-root active elements should
   // trace transitively to at least one value-anchor category. When none is
   // reachable this is a *warning*, not an error: the acceptance value is often
   // authored later and lives upstream in an org/personal library, and
@@ -160,7 +160,7 @@ export function traceabilityPass(catalog: Catalog, _config: GVPConfig): Diagnost
 
         if (!foundValue) {
           diagnostics.push(createDiagnostic(
-            'W016',
+            'W017',
             'NO_VALUE_TRACE',
             `Element ${element.toLibraryId()} does not trace to any value transitively — ` +
               `the acceptance value for a constraint/requirement/exclusion-anchored element ` +

@@ -57,7 +57,7 @@ categories:
     id_prefix: P
     primary_field: statement
     # Anchor to any non-value root (goal+value | constraint | user_requirement |
-    # exclusion). The value anchor is enforced softly and transitively by W016,
+    # exclusion). The value anchor is enforced softly and transitively by W017,
     # not by W003. See #6 / 2026-07-20-identity-lattice-design.md.
     mapping_rules:
       - [goal, value]
@@ -194,7 +194,7 @@ categories:
   # Stakeholder-decreed mandate, asserted as input and NOT derivable from any
   # value (that non-derivability is what makes it a requirement and not a rule).
   # A root; requires_decision marks it as an actionable point-root that top-side
-  # coverage (W017) expects to be actioned by a decision. See #7.
+  # coverage (W018) expects to be actioned by a decision. See #7.
   user_requirement:
     yaml_key: user_requirements
     id_prefix: U

@@ -11,7 +11,7 @@ built-in defaults.
 Every non-root element must anchor to at least one **non-value root** (goal,
 constraint, user_requirement, or exclusion) and should also trace to at least one
 **value** -- either directly through its `maps_to` references, or transitively
-through elements it maps to. The value anchor is enforced *softly* (W016 warning,
+through elements it maps to. The value anchor is enforced *softly* (W017 warning,
 transitive, suppressible), because the acceptance value often lives upstream in an
 inherited org/personal library. Five categories are exempt from the anchor
 requirement because they *are* the roots of the traceability graph:
@@ -44,7 +44,7 @@ the structural anchor check (W003). This is what lets a decision that actions a
 stakeholder mandate map *only* to that `user_requirement` without a manufactured
 goal/value pair.
 
-Separately, the **value anchor** is checked softly and transitively (W016): if no
+Separately, the **value anchor** is checked softly and transitively (W017): if no
 value is reachable anywhere in the graph (including inherited libraries), a warning
 is emitted -- not an error -- because the acceptance value frequently lives upstream
 and hard-erroring would force a hollow local value stub.
@@ -101,8 +101,9 @@ Warnings are printed to stderr but do not cause a non-zero exit code under norma
 | W011 | REF_IDENTIFIER_MISSING | A ref's identifier was not found in the referenced file. |
 | W012 | ORPHAN_IDENTIFIER | An identifier in a file is not referenced by any element (coverage pass only). |
 | W013 | DECISION_NO_REFS | An **accepted** decision has no refs (coverage pass only). `declined` and `deferred` decisions are exempt -- their rationale and considered alternatives are the record. A decision with no `disposition` is treated as `accepted`. |
-| W016 | NO_VALUE_TRACE | A non-root element does not trace to any value transitively. Soft anchor: the acceptance value often lives upstream in an inherited library, so this warns rather than errors (promotable under `--strict`). |
-| W017 | ROOT_NO_DECISION | An actionable root -- a category declaring `requires_decision: true` (goal, constraint, user_requirement) -- has no Decision tracing to it (coverage pass only). `value` and `exclusion` are exempt. Ensures decreed drivers are explicitly actioned (accept/decline/defer). |
+| W016 | UNRECOGNIZED_YAML_KEY | A top-level YAML key in a document is neither `meta` nor a known category `yaml_key` (structural pass). |
+| W017 | NO_VALUE_TRACE | A non-root element does not trace to any value transitively. Soft anchor: the acceptance value often lives upstream in an inherited library, so this warns rather than errors (promotable under `--strict`). |
+| W018 | ROOT_NO_DECISION | An actionable root -- a category declaring `requires_decision: true` (goal, constraint, user_requirement) -- has no Decision tracing to it (coverage pass only). `value` and `exclusion` are exempt. Ensures decreed drivers are explicitly actioned (accept/decline/defer). |
 
 ### Suppressing Diagnostics
 

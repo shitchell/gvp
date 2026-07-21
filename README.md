@@ -119,8 +119,9 @@ cairn export --format markdown
 | W013 | DECISION_NO_REFS | Decision has no refs (coverage pass) |
 | W014 | NO_ROOT_TRACE | Element cannot trace to any root element transitively |
 | W015 | AUTO_ASSIGNED_STEP_ID | Procedure has steps without explicit IDs; auto-numbered at load time |
-| W016 | NO_VALUE_TRACE | Non-root element does not trace to any value transitively (soft anchor) |
-| W017 | ROOT_NO_DECISION | Actionable root (`requires_decision`) has no Decision tracing to it (coverage pass) |
+| W016 | UNRECOGNIZED_YAML_KEY | Top-level YAML key is neither `meta` nor a known category `yaml_key` |
+| W017 | NO_VALUE_TRACE | Non-root element does not trace to any value transitively (soft anchor) |
+| W018 | ROOT_NO_DECISION | Actionable root (`requires_decision`) has no Decision tracing to it (coverage pass) |
 
 ## Config
 
@@ -177,7 +178,7 @@ upward mapping. A **user_requirement** is a stakeholder-decreed mandate asserted
 input — not derivable from any value (that is what makes it a requirement and not a
 rule). An **exclusion** is a self-imposed out-of-scope boundary — the negative space
 of goals. Every non-root element anchors to any non-value root **and** should trace
-to a value (enforced softly by W016). Decisions carry a `disposition`
+to a value (enforced softly by W017). Decisions carry a `disposition`
 (`accepted` | `declined` | `deferred`); a `declined`/`deferred` decision's rationale
 is the record, so it is exempt from the decision-needs-refs check (W013).
 
