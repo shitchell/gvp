@@ -53,7 +53,7 @@ function renderHops(
   function walk(current: Element, depth: number, indent: string): void {
     if (depth > hops) return;
     for (const ref of current.maps_to) {
-      const target = catalog.resolveRef(ref);
+      const target = catalog.resolveRef(ref, current);
       if (!target) continue;
       if (seen.has(target.hashKey())) continue;
       seen.add(target.hashKey());

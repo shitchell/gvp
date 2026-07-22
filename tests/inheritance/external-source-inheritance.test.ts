@@ -139,18 +139,9 @@ principles:
     expect(byLibId.get('code-common:CP7')?.name).toBe('Fail loudly');
   });
 
-  it('records the alias from the `as` field', () => {
-    const srcRoot = makeSourceLib();
-    const projectDoc = parseDocument(
-      projectYaml.replace('SOURCE_PLACEHOLDER', srcRoot),
-      '/project.yaml',
-      'project',
-      '@local',
-      registry,
-    );
-    const result = resolveInheritance(projectDoc, failLoader, makeSourceLoader(srcRoot));
-    expect(result.aliasMap.get('personal')).toBe(srcRoot);
-  });
+  // Aliases are document-local (D39): resolveInheritance no longer surfaces an alias
+  // map — the Catalog builds per-document scopes. Alias resolution (including this
+  // `as: personal` case) is covered by tests/validation/metaname-resolution.test.ts.
 
   it('errors when the source path cannot be resolved', () => {
     const projectDoc = parseDocument(

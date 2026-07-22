@@ -90,7 +90,7 @@ export function userRulesPass(catalog: Catalog, config: GVPConfig): Diagnostic[]
       if (rule.require.maps_to_category !== undefined) {
         const requiredCat = rule.require.maps_to_category;
         const mapsToTarget = element.maps_to.some(ref => {
-          const target = catalog.resolveRef(ref);
+          const target = catalog.resolveRef(ref, element);
           return target?.categoryName === requiredCat;
         });
 

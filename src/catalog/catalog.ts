@@ -16,7 +16,8 @@ import {
   buildAncestorsGraph,
   buildDescendantsGraph,
 } from '../model/graph.js';
-import { matchRef, resolveRef, type RefMatch, type AliasMap } from '../refs/resolve-ref.js';
+import { matchRef, resolveRef, LOCAL_SOURCE, type RefMatch, type AliasMap } from '../refs/resolve-ref.js';
+import { buildAliasMap } from '../inheritance/alias-resolver.js';
 
 /**
  * The assembled, validated, queryable GVP catalog (DEC-5.7: construction fails fast).
@@ -29,12 +30,31 @@ export class Catalog {
   private readonly _elements: Map<string, Element>; // hashKey -> Element
   private readonly _elementsByCategory: Map<string, Element[]>;
   private readonly _mergedDefinitions: MergedDefinitions;
-  private readonly _aliasMap: AliasMap;
+  /**
+   * Document-local alias scopes (D39): docKey → that document's OWN `as:`
+   * aliases. Aliases are `import as` sugar, private to the declaring document —
+   * NOT inherited by importers — so resolution is scoped per source document.
+   */
+  private readonly _aliasScopesByDoc: Map<string, AliasMap>;
+  /** Union of the local (`@local`) project's aliases — used for CLI-typed refs
+   * that have no source element (e.g. `cairn inspect me:X`). */
+  private readonly _localAliasUnion: AliasMap;
 
   constructor(resolvedInheritance: ResolvedInheritance, config: GVPConfig) {
     this._config = config;
     this._documents = resolvedInheritance.orderedDocuments;
-    this._aliasMap = resolvedInheritance.aliasMap ?? new Map();
+
+    // Build per-document alias scopes (own-only) and the local-project union.
+    this._aliasScopesByDoc = new Map();
+    const localUnion: AliasMap = new Map();
+    for (const doc of this._documents) {
+      const own = buildAliasMap(doc.meta); // own `as:` declarations only
+      this._aliasScopesByDoc.set(`${doc.source}:${doc.documentPath}`, own);
+      if (doc.source === LOCAL_SOURCE) {
+        for (const [alias, src] of own) localUnion.set(alias, src);
+      }
+    }
+    this._localAliasUnion = localUnion;
 
     // Step 0: Apply config_overrides from documents (DEC-2.4, DEC-2.13)
     // Iterate in DFS order (ancestors first = ancestor-wins)
@@ -133,24 +153,29 @@ export class Catalog {
     return this._elements.get(hashKey);
   }
 
-  /** The alias → source map for this catalog's inheritance chain. */
-  get aliasMap(): AliasMap {
-    return this._aliasMap;
+  /**
+   * The alias scope for a reference: the source element's document-local aliases
+   * (D39), or the local-project union for CLI-typed refs with no source element.
+   */
+  private aliasScopeFor(fromElement?: Element): AliasMap {
+    if (!fromElement) return this._localAliasUnion;
+    return this._aliasScopesByDoc.get(`${fromElement.source}:${fromElement.documentPath}`) ?? new Map();
   }
 
   /**
-   * Resolve a reference string to an element (DEC-6.4 revised, #11).
-   * Accepts `[<alias>:]<meta.name>:<id>` and the canonical `source:documentPath:id`.
-   * Returns undefined if not found or ambiguous — use resolveRefResult to
-   * distinguish those for diagnostics.
+   * Resolve a reference string to an element (DEC-6.4 revised, #11; D39).
+   * Accepts `[<alias>:]<meta.name>:<id>` (path as fallback) and the canonical
+   * `source:documentPath:id`. `fromElement` scopes the alias to that element's
+   * document (aliases are `import as` — document-local, not inherited). Returns
+   * undefined if not found or ambiguous — use resolveRefResult to distinguish.
    */
-  resolveRef(ref: string): Element | undefined {
-    return resolveRef(ref, this.getAllElements(), this._aliasMap);
+  resolveRef(ref: string, fromElement?: Element): Element | undefined {
+    return resolveRef(ref, this.getAllElements(), this.aliasScopeFor(fromElement));
   }
 
   /** Resolve a reference with a discriminated result (ok | ambiguous | notfound). */
-  resolveRefResult(ref: string): RefMatch {
-    return matchRef(ref, this.getAllElements(), this._aliasMap);
+  resolveRefResult(ref: string, fromElement?: Element): RefMatch {
+    return matchRef(ref, this.getAllElements(), this.aliasScopeFor(fromElement));
   }
 
   /** Get merged tag definitions */
@@ -165,11 +190,11 @@ export class Catalog {
 
   /** Build ancestors graph for an element (DEC-6.1, DEC-6.5) */
   ancestors(element: Element): Graph {
-    return buildAncestorsGraph(element, (ref) => this.resolveRef(ref));
+    return buildAncestorsGraph(element, (ref, from) => this.resolveRef(ref, from));
   }
 
   /** Build descendants graph for an element (DEC-6.1, DEC-6.5) */
   descendants(element: Element): Graph {
-    return buildDescendantsGraph(element, this.getAllElements(), (ref) => this.resolveRef(ref));
+    return buildDescendantsGraph(element, this.getAllElements(), (ref, from) => this.resolveRef(ref, from));
   }
 }

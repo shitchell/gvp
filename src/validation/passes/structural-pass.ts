@@ -18,7 +18,7 @@ export function structuralPass(catalog: Catalog, _config: GVPConfig): Diagnostic
   for (const element of catalog.getAllElements()) {
     const checkRef = (ref: unknown, humanLoc: string, detailsKey?: string): void => {
       if (typeof ref !== 'string') return;
-      const res = catalog.resolveRefResult(ref);
+      const res = catalog.resolveRefResult(ref, element);
       if (res.status === 'ok') return;
       const tail = res.status === 'ambiguous'
         ? `but it is ambiguous across ${res.matches.length} libraries — qualify it with the inherited-source alias`

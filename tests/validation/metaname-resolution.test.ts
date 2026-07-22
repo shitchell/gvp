@@ -57,6 +57,44 @@ describe('meta.name reference resolution + E006 (#11, #12)', () => {
     expect(e001().map(d => d.context.elementId)).not.toContain('D1');
   });
 
+  it('resolves an alias declared in a NON-leaf ancestor document (#13)', () => {
+    // The alias-declaring doc (project) is inherited by another local doc (child),
+    // so project is NOT a leaf. Its `as: me` must still be in scope for its own
+    // reference — aliases are collected from every doc, not just leaves.
+    fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, 'src', 'personal.yaml'), `meta: {name: personal}\nvalues: [{id: V1, name: V, statement: x, maps_to: []}]\n`);
+    const src = path.join(tmpDir, 'src');
+    write('project.yaml', `meta: {name: project, inherits: [{source: ${src}, as: me}]}\ndecisions: [{id: D1, name: D, rationale: x, maps_to: ["me:personal:V1"]}]\n`);
+    write('child.yaml', `meta: {name: child, inherits: project}\ngoals: [{id: G1, name: G, statement: x, maps_to: []}]\n`);
+
+    expect(e001().map(d => d.context.elementId)).not.toContain('D1');
+  });
+
+  it('aliases are document-local: a child cannot use its parent\'s alias (D39)', () => {
+    // parent declares `as: me`; child inherits parent but does NOT declare `me`.
+    // Like Python `import bar as b`, `me` is private to the declaring document.
+    fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, 'src', 'personal.yaml'), `meta: {name: personal}\nvalues: [{id: V1, name: V, statement: x, maps_to: []}]\n`);
+    const src = path.join(tmpDir, 'src');
+    write('parent.yaml', `meta: {name: parent, inherits: [{source: ${src}, as: me}]}\ngoals: [{id: G1, name: G, statement: x, maps_to: []}]\n`);
+    write('child.yaml', `meta: {name: child, inherits: parent}\ndecisions: [{id: CD1, name: D, rationale: x, maps_to: ["me:personal:V1"]}]\n`);
+
+    expect(e001().map(d => d.context.elementId)).toContain('CD1');
+  });
+
+  it('does not leak an inherited library\'s private alias into the consumer (D39)', () => {
+    // subsrc <- midlib (declares `as: internal`) <- project (declares `as: mid`).
+    fs.mkdirSync(path.join(tmpDir, 'subsrc'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, 'subsrc', 'deep.yaml'), `meta: {name: deep}\nvalues: [{id: V1, name: V, statement: x, maps_to: []}]\n`);
+    fs.mkdirSync(path.join(tmpDir, 'midlib'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, 'midlib', 'mid.yaml'), `meta: {name: mid, inherits: [{source: ${path.join(tmpDir, 'subsrc')}, as: internal}]}\nprinciples: [{id: MP1, name: P, statement: x, maps_to: ["internal:deep:V1"]}]\n`);
+    write('project.yaml', `meta: {name: project, inherits: [{source: ${path.join(tmpDir, 'midlib')}, as: mid}]}\ndecisions: [{id: D1, name: D, rationale: x, maps_to: ["internal:deep:V1"]}]\n`);
+
+    const ids = e001().map(d => d.context.elementId);
+    expect(ids).toContain('D1');      // project cannot use midlib's private `internal`
+    expect(ids).not.toContain('MP1'); // midlib's own internal ref still resolves
+  });
+
   it('fires E006 for two documents in one library sharing a meta.name (#12)', () => {
     write('a.yaml', `meta: {name: shared}\ngoals: [{id: G1, name: G, statement: x, maps_to: []}]\n`);
     write('b.yaml', `meta: {name: shared}\nvalues: [{id: V1, name: V, statement: x, maps_to: []}]\n`);

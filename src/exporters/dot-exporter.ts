@@ -36,7 +36,7 @@ export class DotExporter extends Exporter {
     for (const el of elements) {
       const fromId = el.toLibraryId().replace(/:/g, '__').replace(/-/g, '_');
       for (const ref of el.maps_to) {
-        const target = catalog.resolveRef(ref);
+        const target = catalog.resolveRef(ref, el);
         if (target) {
           const toId = target
             .toLibraryId()

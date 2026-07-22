@@ -125,7 +125,7 @@ export class Graph {
  */
 export function buildAncestorsGraph(
   element: Element,
-  elementLookup: (ref: string) => Element | undefined,
+  elementLookup: (ref: string, from: Element) => Element | undefined,
 ): Graph {
   const nodes = new Map<string, Element>();
   const edges = new Map<string, Set<string>>();
@@ -137,7 +137,8 @@ export function buildAncestorsGraph(
     nodes.set(key, el);
 
     for (const ref of el.maps_to) {
-      const target = elementLookup(ref);
+      // Resolve the ref in the scope of the document it lives in (D39).
+      const target = elementLookup(ref, el);
       if (target) {
         // Edge: el -> target (el maps to target)
         if (!edges.has(key)) edges.set(key, new Set());
@@ -159,13 +160,13 @@ export function buildAncestorsGraph(
 export function buildDescendantsGraph(
   element: Element,
   allElements: Element[],
-  resolveRef?: (ref: string) => Element | undefined,
+  resolveRef?: (ref: string, from: Element) => Element | undefined,
 ): Graph {
   const nodes = new Map<string, Element>();
   const edges = new Map<string, Set<string>>();
 
-  // Resolve a ref via the unified resolver when provided (meta.name / alias /
-  // canonical, #11); otherwise fall back to bare-name/canonical matching.
+  // Resolve a ref via the unified resolver when provided (scoped to the source
+  // element's document, D39); otherwise fall back to bare-name/canonical matching.
   const resolve = resolveRef
     ?? ((ref: string) => allElements.find((e) => e.toLibraryId() === ref || e.hashKey() === ref));
 
@@ -173,7 +174,7 @@ export function buildDescendantsGraph(
   const reverseIndex = new Map<string, Element[]>();
   for (const el of allElements) {
     for (const ref of el.maps_to) {
-      const target = resolve(ref);
+      const target = resolve(ref, el);
       if (target) {
         const targetKey = target.hashKey();
         if (!reverseIndex.has(targetKey)) reverseIndex.set(targetKey, []);

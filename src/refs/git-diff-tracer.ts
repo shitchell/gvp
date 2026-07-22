@@ -174,7 +174,7 @@ function traceAncestors(element: Element, catalog: Catalog): Element[] {
 
   function walk(el: Element) {
     for (const ref of el.maps_to) {
-      const target = catalog.resolveRef(ref);
+      const target = catalog.resolveRef(ref, el);
       if (target && !visited.has(target.hashKey())) {
         visited.add(target.hashKey());
         ancestors.push(target);

@@ -543,6 +543,11 @@ function titleCaseDictKey(key: string): string {
 }
 
 function resolveElementRef(ref: string, catalog: Catalog): Element | undefined {
+  // Display-only name preview. Resolves in the local-project alias scope (no
+  // source element threaded through the recursive renderer). Semantic resolution
+  // (maps_to validation, graph traversal) is properly document-local (D39); here a
+  // ref that only resolves via an inherited library's internal alias simply renders
+  // without its name — an acceptable cosmetic degradation, not a correctness issue.
   return catalog.resolveRef(ref);
 }
 

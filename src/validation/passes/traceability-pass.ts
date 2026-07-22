@@ -25,7 +25,7 @@ export function traceabilityPass(catalog: Catalog, _config: GVPConfig): Diagnost
     // means element must map to (goal AND value) OR (principle)
     const mappedCategories = new Set<string>();
     for (const ref of element.maps_to) {
-      const target = catalog.resolveRef(ref);
+      const target = catalog.resolveRef(ref, element);
       if (target) {
         mappedCategories.add(target.categoryName);
       }
@@ -84,7 +84,7 @@ export function traceabilityPass(catalog: Catalog, _config: GVPConfig): Diagnost
         }
 
         for (const ref of currentEl.maps_to) {
-          const target = catalog.resolveRef(ref);
+          const target = catalog.resolveRef(ref, currentEl);
           if (target && !visited.has(target.hashKey())) {
             queue.push(target.hashKey());
           }
@@ -146,7 +146,7 @@ export function traceabilityPass(catalog: Catalog, _config: GVPConfig): Diagnost
           }
 
           for (const ref of currentEl.maps_to) {
-            const target = catalog.resolveRef(ref);
+            const target = catalog.resolveRef(ref, currentEl);
             if (target && !visited.has(target.hashKey())) {
               queue.push(target.hashKey());
             }

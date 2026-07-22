@@ -1889,6 +1889,48 @@ decisions:
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
+  - id: D39
+    name: Document-local aliases (Python import-as model)
+    disposition: accepted
+    rationale: |
+      The alias-resolution fixes across 2.0.0–2.1.x converged on a flat global alias map in buildCatalog, which leaked aliases across library boundaries (an inherited source's private `as:` became usable in the consumer) and resolved same-name conflicts by arbitrary iteration order. Aliases are now document-local, like Python's `import bar as b`: an alias is private to the document that declares it and is NOT inherited by importers. A document reaches inherited elements by their meta.name; to use an alias it declares its own `as:`. This supersedes DEC-1.1a's "inherited by children, descendant wins" — which was more permissive than Python and the source of the leak/coupling. Because each document uses only its own aliases, there is no conflict to resolve (descendant-wins retired). Mechanism: the Catalog builds per-document alias scopes (own `as:` only) and resolveRef(ref, fromElement) scopes to the source element's document; CLI-typed refs use the local-project union. resolveInheritance's per-chain alias accumulation is now obsolete and removed. Elements remain the shared public namespace (by meta.name); aliases are private import sugar.
+    tags:
+      - framework
+      - extensibility
+    maps_to:
+      - gvp:G5
+      - gvp:V2
+    considered:
+      inherited_by_children:
+        description: The original DEC-1.1a — children inherit parents' aliases (descendant-wins).
+        rationale: |
+          Rejected (superseded) — more permissive than Python; leaks aliases across library boundaries and couples documents. It was the source of the bugs.
+        would_have_served:
+          - gvp:V7
+        conflicts_with:
+          - gvp:V2
+      library_scoped:
+        description: One alias namespace per library (per source) + per-library alias uniqueness.
+        rationale: |
+          Considered — simpler than document scoping and leak-free, but less precise than the well-understood import-as model; the maintainer preferred Python's.
+        would_have_served:
+          - gvp:V4
+        conflicts_with:
+          - gvp:V6
+    refs:
+      - file: src/catalog/catalog.ts
+        identifier: Catalog
+        role: implements
+      - file: src/refs/resolve-ref.ts
+        identifier: matchRef
+        role: implements
+    origin:
+      - id: 193ae48e-4c4c-4e7e-bfa9-750a9c46f46e
+        date: '2026-07-21T22:22:49.057Z'
+        note: Imported from d39-patch.yaml
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
 constraints:
   - id: C1
     name: Agents optimize for minimal effort

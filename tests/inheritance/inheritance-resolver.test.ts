@@ -182,33 +182,10 @@ describe('Inheritance Resolver (DEC-1.0, DEC-1.3, DEC-1.8)', () => {
     expect(paths).toHaveLength(4);
   });
 
-  it('returns alias map', () => {
-    const doc = makeDoc('a');
-    const loader: DocumentLoader = () => {
-      throw new Error('nope');
-    };
-
-    const result = resolveInheritance(doc, loader);
-    expect(result.aliasMap).toBeInstanceOf(Map);
-  });
-
-  it('accumulates aliases through inheritance chain', () => {
-    const orgDoc = makeDoc('root', [], '@github:company/org-gvp');
-    const docB = makeDoc('b', [
-      { source: '@github:company/org-gvp', as: 'org' },
-    ]);
-    const docA = makeDoc('a', ['b']);
-
-    const loader: DocumentLoader = (source, docPath) => {
-      if (source === '@local' && docPath === 'b') return docB;
-      if (source === '@github:company/org-gvp') return orgDoc;
-      throw new Error(`Unknown: ${source}:${docPath}`);
-    };
-
-    const result = resolveInheritance(docA, loader);
-    // Aliases from B should propagate through to A's alias map
-    expect(result.aliasMap).toBeInstanceOf(Map);
-  });
+  // Aliases are document-local (D39, superseding DEC-1.1a): resolveInheritance no
+  // longer computes an alias map — it only loads and orders documents. The Catalog
+  // builds per-document alias scopes. Alias resolution is covered by the integration
+  // tests in tests/validation/metaname-resolution.test.ts.
 
   it('throws InheritanceError for failed document load', () => {
     const docA = makeDoc('a', ['nonexistent']);

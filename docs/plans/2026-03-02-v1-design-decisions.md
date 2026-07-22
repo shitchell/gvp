@@ -155,7 +155,7 @@ Read these before starting any theme — they constrain all subsequent decisions
 
 - **DEC-1.0**: Both library-level and document-level inheritance. Dependencies implicit from document `meta.inherits`.
 - **DEC-1.1**: Three-piece structure: `.gvp/library/` (portable), `.gvp/config.yaml` (committed project config), `.gvp.yaml` (local/gitignored).
-- **DEC-1.1a**: Aliases are document-scoped, inherited by child documents (descendants override ancestors).
+- **DEC-1.1a** (amended 2026-07-21, gvp:D39): Aliases are **document-local** — private to the declaring document, NOT inherited by children (Python `import as` model). *(Originally: inherited by children, descendants override ancestors.)*
 - **DEC-1.1b**: Canonical IDs are source-path-based: `@github:company/org-gvp:values:V1`.
 - **DEC-1.1c**: Reference syntax `[[source:]document:]element`. Documents referenced by file path (not meta.name). Segment count determines scope (1=same doc, 2=same lib, 3=cross-lib).
 - **DEC-1.3**: Priority is recursive DFS, ancestors win. Tag/category definition priority is INVERSE (descendant wins) — decided in DEC-2.1. Priority direction is configurable (also DEC-2.1).
@@ -249,8 +249,20 @@ v0 supports document inheritance via `meta.inherits` with path-based and name-ba
 
 **DEC-1.1a: Source and alias inheritance through document hierarchy**
 
-- **Status**: Decided
-- **Decision**: Aliases are defined per-document in `meta.inherits` using an `as` field. An alias replaces only the source segment of a reference — document and element segments are always explicit. **Child documents inherit all of their parents' source access and aliases**, with reverse priority (descendants take priority over ancestors) for alias conflict resolution. A child document does NOT need to redeclare a source that its parent already inherits — it can reference that source by its parent's alias or by the full source path.
+- **Status**: Decided — **amended 2026-07-21 (see gvp:D39): aliases are now
+  document-local, NOT inherited by children.**
+- **Decision (amended)**: Aliases are defined per-document in `meta.inherits` using an
+  `as` field, and replace only the source segment of a reference. **An alias is
+  document-local — private to the document that declares it, like Python's
+  `import bar as b`.** A document that inherits another does NOT gain that document's
+  aliases; it reaches the inherited *elements* by their `meta.name` (or declares its
+  own `as:`). This supersedes the original "children inherit their parents' aliases,
+  descendants override ancestors" rule, which leaked aliases across library boundaries
+  and coupled documents. Because each document uses only its own aliases, there is no
+  cross-document conflict to resolve (the descendant-wins rule is retired).
+- **Original decision (superseded):** Child documents inherited all of their parents'
+  source access and aliases, with reverse priority (descendants override ancestors),
+  and a child could reference an inherited source by its parent's alias.
 - **Syntax**: `inherits` entries are polymorphic — bare strings for local documents, objects for external sources:
   ```yaml
   # doc-a.yaml
@@ -264,14 +276,14 @@ v0 supports document inheritance via `meta.inherits` with path-based and name-ba
   meta:
     name: doc-b
     inherits:
-      - doc-a                                  # local: inherits doc-a, gaining access to "org" alias
+      - doc-a                                  # local: inherits doc-a's ELEMENTS (NOT its "org" alias)
       - source: "@github:shitchell/my-gvp"    # external: git-based source
         as: personal                           # alias (optional, replaces source in maps_to)
   ```
   Then in doc-b's `maps_to`:
   - `doc-a:V1` — element V1 in local document "doc-a" (2-segment, same library)
-  - `org:values:V1` — element V1 in document "values" from the library aliased "org" (3-segment, cross-library; alias inherited from doc-a)
-  - `personal:my-principles:P1` — element P1 in document "my-principles" from personal lib (3-segment, cross-library; own alias)
+  - `personal:my-principles:P1` — element P1 in document "my-principles" from personal lib (3-segment, cross-library; doc-b's OWN alias)
+  - `org:values:V1` would NOT resolve — "org" is doc-a's private alias, not visible in doc-b (amended 2026-07-21). doc-b reaches those elements by their `meta.name`, or by declaring its own `as: org`.
 - **Rationale**: "this allows maximum portability since new and divergent Libraries can be added without needing to know or care what aliases other Libraries are using." Source inheritance through the document hierarchy avoids repetitive redeclaration: "child documents inherit all of their parents' sources using reverse priority (i.e.: descendants take priority over ancestors) for alias conflict resolution". "this would still apply even if an alias isn't defined for a source; child documents would still have access to the inherited source by full source path."
 - **Rejected alternatives**:
   - *Global aliases*: Aliases declared once and shared across all libraries in the dependency tree. Rejected: requires coordination between independent library authors, breaks portability.

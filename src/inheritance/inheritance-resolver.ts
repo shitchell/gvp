@@ -1,6 +1,4 @@
 import type { Document } from '../model/document.js';
-import type { AliasMap } from './alias-resolver.js';
-import { buildAliasMap } from './alias-resolver.js';
 import { InheritanceError } from '../errors.js';
 
 /**
@@ -32,8 +30,6 @@ export type SourceLoader = (source: string) => Document[];
 export interface ResolvedInheritance {
   /** Documents in DFS order, ancestors first (DEC-1.3: ancestors have highest priority) */
   orderedDocuments: Document[];
-  /** Accumulated alias map for the entry document */
-  aliasMap: AliasMap;
   /** Strongly connected components with >1 member (DEC-1.8) */
   sccs: Document[][];
 }
@@ -69,25 +65,17 @@ export function resolveInheritance(
   const entryKey = docKey(entryDoc);
   docMap.set(entryKey, entryDoc);
 
-  function dfs(doc: Document, parentAliases: AliasMap): AliasMap {
+  function dfs(doc: Document): void {
     const key = docKey(doc);
 
-    if (visiting.has(key)) {
-      // Cycle detected — skip (DEC-1.8 cycle-breaking)
-      return parentAliases;
-    }
-
-    if (visited.has(key)) {
-      // Already processed — skip but don't error
-      return parentAliases;
-    }
+    if (visiting.has(key)) return; // Cycle detected — skip (DEC-1.8 cycle-breaking)
+    if (visited.has(key)) return; // Already processed — skip but don't error
 
     visiting.add(key);
 
-    // Build alias map for this document (DEC-1.1a)
-    const aliases = buildAliasMap(doc.meta, parentAliases);
-
-    // Process inherits entries
+    // Process inherits entries. Aliases are NOT accumulated here — they are
+    // document-local (D39, superseding DEC-1.1a's inherited-by-children); the
+    // Catalog builds per-document alias scopes. This pass only loads and orders docs.
     const inherits = doc.meta.inherits;
     if (inherits && Array.isArray(inherits)) {
       for (const entry of inherits) {
@@ -107,7 +95,7 @@ export function resolveInheritance(
               );
             }
           }
-          dfs(parent, aliases);
+          dfs(parent);
         } else if (typeof entry === 'object' && entry !== null && 'source' in entry) {
           // Object-form: name an EXTERNAL source library (DEC-1.7). Pull
           // every document from that source so any of them can be
@@ -136,7 +124,7 @@ export function resolveInheritance(
             }
             // Recurse so the source doc's own (string-form) inherits and
             // alias map are processed, and it lands in `ordered`.
-            dfs(docMap.get(parentKey)!, aliases);
+            dfs(docMap.get(parentKey)!);
           }
         } else {
           continue;
@@ -147,18 +135,15 @@ export function resolveInheritance(
     visiting.delete(key);
     visited.add(key);
     ordered.push(doc);
-
-    return aliases;
   }
 
-  const finalAliases = dfs(entryDoc, new Map());
+  dfs(entryDoc);
 
   // Tarjan's SCC post-pass (DEC-1.8)
   const sccs = findSCCs(ordered, docMap);
 
   return {
     orderedDocuments: ordered,
-    aliasMap: finalAliases,
     sccs,
   };
 }

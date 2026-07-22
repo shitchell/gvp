@@ -340,10 +340,11 @@ export function buildCatalog(
 
   logv(`Found ${yamlFiles.length} documents, ${leafDocs.length} leaves`);
 
-  // Resolve all leaf documents and merge their inheritance trees
+  // Resolve all leaf documents and merge their inheritance trees.
+  // Aliases are NOT collected here — they are document-local (D39), so the Catalog
+  // builds per-document alias scopes from the ordered documents directly.
   const allOrderedDocs: ResolvedInheritance['orderedDocuments'] = [];
   const seen = new Set<string>();
-  let mergedAliasMap: ResolvedInheritance['aliasMap'] = new Map();
   let mergedSccs: ResolvedInheritance['sccs'] = [];
 
   const entries = leafDocs.length > 0 ? leafDocs : [docCache.values().next().value!];
@@ -356,13 +357,10 @@ export function buildCatalog(
         allOrderedDocs.push(doc);
       }
     }
-    // Merge (not overwrite) alias maps across leaves — otherwise a later leaf's
-    // map clobbers earlier leaves' aliases, silently dropping them (#13).
-    for (const [alias, src] of resolved.aliasMap) mergedAliasMap.set(alias, src);
     mergedSccs.push(...resolved.sccs);
   }
 
-  const resolved: ResolvedInheritance = { orderedDocuments: allOrderedDocs, aliasMap: mergedAliasMap, sccs: mergedSccs };
+  const resolved: ResolvedInheritance = { orderedDocuments: allOrderedDocs, sccs: mergedSccs };
   const catalog = new Catalog(resolved, config);
   logv(`Catalog built: ${catalog.getAllElements().length} elements`);
   return catalog;
