@@ -63,7 +63,7 @@ export function upsertRegistryEntry(
   projectName: string,
   projectPath: string,
 ): void {
-  const registryDir = getRegistryDir();
+  const registryDir = getProjectsDir();
   const entryPath = path.join(registryDir, `${projectId}.yml`);
 
   try {
@@ -140,7 +140,7 @@ export function upsertRegistryEntry(
  * No-op if the registry directory doesn't exist yet.
  */
 export function pruneStaleRegistryEntries(): void {
-  const registryDir = getRegistryDir();
+  const registryDir = getProjectsDir();
   if (!fs.existsSync(registryDir)) return;
 
   let files: string[];

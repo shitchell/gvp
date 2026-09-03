@@ -94,17 +94,30 @@ Expected: FAIL — `Cannot find module '../../src/registry/paths.js'`
 - [ ] **Step 3: Write the implementation**
 
 ```typescript
+import * as os from 'os';
 import * as path from 'path';
 
 /**
  * Registry root. Honors GVP_REGISTRY_ROOT (D22), which addresses the
  * ROOT rather than the by-id keyspace — the original getRegistryDir()
  * conflated the two, which blocked adding a sibling keyspace.
+ *
+ * The override is resolved to an absolute path so `getRegistryRoot()` and
+ * `path.dirname(getProjectsDir())` agree for trailing-slash input, and so
+ * a relative override is cwd-independent.
+ *
+ * The home fallback uses os.homedir() rather than `|| ''`: an empty string
+ * makes path.join yield the RELATIVE path `.gvp/registry`, so with HOME
+ * unset (systemd units, cron, some CI) recording would write into whatever
+ * directory the process happened to be in — and D43 makes that reachable on
+ * every invocation. os.homedir() never returns '' and already honors $HOME
+ * on POSIX, so test overrides still work. This is the mechanism
+ * src/inheritance/source-resolver.ts already uses (P11).
  */
 export function getRegistryRoot(): string {
   const override = process.env.GVP_REGISTRY_ROOT;
-  if (override && override.length > 0) return override;
-  const home = process.env.HOME || process.env.USERPROFILE || '';
+  if (override && override.length > 0) return path.resolve(override);
+  const home = process.env.HOME || process.env.USERPROFILE || os.homedir();
   return path.join(home, '.gvp', 'registry');
 }
 
@@ -125,6 +138,8 @@ Run: `npx vitest run tests/registry/paths.test.ts`
 Expected: PASS (3 tests)
 
 - [ ] **Step 5: Point the existing registry at the new accessor**
+
+Also change `upsertRegistryEntry` and `pruneStaleRegistryEntries` to call `getProjectsDir()` directly — a module should not call through its own deprecation notice.
 
 In `src/config/registry.ts`, replace the body of `getRegistryDir()` so the two agree and `GVP_REGISTRY_ROOT` keeps working for existing callers:
 
@@ -2888,13 +2903,21 @@ Verify: `rm -rf dist && npm test` completes rather than throwing.
 
 Every decision D40–D58 needs `refs` pointing at its implementation, so `cairn validate --coverage` passes. Use `cairn edit`, never direct YAML edits.
 
+**Attribution note:** Task 1's commit tags `src/registry/paths.ts` as `[D52]`, but D52 is "Registry writes are atomic" — path splitting is not atomicity. The substantive owners are **D51** (split registry writes by write-shape, which is what requires a sibling keyspace) and **D40**. Ref `paths.ts` from D51/D40, not from D52. The code's own docblocks already say this (`Project entries keyspace (D22)`, `Library entries keyspace (D40, D51)`).
+
+- [ ] **Step 8: Remove the deprecated getRegistryDir shim**
+
+Task 1 left `getRegistryDir()` as a `@deprecated` alias so existing callers kept working mid-plan. Nothing removes it, and a deprecated alias with no removal date is a silent V4/V6 cost. Its two production call sites were already migrated in Task 1; migrate the ~12 remaining callsites in `tests/config/registry.test.ts` to `getProjectsDir()` and delete the shim.
+
+Verify: `grep -rn getRegistryDir src/ tests/` returns nothing.
+
 Run: `node dist/cli/index.js validate --coverage`
 Expected: no `W013` for D40–D58
 
-- [ ] **Step 8: Commit**
+- [ ] **Step 9: Commit**
 
 ```bash
-git add tests/registry/ package.json .gvp/library/gvp.yaml
+git add tests/registry/ tests/config/ src/config/registry.ts package.json .gvp/library/gvp.yaml
 git commit -m "test: concurrency and end-to-end coverage; add refs to D40-D58 [P18, C2, D52]"
 ```
 
