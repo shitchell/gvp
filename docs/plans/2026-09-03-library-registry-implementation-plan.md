@@ -490,7 +490,133 @@ git commit -m "feat!: registry recording defaults on with opt-out [D43, D44]"
 
 ## Phase 2 — Recording
 
-### Task 4: Entry key derivation and source canonicalization [D46, D47, D49]
+### Task 4: Pure cache-only remote path derivation [D54]
+
+`GitSourceResolver.resolve` returns the cached path **only if the cache exists** — otherwise it runs `git ls-remote` and a shallow clone (`src/inheritance/source-resolver.ts:186-222`). The registry must never trigger that: recording would hit the network on every command, and `libs search` would become N clones, which D54 explicitly rejects.
+
+**Files:**
+- Modify: `src/inheritance/source-resolver.ts`
+- Test: `tests/inheritance/cached-path.test.ts`
+
+- [ ] **Step 1: Write the failing test**
+
+```typescript
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import { cachedPathFor } from '../../src/inheritance/source-resolver.js';
+
+describe('cachedPathFor (D54)', () => {
+  let cache: string;
+  const key = path.join('github', 'shitchell--gvp-docs', 'v0.7.0');
+
+  beforeEach(() => {
+    cache = fs.mkdtempSync(path.join(os.tmpdir(), 'cache-'));
+  });
+  afterEach(() => fs.rmSync(cache, { recursive: true, force: true }));
+
+  it('returns null for an uncached remote WITHOUT touching the network', () => {
+    expect(cachedPathFor('@github:shitchell/gvp-docs@v0.7.0', cache)).toBeNull();
+  });
+
+  it('returns the repo root when the cache exists with no gvp/ subdir', () => {
+    const dir = path.join(cache, key);
+    fs.mkdirSync(dir, { recursive: true });
+    expect(cachedPathFor('@github:shitchell/gvp-docs@v0.7.0', cache)).toBe(dir);
+  });
+
+  it('applies the dual lookup, preferring gvp/', () => {
+    const dir = path.join(cache, key);
+    fs.mkdirSync(path.join(dir, 'gvp'), { recursive: true });
+    fs.mkdirSync(path.join(dir, '.gvp', 'library'), { recursive: true });
+    expect(cachedPathFor('@github:shitchell/gvp-docs@v0.7.0', cache)).toBe(path.join(dir, 'gvp'));
+  });
+
+  it('falls back to .gvp/library when gvp/ is absent', () => {
+    const dir = path.join(cache, key);
+    fs.mkdirSync(path.join(dir, '.gvp', 'library'), { recursive: true });
+    expect(cachedPathFor('@github:shitchell/gvp-docs@v0.7.0', cache)).toBe(path.join(dir, '.gvp', 'library'));
+  });
+
+  it('returns null for a malformed source', () => {
+    expect(cachedPathFor('@github:no-commitish', cache)).toBeNull();
+    expect(cachedPathFor('/a/local/path', cache)).toBeNull();
+  });
+});
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `npx vitest run tests/inheritance/cached-path.test.ts`
+Expected: FAIL — `cachedPathFor` is not exported
+
+- [ ] **Step 3: Extract the shared pieces and export the pure derivation**
+
+`GitSourceResolver` currently holds `findLibraryDir` as a private method and derives `cacheKey` inline at `:184-186`. Lift both to module scope so the resolver and the new function share one implementation (no duplicated derivation to drift):
+
+```typescript
+/**
+ * Dual lookup within a resolved repo directory (DEC-1.2, DEC-1.10):
+ * gvp/ wins over .gvp/library/, falling back to the repo root.
+ * Lifted from GitSourceResolver so cachedPathFor can share it.
+ */
+export function findLibraryDirIn(repoDir: string): string {
+  const gvpDir = path.join(repoDir, 'gvp');
+  if (fs.existsSync(gvpDir) && fs.statSync(gvpDir).isDirectory()) return gvpDir;
+  const dotGvpLibrary = path.join(repoDir, '.gvp', 'library');
+  if (fs.existsSync(dotGvpLibrary) && fs.statSync(dotGvpLibrary).isDirectory()) return dotGvpLibrary;
+  return repoDir;
+}
+
+/**
+ * The remote source grammar: `@<provider>:<path>@<commitish>`.
+ *
+ * ONE definition, reused by GitSourceResolver.resolve, cachedPathFor, and
+ * registry/key.ts's parseSource — three copies had accumulated, the same
+ * P11 duplication this task consolidates cacheKey and findLibraryDir for.
+ * Update `GitSourceResolver.resolve`'s inline literal to use this too.
+ */
+export const REMOTE_SOURCE_RE = /^@(\w+):(.+?)@(.+)$/;
+
+/** Cache key for a parsed remote source. Single source of truth. */
+export function remoteCacheKey(provider: string, repoPath: string, commitish: string): string {
+  return `${provider}/${repoPath.replace(/\//g, '--')}/${commitish}`;
+}
+
+/**
+ * The cached library directory for a remote source, or null if it is
+ * not on disk. PURE — never performs network I/O, never clones. This is
+ * what the registry uses; calling GitSourceResolver.resolve instead
+ * would fetch (D54).
+ */
+export function cachedPathFor(source: string, cacheDir: string = defaultCacheDir()): string | null {
+  // Reuses the single grammar definition declared above.
+  const m = REMOTE_SOURCE_RE.exec(source);
+  if (!m) return null;
+  const dir = path.join(cacheDir, remoteCacheKey(m[1] as string, m[2] as string, m[3] as string));
+  if (!fs.existsSync(dir)) return null;
+  return findLibraryDirIn(dir);
+}
+```
+
+Then replace `GitSourceResolver`'s private `findLibraryDir` body with a call to `findLibraryDirIn(repoDir)` and its inline `cacheKey` with `remoteCacheKey(...)`, so there is exactly one derivation.
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `npx vitest run tests/inheritance/`
+Expected: PASS — including the existing `source-resolver.test.ts`, unchanged
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/inheritance/source-resolver.ts tests/inheritance/cached-path.test.ts
+git commit -m "feat: pure cache-only remote path derivation, no network I/O [D54]"
+```
+
+---
+
+### Task 5: Entry key derivation and source canonicalization [D46, D47, D49]
 
 For local libraries the key is the **resolved absolute filesystem path**; for remote it is the `@provider:path@commitish` source spec, because for a remote the filesystem path is a cache location rather than an identity.
 
@@ -606,6 +732,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { createHash } from 'crypto';
+import { REMOTE_SOURCE_RE } from '../inheritance/source-resolver.js';
 
 /**
  * Is this source a remote spec? Mirrors createSourceResolver's dispatch
@@ -617,14 +744,16 @@ export function isRemoteSource(source: string): boolean {
 }
 
 /**
- * The remote source grammar: `@<provider>:<path>@<commitish>`.
+ * The remote source grammar lives in `src/inheritance/source-resolver.ts`
+ * (Task 5), which owns it — `GitSourceResolver.resolve` already parses it.
+ * Import it rather than defining a second copy.
  *
- * Exported and reused by cachedPathFor (Task 5) and GitSourceResolver so
- * there is exactly ONE definition — three copies had accumulated, the same
- * P11 duplication Task 5 consolidated cacheKey and findLibraryDir for.
- * Update GitSourceResolver.resolve to use this too.
+ * DIRECTION MATTERS: `inheritance/` is the lower layer and `registry/`
+ * consumes it (record.ts and query.ts both import source-resolver).
+ * Defining the constant here and importing it *down* into source-resolver
+ * would invert that layering and become a genuine cycle the moment key.ts
+ * needs anything from the resolver.
  */
-export const REMOTE_SOURCE_RE = /^@(\w+):(.+?)@(.+)$/;
 
 /**
  * Derive kind and ref from a source string (D50 — neither is stored).
@@ -692,122 +821,6 @@ Expected: PASS (10 tests)
 ```bash
 git add src/registry/key.ts tests/registry/key.test.ts
 git commit -m "feat: registry entry key derivation and source canonicalization [D46, D47]"
-```
-
----
-
-### Task 5: Pure cache-only remote path derivation [D54]
-
-`GitSourceResolver.resolve` returns the cached path **only if the cache exists** — otherwise it runs `git ls-remote` and a shallow clone (`src/inheritance/source-resolver.ts:186-222`). The registry must never trigger that: recording would hit the network on every command, and `libs search` would become N clones, which D54 explicitly rejects.
-
-**Files:**
-- Modify: `src/inheritance/source-resolver.ts`
-- Test: `tests/inheritance/cached-path.test.ts`
-
-- [ ] **Step 1: Write the failing test**
-
-```typescript
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import * as fs from 'fs';
-import * as os from 'os';
-import * as path from 'path';
-import { cachedPathFor } from '../../src/inheritance/source-resolver.js';
-
-describe('cachedPathFor (D54)', () => {
-  let cache: string;
-  const key = path.join('github', 'shitchell--gvp-docs', 'v0.7.0');
-
-  beforeEach(() => {
-    cache = fs.mkdtempSync(path.join(os.tmpdir(), 'cache-'));
-  });
-  afterEach(() => fs.rmSync(cache, { recursive: true, force: true }));
-
-  it('returns null for an uncached remote WITHOUT touching the network', () => {
-    expect(cachedPathFor('@github:shitchell/gvp-docs@v0.7.0', cache)).toBeNull();
-  });
-
-  it('returns the repo root when the cache exists with no gvp/ subdir', () => {
-    const dir = path.join(cache, key);
-    fs.mkdirSync(dir, { recursive: true });
-    expect(cachedPathFor('@github:shitchell/gvp-docs@v0.7.0', cache)).toBe(dir);
-  });
-
-  it('applies the dual lookup, preferring gvp/', () => {
-    const dir = path.join(cache, key);
-    fs.mkdirSync(path.join(dir, 'gvp'), { recursive: true });
-    fs.mkdirSync(path.join(dir, '.gvp', 'library'), { recursive: true });
-    expect(cachedPathFor('@github:shitchell/gvp-docs@v0.7.0', cache)).toBe(path.join(dir, 'gvp'));
-  });
-
-  it('falls back to .gvp/library when gvp/ is absent', () => {
-    const dir = path.join(cache, key);
-    fs.mkdirSync(path.join(dir, '.gvp', 'library'), { recursive: true });
-    expect(cachedPathFor('@github:shitchell/gvp-docs@v0.7.0', cache)).toBe(path.join(dir, '.gvp', 'library'));
-  });
-
-  it('returns null for a malformed source', () => {
-    expect(cachedPathFor('@github:no-commitish', cache)).toBeNull();
-    expect(cachedPathFor('/a/local/path', cache)).toBeNull();
-  });
-});
-```
-
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `npx vitest run tests/inheritance/cached-path.test.ts`
-Expected: FAIL — `cachedPathFor` is not exported
-
-- [ ] **Step 3: Extract the shared pieces and export the pure derivation**
-
-`GitSourceResolver` currently holds `findLibraryDir` as a private method and derives `cacheKey` inline at `:184-186`. Lift both to module scope so the resolver and the new function share one implementation (no duplicated derivation to drift):
-
-```typescript
-/**
- * Dual lookup within a resolved repo directory (DEC-1.2, DEC-1.10):
- * gvp/ wins over .gvp/library/, falling back to the repo root.
- * Lifted from GitSourceResolver so cachedPathFor can share it.
- */
-export function findLibraryDirIn(repoDir: string): string {
-  const gvpDir = path.join(repoDir, 'gvp');
-  if (fs.existsSync(gvpDir) && fs.statSync(gvpDir).isDirectory()) return gvpDir;
-  const dotGvpLibrary = path.join(repoDir, '.gvp', 'library');
-  if (fs.existsSync(dotGvpLibrary) && fs.statSync(dotGvpLibrary).isDirectory()) return dotGvpLibrary;
-  return repoDir;
-}
-
-/** Cache key for a parsed remote source. Single source of truth. */
-export function remoteCacheKey(provider: string, repoPath: string, commitish: string): string {
-  return `${provider}/${repoPath.replace(/\//g, '--')}/${commitish}`;
-}
-
-/**
- * The cached library directory for a remote source, or null if it is
- * not on disk. PURE — never performs network I/O, never clones. This is
- * what the registry uses; calling GitSourceResolver.resolve instead
- * would fetch (D54).
- */
-export function cachedPathFor(source: string, cacheDir: string = defaultCacheDir()): string | null {
-  // Reuses the single grammar definition exported from registry/key.ts.
-  const m = REMOTE_SOURCE_RE.exec(source);
-  if (!m) return null;
-  const dir = path.join(cacheDir, remoteCacheKey(m[1] as string, m[2] as string, m[3] as string));
-  if (!fs.existsSync(dir)) return null;
-  return findLibraryDirIn(dir);
-}
-```
-
-Then replace `GitSourceResolver`'s private `findLibraryDir` body with a call to `findLibraryDirIn(repoDir)` and its inline `cacheKey` with `remoteCacheKey(...)`, so there is exactly one derivation.
-
-- [ ] **Step 4: Run tests to verify they pass**
-
-Run: `npx vitest run tests/inheritance/`
-Expected: PASS — including the existing `source-resolver.test.ts`, unchanged
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add src/inheritance/source-resolver.ts tests/inheritance/cached-path.test.ts
-git commit -m "feat: pure cache-only remote path derivation, no network I/O [D54]"
 ```
 
 ---
@@ -1688,7 +1701,7 @@ export function recordLibraries(args: RecordArgs): string | undefined {
  * GitSourceResolver.resolve returns the cached path only when the cache
  * EXISTS -- otherwise it runs `git ls-remote` plus a shallow clone. That
  * would make every catalog-building command hit the network for any
- * evicted remote. cachedPathFor (Task 5) is the pure, cache-only
+ * evicted remote. cachedPathFor (Task 4) is the pure, cache-only
  * derivation.
  *
  * expandTilde matters here: sourceDocCache is keyed by the RAW source and
@@ -1705,7 +1718,7 @@ function resolveIfCached(source: string, baseDir: string): string | null {
 }
 ```
 
-> `expandTilde` and `isRemoteSource` are exported from `src/registry/key.ts` in Task 4.
+> `expandTilde` and `isRemoteSource` are exported from `src/registry/key.ts` in Task 5.
 >
 > Also delete `src/cli/helpers.ts`'s private `expandTilde` (`helpers.ts:429`) and import the exported one — otherwise there are two copies of the same logic, the P11 duplication this plan already avoided for `findYamlFiles`.
 
