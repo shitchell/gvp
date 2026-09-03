@@ -117,6 +117,24 @@ goals:
     origin:
       - date: '2026-03-26'
         note: Added during post-v1 heuristic mining -- supports Surface Tension principle
+  - id: G11
+    name: Enable reuse of guiding elements across projects
+    statement: |
+      A guiding element authored once should be discoverable and reusable by every later project, without depending on a human remembering that it exists. The framework's other goals govern alignment, review, and consistency WITHIN a library; this one governs the boundary between libraries -- a new project must be able to find that the element it is about to author already exists upstream. G10 is adjacent but scoped to within-library similarity analysis, not cross-library discovery.
+    tags:
+      - framework
+      - alignment
+      - tooling
+    maps_to:
+      - gvp:G2
+      - gvp:G7
+    origin:
+      - date: '2026-09-03'
+        note: >-
+          Filed as issue #15 after a session hand-authored ~48 elements for a new
+          project and flagged three as having unrecoverable rationale -- all three
+          already existed in the owner's personal library. One derived substitute was
+          wrong and propagated into project guidance before a human caught it.
 values:
   - id: V1
     name: Alignment
@@ -499,6 +517,25 @@ principles:
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
+  - id: P18
+    name: Prefer idempotent writes over locking for shared state
+    statement: |
+      When concurrent writers to a shared location necessarily produce identical content, contention is harmless by construction and no lock is required. Prefer designs that arrange for that property -- by splitting state along the axis of what differs between writers -- over designs that permit differing concurrent writes and then coordinate them. A correctness argument that rests on the shape of the data has no failure mode to get wrong; one that rests on a lock has several.
+      The property is fragile and must be maintained deliberately. Adding a single per-writer field -- a timestamp, a counter, a hostname -- silently destroys it while leaving the code that relied on it unchanged. And idempotent content alone does not make a concurrent READER safe: without an atomic replace, a reader can observe a truncated file mid-write. Idempotence removes the need for mutual exclusion between writers; it does not remove the need for atomicity.
+    tags:
+      - framework
+      - tooling
+      - integrity
+    maps_to:
+      - gvp:G6
+      - gvp:V10
+    origin:
+      - date: '2026-09-03'
+        note: >-
+          Extracted while designing the library registry (#15), where two projects
+          inheriting the same library would otherwise contend on one entry file. The
+          fragility and atomicity caveats were added after adversarial review found
+          the first draft of this design had already violated both.
 heuristics:
   - id: H1
     name: Core vs. example placement
@@ -806,6 +843,27 @@ rules:
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
+  - id: R9
+    name: Every GVP library carries a portable identity decreed upstream
+    statement: |
+      Every GVP library -- local or remote, embedded in a project or published standalone -- must carry a portable identity committed by its author and travelling with its content. A consumer that fetches a library may only READ that identity; it must never generate one locally.
+      The reason is a fact about distribution that the rule exists to respect: an identity is only useful if every consumer agrees on it, and a UUID minted locally at fetch time would differ per consumer, manufacturing false distinctions between copies of one library. That is strictly worse than having no identity, which merely fails to collapse true ones. This is P17's shape ("decreed inputs are not derived") applied to identity rather than to requirements -- the identity is a decreed input to every consumer, and a consumer that re-derives it has produced a different thing.
+      Not yet enforceable: no field exists to carry it. documentMetaSchema has no id field, and a published bare library repo has no .gvp/config.yaml in which to put one. Tracked as issue #16, which must settle where the identity is declared, how it relates to D21's project_id, and how it is made immutable. Until then the rule constrains design rather than data: D46 may not key on a locally generated identity, and D48 reads library_id if present without depending on it.
+    tags:
+      - framework
+      - integrity
+    maps_to:
+      - gvp:G5
+      - gvp:V10
+      - gvp:P17
+    origin:
+      - date: '2026-09-03'
+        note: >-
+          Raised while designing the library registry (#15) and filed upstream as
+          issue #16. Recorded as a rule rather than a constraint on the human's
+          correction: the impossibility of locally agreeing on a generated identity
+          is the external fact, but requiring identity to be decreed upstream is a
+          rule this project made.
 decisions:
   - id: D1
     name: Walk-backwards config discovery
@@ -1282,7 +1340,7 @@ decisions:
           cairn: generated project_id <uuid> and wrote it to <path>
 
       An explicit migration command was considered and rejected for discoverability: users who initialized their library months ago won't know to run it. Auto-backfill on first invocation is invisible when it doesn't matter and loud when it does.
-      **Write side effects on read commands:** the preflight writes exactly ONCE per project, ever — not on every invocation. This is qualitatively different from a registry cache that writes every time (the rejected earlier shape of feature 2). The one-time nature makes the side effect acceptable: users who dislike it see exactly one stderr line ever per project and can delete the config file to undo. A registry that wrote every time would be a continuous side effect and is gated behind an explicit config flag (see D22).
+      **Write side effects on read commands:** the preflight writes exactly ONCE per project, ever — not on every invocation. This is qualitatively different from a registry cache that writes every time (the rejected earlier shape of feature 2). The one-time nature makes the side effect acceptable: users who dislike it see exactly one stderr line ever per project and can delete the config file to undo. A registry that wrote every time would be a continuous side effect and is gated behind an explicit config flag (see D22). **AMENDED 2026-09-03 (issue #15):** this contrast no longer holds. D43 flips the registry default to on, so the continuous side effect is no longer gated behind an opt-in flag -- it is gated behind an OPT-OUT (`registry.enabled: false` or `--no-registry`). D21's own one-time write is unchanged; only the contrast drawn against D22 is stale.
       **Immutability via IMMUTABLE_CONFIG_FIELDS:** the project_id is registered in a generic Set that edit commands and future config-mutation paths check before allowing a write. Separate Set from RESERVED_FIELD_NAMES because the enforcement surface is config fields vs element meta fields — two different namespaces. Future immutable config fields (format_version, created_at) join the Set and get enforcement for free. Generic mechanism per R6: no hard-coded "if field === 'project_id'" branches anywhere.
       **Preflight target: cwd, not --library override.** If the user invokes cairn from project A while passing `--library ~/.cwork/pm/gvp/` to read the PM library, preflight backfills A's identity, not the PM library's. This matches the intuition that "project identity" tracks the working directory, not whichever library happens to be loaded. The PM library has its own config managed separately.
       **UUID version:** any valid UUID accepted (per configSchema's `.uuid()` validator). New IDs generated via `crypto.randomUUID()` which produces v4. Users pasting v7 or other versions into config by hand will validate fine.
@@ -1315,7 +1373,7 @@ decisions:
       - date: '2026-04-08'
         note: Requested by the claude-worker PM to support PM-identity state that's stable across cloned/moved/renamed projects. Design locked in a two-round evaluation with multiple location options considered; .gvp/config.yaml chosen over meta.project_id and .gvp/.uuid sidecar per human's recommendation to Guy.
   - id: D22
-    name: Opt-in global project registry at ~/.gvp/registry/by-id
+    name: Global project registry at ~/.gvp/registry/by-id
     rationale: |
       Builds on D21 (project_id) to enable cross-project discovery: a global directory where cairn maintains one YAML file per known project, keyed by the project's stable UUID. PMs and other consumers can walk the registry to answer questions like "what projects exist on this machine" and "when was project X last touched" without knowing where those projects live on disk.
       **Opt-in via config flag:** `registry.enabled: true` in any config layer (system, global, project, local) turns on the registry upsert. Default is disabled. The claude-worker PM and the PM's initial evaluation of this feature both independently landed on opt-in as the right default because:
@@ -1355,6 +1413,16 @@ decisions:
         strictly per-user ($HOME-scoped).
       - Integration with external project indexers (IDEs,
         launchers). That's a consumer concern.
+
+      **AMENDED 2026-09-03 (issue #15).** Five parts of this decision are superseded or extended. Everything not listed below stands as written.
+      1. **Opt-in default reversed.** `registry.enabled` now defaults to TRUE and governs both project entries and the library entries added by D40. The opt-in default was falsified by evidence: ~5 months after this decision landed the flag was set in no config layer and the registry directory did not exist, so it had recorded nothing, ever. See D43, and D44 for why one flag governs both.
+      2. **The out-of-scope note forbidding a query command no longer holds.** This decision reasoned that consumers walk the directory themselves. That was sound for a single flat keyspace; D51 splits registry state across two keyspaces and derives the usage edge by inversion, which no consumer will assemble by hand. See D54.
+      3. **Silent failure amended to warn once.** This decision wrapped every registry operation and returned silently. Failures now emit at most one stderr warning per invocation, per V3. The guarantee that registry errors never fail the primary command is unchanged. See D57.
+      4. **The "registry, not cache" naming argument is superseded.** This decision reasoned that "cache" wrongly implies safe-to-delete. D56 finds both halves true and states them separately: deleting is safe and breaks nothing, but rebuilding is lossy and incremental. The naming rationale above should be read as superseded by D56, not as current guidance.
+      5. **The "both phases are no-op without project context" rule no longer holds universally.** D58 records library facts even when no project directory is found, because those facts are complete without one; only the usage edge is skipped. The preflight's own no-op behavior is unchanged.
+      **Entry schema extended.** The schema above gains a `libraries:` list carrying the usage edge (D53) -- entries of key, `first_seen`, `last_seen`, merged rather than overwritten. This is the additive extension the schema note anticipated.
+      **Prune refined by D55:** the uniform auto-prune (remove entries whose recorded paths are gone) is correct for local libraries but wrong for remote ones, which stay re-fetchable from their source string while the ref is still served.
+      **Write path corrected by D52:** the bare file write above is not atomic, and combined with a prune that unlinks unparseable entries it becomes a data-loss path once recording runs for every user on every invocation. Registry writes now use temp-file-plus-rename.
     tags:
       - framework
       - tooling
@@ -1362,6 +1430,7 @@ decisions:
     maps_to:
       - gvp:G2
       - gvp:G5
+      - gvp:G11
       - gvp:V2
       - gvp:V8
       - gvp:P4
@@ -1380,6 +1449,11 @@ decisions:
     origin:
       - date: '2026-04-08'
         note: Requested by the claude-worker PM as feature 2 of the PM lifecycle architecture, building on D21 project_id as the registry key. Landed in the same session as D21 since the two features are tightly coupled; registry is useless without stable identity, and D21 is nearly useless without a way to correlate IDs across projects.
+      - date: '2026-09-03'
+        note: >-
+          Amended for issue #15. Name changed from "Opt-in global project registry at
+          ~/.gvp/registry/by-id" -- the opt-in qualifier is no longer accurate. Five
+          parts superseded or extended; see the AMENDED block in the rationale.
   - id: D23
     name: Scalar example field on procedure steps
     rationale: |
@@ -1931,6 +2005,475 @@ decisions:
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
+  - id: D40
+    name: Record every resolved library in a machine-global index
+    rationale: |
+      Cairn resolves libraries constantly -- local .gvp/ directories and remote sources named in inherits -- but records nothing, so each library is visible only from inside the project that references it. Every catalog-building invocation now records what it resolved into a machine-global index, making the answer to "which GVP libraries exist on this machine, and which has this project seen" a lookup rather than a thing a human must remember to mention.
+      A filesystem scan of configured roots was considered and rejected. "Configured roots" requires the user to have configured them correctly, which is the same "depends on a human remembering to set it up" failure the feature exists to remove. A scan also cannot see libraries outside the scanned roots, cannot surface a remote never fetched, and cannot distinguish a live project from a build sandbox or a skel/ template. Recording what cairn actually resolved needs no configuration, sees what was really used, and excludes directories cairn was never run against.
+    tags:
+      - framework
+      - tooling
+      - usability
+    maps_to:
+      - gvp:G11
+      - gvp:G7
+      - gvp:V9
+      - gvp:D22
+    considered:
+      filesystem_scan_of_configured_roots:
+        rationale: |
+          Enumerating libraries by scanning configured project roots was rejected: it depends on the user having configured the roots, which is the same failure mode the feature exists to remove, and it cannot distinguish live projects from sandboxes or templates.
+        would_have_served:
+          - gvp:V4
+        conflicts_with:
+          - gvp:G8
+    origin:
+      - date: '2026-09-03'
+        note: Requested in issue #15 with a downstream consumer (ai-infra) waiting on the enumerate command.
+
+  - id: D41
+    name: Record every document in the resolved library directory, not only inherited ones
+    rationale: |
+      When a library is resolved, every YAML document in it is recorded, not only the documents the current project actually inherits. This is already what the existing source loader does -- it collects every YAML file in the resolved directory rather than only the inherited ones -- so the change is to state the behavior as intended rather than incidental.
+      It is load-bearing for G11. A project that inherits only code-testing from the owner's personal library would otherwise never index the personal document, and the personal document is exactly where the three elements in the motivating incident lived. Recording only what was inherited would make the feature architecturally unable to solve its own motivating case while appearing to work -- the worst available failure mode, because it produces a populated index that is silently missing the content the user needs.
+    tags:
+      - framework
+      - tooling
+      - integrity
+    maps_to:
+      - gvp:G11
+      - gvp:V3
+      - gvp:D40
+    origin:
+      - date: '2026-09-03'
+        note: >-
+          Added after a library-only fidelity check found the recording scope
+          undefined, and that the most literal reading would have excluded the very
+          document the motivating incident was about.
+
+  - id: D42
+    name: Hook recording at catalog construction, not per-command
+    rationale: |
+      buildCatalog() is the single choke point for library LOADING -- 11 of 12 commands call it, and the one that does not (init) creates a library rather than loading one. It holds the resolved library directory across all three discovery paths (--library, --store, and cwd walk-back), the source cache keyed by every external source resolved, the resolver that maps those to paths and refs, meta.name per document, and per-document element counts. One hook there covers every present and future catalog-building command; per-command hooks would drift as commands are added and would re-derive the same facts.
+      It does NOT hold project identity, and the first draft of this design wrongly assumed it did. runProjectPreflight is called inside parseConfigOptions, whose return value carries only the config and config options -- the PreflightResult is consumed and discarded. Recording the usage edge therefore requires a plumbing change: parseConfigOptions must return the PreflightResult and it must reach the recording function. The single-choke-point property is true of library loading, not of project identity.
+    tags:
+      - framework
+      - tooling
+    maps_to:
+      - gvp:G5
+      - gvp:V2
+      - gvp:D40
+    origin:
+      - date: '2026-09-03'
+        note: >-
+          The project-identity caveat was added after adversarial review found the
+          claim that buildCatalog "already holds" everything required was overstated
+          in the one dimension the usage edge depends on.
+
+  - id: D43
+    name: Library recording defaults on, with a named opt-out
+    rationale: |
+      D22 made registry recording opt-in behind registry.enabled, reasoning that read commands should stay filesystem-read-only and that nothing should appear in a user's home directory uninvited. That default was falsified by evidence: roughly five months after D22 landed, registry.enabled was set in no config layer and the registry directory did not exist. The registry recorded nothing, ever.
+      C1 ("Agents optimize for minimal effort") already ratifies why: agents do not enable flags they do not know exist. That is precisely the incident behind #15 -- an agent authored elements that already existed upstream because nothing told it the upstream library was there. A discovery feature that must itself be discovered before it works does not solve a discovery problem.
+      P7 ("Respect the user's environment") is honored by the escape hatch and a trivially clearable location rather than by a default-off flag, per P8 ("Opinionated defaults with escape hatches"). The opt-out has two named surfaces, both gating WRITES only -- the libs commands always read: registry.enabled false in any config layer, and --no-registry for a single invocation, which CI and sandboxes need because they cannot always edit a config file.
+      Flipping the default is not a one-word change. The config schema declares the registry object itself as optional, so omitting the registry key yields undefined and the enabled lookup stays falsy regardless of the inner default. The object needs a default of its own, and the schema comment stating the feature is off by default must be rewritten.
+      The substantive cost is acknowledged: read-only commands now write to the home directory by default. D22 raised three objections -- CI sandboxes, multi-user environments, and auditability. D57's resilience answers the sandbox half; the other two are accepted costs of the flip, recorded here so the trade is explicit rather than overlooked.
+    tags:
+      - framework
+      - usability
+      - tooling
+    maps_to:
+      - gvp:G8
+      - gvp:G7
+      - gvp:V5
+      - gvp:C1
+      - gvp:D22
+    considered:
+      keep_opt_in_but_advertise_it:
+        rationale: |
+          Keeping registry.enabled default-off while having cairn init write it into new configs and advertising it via a one-time stderr notice was rejected: an agent working in an existing unconfigured project -- exactly the case in #15 -- would still record nothing.
+        would_have_served:
+          - gvp:V4
+        conflicts_with:
+          - gvp:G8
+      environment_aware_default:
+        rationale: |
+          Defaulting on for interactive use and off when CI is detected was rejected as implicit environment-dependent behavior, which cuts against P14 ("Explicit over implicit"). The resilience requirement in D57 already covers the sandbox concern without branching on environment.
+        would_have_served:
+          - gvp:V7
+        conflicts_with:
+          - gvp:P14
+    origin:
+      - date: '2026-09-03'
+        note: >-
+          Human decision, issue #15. The opt-in default was tested against five months
+          of real use and produced zero entries.
+
+  - id: D44
+    name: One registry flag governs both project and library recording
+    rationale: |
+      registry.enabled governs both D22's project entries and the new library entries. A separate registry.libraries.enabled, leaving D22's project registry at default-off, was rejected: D53 stores the library usage edge inside project entries, so a default-off project registry would silently drop it, and standing up a second project-keyed store beside the first is the redundant-mechanism smell P11 ("Collapse redundant mechanisms") exists to catch.
+    tags:
+      - framework
+      - tooling
+      - usability
+    maps_to:
+      - gvp:G8
+      - gvp:V4
+      - gvp:P11
+      - gvp:D43
+    considered:
+      separate_libraries_flag:
+        rationale: |
+          A distinct registry.libraries.enabled flag would have left D22's project registry semantics untouched, but it would have broken the usage edge (which lives in project entries) and created two project-keyed stores side by side.
+        would_have_served:
+          - gvp:V8
+        conflicts_with:
+          - gvp:P11
+    origin:
+      - date: '2026-09-03'
+        note: Human decision after the coupling between the usage edge and D22's opt-in default was surfaced.
+
+  - id: D45
+    name: Index unit is the document, not the library directory
+    rationale: |
+      A "library" is not one name. The owner's personal library is six named documents; this repository's library is gvp plus v0. Since references resolve as document-name plus id after D36, the document is the unit that makes a search result directly citable -- an agent that finds personal:P16 can use that string immediately, whereas a directory-level hit requires a second hop to find which document holds it.
+    tags:
+      - framework
+      - tooling
+      - usability
+    maps_to:
+      - gvp:G11
+      - gvp:V6
+      - gvp:D40
+    considered:
+      library_directory_as_unit:
+        rationale: |
+          One entry per resolved library directory, listing its document names, is closer to the shape suggested in #15 and produces fewer entries, but the thing an agent needs to cite is a document name, so every search result would need a second lookup.
+        would_have_served:
+          - gvp:V4
+        conflicts_with:
+          - gvp:V6
+    origin:
+      - date: '2026-09-03'
+        note: Human decision; #15's suggested entry shape assumed one name per library, which does not hold for any real library on the author's machine.
+
+  - id: D46
+    name: Entries are keyed by source identity, not by name or UUID
+    rationale: |
+      The key is the canonicalized source string plus the document path -- unique after canonicalization, always available, and requiring no new identity concept. meta.name is emphatically not unique: a file named personal.yaml appears in sixteen locations on the author's machine, six of them cached refs of one published library. A library UUID would be the natural key but does not exist in documentMetaSchema and cannot be minted locally without violating R9.
+      Keying on source rather than on the RESOLVED filesystem path matters for remote libraries, whose resolved path embeds a cache directory subject to eviction and future relocation; path-keying would mint duplicate entries when that directory moves. For local libraries the canonicalized source IS the resolved library directory, so the two coincide.
+      Note the document path carries no file extension -- it is the extension-stripped relative path cairn already uses as document identity -- so the actual filename is stored separately, since whether a document is .yaml or .yml is not derivable from it.
+    tags:
+      - framework
+      - tooling
+      - integrity
+    maps_to:
+      - gvp:G6
+      - gvp:V10
+      - gvp:R9
+      - gvp:D45
+    considered:
+      key_by_meta_name:
+        rationale: |
+          Keying by meta.name was rejected because names are not unique across libraries -- a personal.yaml exists in sixteen places on one machine, six of them cached remote refs.
+        conflicts_with:
+          - gvp:V10
+      key_by_library_uuid:
+        rationale: |
+          Keying by a library UUID is the natural design but no such field exists, and minting one locally on fetch would differ per consumer per R9. Tracked upstream as issue #16; this design reads library_id if present.
+        would_have_served:
+          - gvp:V10
+        conflicts_with:
+          - gvp:R9
+      key_by_resolved_filesystem_path:
+        rationale: |
+          Keying by the resolved absolute path was the initial proposal, corrected during review: for remote libraries the resolved path embeds a cache directory subject to eviction and relocation, so moving it would silently duplicate every remote entry.
+        would_have_served:
+          - gvp:V4
+        conflicts_with:
+          - gvp:V10
+    origin:
+      - date: '2026-09-03'
+        note: >-
+          Refined twice -- first from name-keying to path-keying, then from path-keying
+          to source identity after review found resolved paths unstable for remotes.
+
+  - id: D47
+    name: Local libraries are keyed by resolved filesystem path, not by the source string
+    rationale: |
+      For LOCAL libraries the key is the resolved absolute filesystem path of the document -- the resolver's own output, with symlinks resolved. Not the source string the caller happened to type. For REMOTE libraries the filesystem path is a CACHE LOCATION rather than an identity, so those keep the provider-and-commitish source spec, which is what actually identifies them.
+      Using the raw source string for local libraries was the first draft, and it fails four distinct ways, each verified against the resolver:
+      (1) DUAL LOOKUP -- the local resolver maps a project path, that path plus gvp/, and that path plus .gvp/library/ onto the same library directory, so three different source strings name one library and would mint three entries per document.
+      (2) TILDE -- tilde expansion happens in the CLI before resolution, but the source cache is keyed by the raw tilde-prefixed string, and ordinary path resolution does not expand it, so the expanded and unexpanded forms would be separate keys.
+      (3) CONFIG SOURCE -- the root library's source defaults to a free-form configurable string rather than a path. Two unrelated projects that both set the same value would collide on one hash and silently overwrite each other's entry, each pointing at the other's absolute path. This is the most dangerous of the four because it corrupts rather than duplicates.
+      (4) SYMLINKS -- two paths to one library are two keys.
+      Every one of those failures is a property of the source STRING, and every one disappears once the key is the resolved path -- because resolving is precisely the step that collapses the dual lookup, expands the tilde, discards the configurable source value in favour of a real location, and (with symlinks resolved) unifies aliases. The resolved directory is itself a valid inherits source, so the paste-ability that motivates D49's grammar reuse survives intact.
+      A related correction: the claim that the local resolver resolves relative paths against the REFERENCING library's directory is false at the system level. The resolver is instantiated once with the ROOT library directory and used for every source, including sources reached transitively through a fetched remote. The root library directory is what the recording function has, which makes this simpler rather than harder.
+    tags:
+      - framework
+      - tooling
+      - integrity
+    maps_to:
+      - gvp:G6
+      - gvp:V10
+      - gvp:D46
+    origin:
+      - date: '2026-09-03'
+        note: >-
+          Every one of the four failures was found by adversarial review of the first
+          draft, which specified only "normalize to absolute" and would have shipped
+          duplicate and colliding keys.
+
+  - id: D48
+    name: Name, project_id, and library_id are correlation fields, not keys
+    rationale: |
+      These fields collapse "the same logical library seen in different locations" when present, and degrade gracefully when absent, precisely because nothing depends on them for identity. project_id reuses D21's existing identity rather than minting a second one. library_id is read from meta.library_id, which already survives parsing today because documentMetaSchema permits unknown keys -- so the forward-compatibility claim for issue #16 is verifiable now rather than aspirational.
+      Duplicate-looking rows are expected and correct. Two cached refs of one published library are two legitimate entries, because the ref is part of the source string. Collapsing them on meta.name would reintroduce exactly the non-uniqueness D46 rejects; they collapse only when #16 lands and gives them a shared decreed identity.
+    tags:
+      - framework
+      - tooling
+      - extensibility
+    maps_to:
+      - gvp:G5
+      - gvp:V7
+      - gvp:P11
+      - gvp:D46
+    origin:
+      - date: '2026-09-03'
+        note: >-
+          Filed the upstream half as issue #16 during this design, after confirming
+          the remote cache (a bare library repo with no .gvp/) carries no project_id
+          and cannot be given one locally.
+
+  - id: D49
+    name: Location is expressed as a source string reusing inherits grammar
+    rationale: |
+      The source resolver already dispatches a single source string by pattern-matching an at-sign prefix, and documentMetaSchema already names that key source in the object form of inherits. Reusing that one key and grammar means a registry entry's location IS the exact string a consumer pastes into inherits to adopt what they found. That is the end goal of a search rather than an incidental detail, and it avoids inventing a parallel location vocabulary for the same concept, per P11.
+      The grammar is exactly a provider-path-commitish triple for remote sources, or a filesystem path for local ones. Issue #15 describes plain HTTP as a supported remote form; it is not -- the provider table has four entries and no HTTP path, and an https string would fall through to the local resolver and fail.
+    tags:
+      - framework
+      - tooling
+      - extensibility
+    maps_to:
+      - gvp:G7
+      - gvp:V2
+      - gvp:P11
+      - gvp:D46
+    origin:
+      - date: '2026-09-03'
+        note: Human suggestion -- reuse the key the import mechanism already uses for both filepaths and remotes rather than introducing a separate location field.
+
+  - id: D50
+    name: The resolved cache path is derived, never stored
+    rationale: |
+      A source string determines its cache path as a pure function, and likewise determines its kind (local or remote) and its ref (tag or SHA) through the same prefix parse. None of these are stored in the index. Storing a derived value invites disagreement between the stored copy and the computed one, and the parse is cheap enough that recomputing on read costs nothing.
+    tags:
+      - framework
+      - tooling
+      - integrity
+    maps_to:
+      - gvp:G5
+      - gvp:V10
+      - gvp:D49
+    origin:
+      - date: '2026-09-03'
+        note: >-
+          Extended during self-review, which found the draft storing kind and ref
+          while simultaneously declaring derived values must not be stored.
+
+  - id: D51
+    name: Split registry writes by write-shape
+    rationale: |
+      Registry state is split by whether concurrent writers produce identical content, not by subject matter. Library facts -- name, source, document path, filename, scope, element counts, and the correlation fields -- are derived purely from the library's current content, so two writers observing the same library state write identical bytes and a lost update is a no-op, per P18. The usage edge, which differs between writers, lives in the project's own file.
+      Two writers observing DIFFERENT library states (the library changed between their catalog builds) write different element counts, and that resolves last-write-wins. This is correct rather than merely tolerable: the later observation is the fresher one.
+      Critically, ALL timestamps live on the usage edge and never on the library entry. The first draft of this design put first_seen and last_seen on the library entry while claiming writes were byte-identical, which was false and would have voided the entire no-lock argument. A single per-writer field destroys the property; see P18.
+      A single index file holding every entry was rejected: every invocation would be a read-modify-write on one file, losing updates under C2. Full inversion -- storing library facts inside each project entry -- was rejected as denormalization, since element-count copies would drift apart as libraries change and enumeration would have to reconcile disagreeing copies.
+    tags:
+      - framework
+      - tooling
+      - integrity
+    maps_to:
+      - gvp:G6
+      - gvp:V10
+      - gvp:P18
+      - gvp:C2
+    considered:
+      single_index_file:
+        rationale: |
+          One registry file holding every entry would make enumeration a single file read and would be trivially inspectable by hand, but every invocation becomes a read-modify-write on one file, which loses updates or corrupts it outright under concurrent agent sessions.
+        would_have_served:
+          - gvp:V5
+        conflicts_with:
+          - gvp:C2
+      full_inversion_into_project_entries:
+        rationale: |
+          Storing library facts inside each project's D22 entry inherits per-project write separation, but denormalizes: the same library's element counts are copied into every project entry that uses it, and those copies drift as the library changes.
+        would_have_served:
+          - gvp:V4
+        conflicts_with:
+          - gvp:V2
+      timestamps_on_the_library_entry:
+        rationale: |
+          Mirroring D22's project-entry schema by putting first_seen and last_seen on the library entry was the first draft, and was rejected on review: it makes concurrent writes non-identical and silently voids the argument for not locking, while leaving the code that depends on that argument unchanged.
+        would_have_served:
+          - gvp:V2
+        conflicts_with:
+          - gvp:P18
+    origin:
+      - date: '2026-09-03'
+        note: >-
+          Chosen after recognizing that a library index breaks D22's per-project
+          no-collision property, then corrected on review when the first draft was
+          found to have violated its own idempotence premise.
+
+  - id: D52
+    name: Registry writes are atomic
+    rationale: |
+      Idempotent content is not sufficient on its own. D22's write path is a bare synchronous file write, which truncates and then writes, so a concurrent reader can observe a partially written file. That is not merely a bad read: the existing prune UNLINKS any entry it cannot parse, and with the default flipped by D43 it runs for every user on every invocation. A torn read during a concurrent write would therefore delete a live entry -- data loss, not a benign lost update, arising from the interaction of two behaviors that are each individually reasonable.
+      All registry writes are therefore performed by writing a temporary file in the same directory and renaming it over the target, which is atomic on POSIX. This applies to the existing project entries as well, which carry the same defect today and are being written far more often after D43.
+    tags:
+      - framework
+      - integrity
+      - tooling
+    maps_to:
+      - gvp:G6
+      - gvp:V10
+      - gvp:P18
+      - gvp:C2
+      - gvp:D22
+    origin:
+      - date: '2026-09-03'
+        note: >-
+          Found by adversarial review. Neither the first draft nor D22 addressed
+          atomicity; the data-loss path only becomes reachable once D43 makes the
+          prune run for everyone on every invocation.
+
+  - id: D53
+    name: The usage edge is stored project-side and derived by inversion
+    rationale: |
+      Which projects have seen a given library, and when, is computed at read time by walking project entries rather than stored on the library entry, where a per-writer field would break the idempotence D51 depends on. The inversion is clean: "which projects use this library" is the transpose of "which libraries this project uses," which each project records about itself.
+      The contention property must be stated accurately, because the first draft cited one that does not exist. D22 gives NO CROSS-PROJECT COLLISION -- one file per project UUID. It does not give freedom from same-project concurrency, and C2 declares parallel sessions in one project normal. Two such sessions both read-modify-write the same project entry. The usage-edge append is therefore a MERGE -- union by key, minimum of first_seen, maximum of last_seen -- so a lost update costs at most a stale timestamp instead of a dropped edge.
+      Additionally, the registry preflight currently runs during config parsing, before the catalog is built. Left alone, each invocation would write the project file twice with a prune between them, doubling the window in which a torn read can occur. The two writes are folded into one, performed after catalog construction.
+    tags:
+      - framework
+      - tooling
+      - integrity
+    maps_to:
+      - gvp:G6
+      - gvp:V10
+      - gvp:C2
+      - gvp:D51
+    origin:
+      - date: '2026-09-03'
+        note: >-
+          The seen_from field requested in #15 is derived rather than stored. The
+          merge semantics and the double-write fix were added after review found the
+          cited zero-contention property was never claimed by D22 and is false.
+
+  - id: D54
+    name: Ship cairn libs list, show, and search
+    rationale: |
+      D22 explicitly placed a registry query command out of scope, reasoning that consumers walk the directory themselves and cairn just maintains the data. That reasoning held for one flat keyspace. It stops holding under D51, where facts are split across two keyspaces and the usage edge must be derived by inversion -- correct data that no one will assemble by hand. C1 and P11 point the same way: an agent will not reliably hand-roll a two-keyspace walk, and #15's downstream consumer needs a single command to name in its own guidance.
+      Four points the first draft left underspecified, each of which had a plausible reading that would have shipped a broken feature:
+      (1) WHAT SEARCH MATCHES -- not "names and statements." Decisions carry rationale and constraints carry impact, so that reading would ship a search structurally incapable of matching a decision, which is exactly the content the motivating incident was about. Search matches the name plus each category's primary field RESOLVED FROM THE SCHEMA, per the D17 mechanism. Hard-coding field names would violate R6.
+      (2) AMBIGUITY IN SHOW -- since names are explicitly not unique per D46, show lists all matches and requires a source-and-document-path selector when more than one exists. Silent first-match would contradict this library's own handling of ambiguous references.
+      (3) UNCACHED REMOTES -- resolving an evicted remote triggers a remote ref query plus a shallow fetch, so search would silently become many network clones. The default is to skip uncached remotes WITH A WARNING NAMING THEM; a --fetch flag opts in. Skipping silently would reproduce the silent-miss failure #15 was filed about.
+      (4) OUTPUT -- the consumer is an agent-facing ruleset, so all three commands support a --json mode with a stable schema. Human-formatted tables parsed by regex would defeat the purpose per G7.
+      The list command takes a --kind filter (local or remote) and a --scope filter over meta.scope, whose vocabulary is user-defined and deliberately not enumerated by cairn.
+    tags:
+      - framework
+      - tooling
+      - usability
+    maps_to:
+      - gvp:G7
+      - gvp:G11
+      - gvp:V5
+      - gvp:P11
+      - gvp:R6
+      - gvp:D22
+      - gvp:D51
+    origin:
+      - date: '2026-09-03'
+        note: >-
+          Supersedes D22's out-of-scope note. The four clarifications were added after
+          a library-only fidelity check found that a literal implementation of the
+          first draft could never match a decision -- the one thing the feature exists
+          to find.
+
+  - id: D55
+    name: Prune local entries by document; retain remote entries; provide explicit forget
+    rationale: |
+      D22's prune is path-based on the recorded location. For library entries that granularity is too coarse: the recorded source is a DIRECTORY, so deleting or renaming a single document inside a still-live library would orphan its entry permanently, and a rename would mint a second entry beside the first. Local entries are therefore pruned when the DOCUMENT FILE itself is gone.
+      Remote entries are retained even when the cache is evicted, because they remain re-fetchable while the ref is still served. That qualifier matters and the first draft omitted it: a force-pushed SHA, a deleted tag, a repository made private, or simply being offline all break re-fetchability, so show reports such entries as not-currently-cached rather than promising availability.
+      Unbounded retention is a real cost -- one entry per document per ref ever fetched, accumulating over years. A forget command taking a selector, and a prune command with a remote flag, provide the eviction surface. Deleting the registry directory satisfies #15's "trivially clearable" requirement but is not an answer to unbounded growth.
+    tags:
+      - framework
+      - tooling
+      - integrity
+    maps_to:
+      - gvp:G11
+      - gvp:V9
+      - gvp:V3
+      - gvp:D40
+    origin:
+      - date: '2026-09-03'
+        note: >-
+          Divergence from D22's uniform prune. Document-level granularity, the
+          re-fetchability qualifier, and the eviction commands were all added after
+          review found the first draft leaked entries in both directions.
+
+  - id: D56
+    name: Registry deletion is safe; rebuild is lossy and incremental
+    rationale: |
+      D22 argued for the word "registry" over "cache" on the grounds that the data cannot be regenerated without re-running cairn in every project ever touched, so "cache" -- which implies safe to delete and the tool will rebuild -- would be misleading. Issue #15 requires the opposite framing: it must always be safe to delete and rebuild. Both are right about different halves, and neither label alone is honest.
+      The accurate statement, and the one that gets documented: deleting the registry breaks nothing, but rebuilding is not automatic -- each library reappears only when cairn next resolves it. It is therefore safe to delete and safe to treat as disposable, while remaining lossy to delete. Stating both halves is preferred to collapsing to either label, per V3 and P12 ("Surface tension, don't resolve it").
+    tags:
+      - framework
+      - usability
+      - integrity
+    maps_to:
+      - gvp:G8
+      - gvp:V3
+      - gvp:P12
+      - gvp:D22
+    origin:
+      - date: '2026-09-03'
+        note: >-
+          Resolves a direct conflict between D22's stated naming rationale and #15's
+          stated scope note.
+
+  - id: D57
+    name: Recording failure never fails the command
+    rationale: |
+      A read-only home directory, a full disk, or a corrupt entry must never change the exit code or stdout of the command the user actually ran -- the index is not load-bearing for correctness, and #15 asks for exactly this behavior, to carry on and at most warn. This inherits D22's resilience posture, which wraps every registry filesystem operation and returns silently on failure.
+      D22 swallowed such failures entirely. That is amended here: failure emits at most one stderr warning per invocation. Silent swallowing conflicts with V3 (Honesty); one line is loud enough to diagnose and quiet enough not to become noise on a machine where the condition persists.
+    tags:
+      - framework
+      - integrity
+      - tooling
+    maps_to:
+      - gvp:G8
+      - gvp:V3
+      - gvp:D22
+    origin:
+      - date: '2026-09-03'
+        note: Amends D22's silent-failure behavior to warn once, per #15's request to carry on and at most warn.
+
+  - id: D58
+    name: Library facts are recorded without project context; the usage edge is skipped
+    rationale: |
+      Invoking cairn with an explicit library path outside any project still records the library facts, because those facts are complete on their own -- name, source, document path, filename, scope, and element counts require no project to be meaningful. Only the usage edge is skipped, since there is no project to attribute it to. Recording partial truth beats recording nothing, and the alternative (no-op without project context, as D22's registry preflight does) would silently lose every library reached this way.
+    tags:
+      - framework
+      - tooling
+    maps_to:
+      - gvp:G6
+      - gvp:V3
+      - gvp:D53
+    origin:
+      - date: '2026-09-03'
+        note: Divergence from D22's preflight, which no-ops entirely when no project directory is found walking back from cwd.
 constraints:
   - id: C1
     name: Agents optimize for minimal effort
@@ -1939,4 +2482,14 @@ constraints:
     tags:
       - framework
       - usability
+    maps_to: []
+
+  - id: C2
+    name: Cairn invocations can run concurrently against shared state
+    impact: |
+      Parallel agent sessions are a normal mode of use, not an edge case, and they frequently run in the SAME project rather than in different ones. Any machine-global state cairn maintains will be written by several invocations at once, so shared-write designs must be correct under concurrency rather than assuming serialized access.
+    tags:
+      - framework
+      - tooling
+      - integrity
     maps_to: []
