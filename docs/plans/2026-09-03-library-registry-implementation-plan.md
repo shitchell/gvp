@@ -1,0 +1,2268 @@
+# Library Registry Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use cairn-sdd (recommended) or cairn-executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Build a machine-global index of every GVP library cairn resolves, plus `cairn libs list/show/search/forget/prune`, so an agent starting a new project can discover guiding elements that already exist upstream.
+
+**Architecture:** A new `src/registry/` module owns both registry keyspaces. Library facts (idempotent across writers) go to `~/.gvp/registry/libraries/<hash>.yml`; the usage edge (per-writer) is merged into D22's existing `by-id/<project_id>.yml`. All writes are atomic temp+rename. Recording hooks a single call at the end of `buildCatalog()`; reading inverts the usage edge at query time.
+
+**Tech Stack:** TypeScript (ESM, strict), zod for config schema, js-yaml, commander for CLI, vitest for tests. No new dependencies.
+
+**Design source of truth:** `docs/plans/2026-09-03-library-registry-design.md`
+**Guiding elements:** `G11`, `P18`, `C2`, `R9`, `D40`–`D58` in `.gvp/library/gvp.yaml`
+
+---
+
+## File Structure
+
+**Create:**
+- `src/registry/paths.ts` — registry root + per-keyspace path accessors [D52 support, fixes `GVP_REGISTRY_ROOT` conflation]
+- `src/registry/atomic.ts` — atomic write helper [D52]
+- `src/registry/key.ts` — entry key derivation and source canonicalization [D46, D47, D49]
+- `src/registry/library-entry.ts` — `LibraryEntry` type, upsert, prune [D45, D48, D50, D51, D55]
+- `src/registry/usage-edge.ts` — project-side usage edge merge [D53]
+- `src/registry/record.ts` — `recordLibraries` orchestration [D40, D41, D57, D58]
+- `src/registry/query.ts` — read side: load, invert, search [D50, D53, D54]
+- `src/cli/commands/libs.ts` — the `libs` command family [D54, D55]
+
+**Modify:**
+- `src/config/schema.ts` — flip default, add `.default({})` [D43, D44]
+- `src/config/registry.ts` — use `paths.ts`, atomic writes [D52]
+- `src/config/preflight.ts` — defer registry preflight to post-catalog [D53]
+- `src/cli/helpers.ts` — return `PreflightResult`, call `recordLibraries` [D42]
+- `src/cli/index.ts` — register `libs`, add `--no-registry` [D43, D54]
+- `tests/config/registry.test.ts` — rewrite the default-off test [D43]
+
+---
+
+## Phase 1 — Foundation
+
+### Task 1: Split registry path accessors
+
+The existing `getRegistryDir()` returns `path.join(override, 'by-id')`, conflating the registry root with the `by-id` keyspace. The library keyspace needs a sibling, so the root must be addressable.
+
+**Files:**
+- Create: `src/registry/paths.ts`
+- Test: `tests/registry/paths.test.ts`
+
+- [ ] **Step 1: Write the failing test**
+
+```typescript
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import * as path from 'path';
+import { getRegistryRoot, getProjectsDir, getLibrariesDir } from '../../src/registry/paths.js';
+
+describe('registry paths', () => {
+  let original: string | undefined;
+  beforeEach(() => { original = process.env.GVP_REGISTRY_ROOT; });
+  afterEach(() => {
+    if (original === undefined) delete process.env.GVP_REGISTRY_ROOT;
+    else process.env.GVP_REGISTRY_ROOT = original;
+  });
+
+  it('honors GVP_REGISTRY_ROOT as the ROOT, not the by-id dir', () => {
+    process.env.GVP_REGISTRY_ROOT = '/tmp/reg';
+    expect(getRegistryRoot()).toBe('/tmp/reg');
+    expect(getProjectsDir()).toBe(path.join('/tmp/reg', 'by-id'));
+    expect(getLibrariesDir()).toBe(path.join('/tmp/reg', 'libraries'));
+  });
+
+  it('defaults to ~/.gvp/registry when unset', () => {
+    delete process.env.GVP_REGISTRY_ROOT;
+    const home = process.env.HOME || process.env.USERPROFILE || '';
+    expect(getRegistryRoot()).toBe(path.join(home, '.gvp', 'registry'));
+  });
+
+  it('treats an empty GVP_REGISTRY_ROOT as unset', () => {
+    process.env.GVP_REGISTRY_ROOT = '';
+    const home = process.env.HOME || process.env.USERPROFILE || '';
+    expect(getRegistryRoot()).toBe(path.join(home, '.gvp', 'registry'));
+  });
+});
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `npx vitest run tests/registry/paths.test.ts`
+Expected: FAIL — `Cannot find module '../../src/registry/paths.js'`
+
+- [ ] **Step 3: Write the implementation**
+
+```typescript
+import * as path from 'path';
+
+/**
+ * Registry root. Honors GVP_REGISTRY_ROOT (D22), which addresses the
+ * ROOT rather than the by-id keyspace — the original getRegistryDir()
+ * conflated the two, which blocked adding a sibling keyspace.
+ */
+export function getRegistryRoot(): string {
+  const override = process.env.GVP_REGISTRY_ROOT;
+  if (override && override.length > 0) return override;
+  const home = process.env.HOME || process.env.USERPROFILE || '';
+  return path.join(home, '.gvp', 'registry');
+}
+
+/** Project entries keyspace (D22). */
+export function getProjectsDir(): string {
+  return path.join(getRegistryRoot(), 'by-id');
+}
+
+/** Library entries keyspace (D40, D51). */
+export function getLibrariesDir(): string {
+  return path.join(getRegistryRoot(), 'libraries');
+}
+```
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `npx vitest run tests/registry/paths.test.ts`
+Expected: PASS (3 tests)
+
+- [ ] **Step 5: Point the existing registry at the new accessor**
+
+In `src/config/registry.ts`, replace the body of `getRegistryDir()` so the two agree and `GVP_REGISTRY_ROOT` keeps working for existing callers:
+
+```typescript
+import { getProjectsDir } from '../registry/paths.js';
+
+/** @deprecated Use getProjectsDir() from ../registry/paths.js. */
+export function getRegistryDir(): string {
+  return getProjectsDir();
+}
+```
+
+- [ ] **Step 6: Run the full registry suite**
+
+Run: `npx vitest run tests/config/registry.test.ts`
+Expected: PASS — behavior is unchanged for existing callers
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add src/registry/paths.ts tests/registry/paths.test.ts src/config/registry.ts
+git commit -m "refactor: split registry root from by-id keyspace [D52]"
+```
+
+---
+
+### Task 2: Atomic registry writes [D52]
+
+Bare `fs.writeFileSync` is `O_TRUNC` + write, so a concurrent reader can observe a truncated file. Combined with a prune that unlinks unparseable entries, that is a data-loss path — and D43 makes the prune run for every user on every invocation.
+
+**Files:**
+- Create: `src/registry/atomic.ts`
+- Test: `tests/registry/atomic.test.ts`
+
+- [ ] **Step 1: Write the failing test**
+
+```typescript
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import { writeFileAtomic } from '../../src/registry/atomic.js';
+
+describe('writeFileAtomic', () => {
+  let dir: string;
+  beforeEach(() => { dir = fs.mkdtempSync(path.join(os.tmpdir(), 'atomic-')); });
+  afterEach(() => { fs.rmSync(dir, { recursive: true, force: true }); });
+
+  it('writes content to the target path', () => {
+    const target = path.join(dir, 'a.yml');
+    writeFileAtomic(target, 'hello');
+    expect(fs.readFileSync(target, 'utf-8')).toBe('hello');
+  });
+
+  it('replaces existing content', () => {
+    const target = path.join(dir, 'a.yml');
+    fs.writeFileSync(target, 'old');
+    writeFileAtomic(target, 'new');
+    expect(fs.readFileSync(target, 'utf-8')).toBe('new');
+  });
+
+  it('leaves no temp files behind on success', () => {
+    writeFileAtomic(path.join(dir, 'a.yml'), 'x');
+    expect(fs.readdirSync(dir)).toEqual(['a.yml']);
+  });
+
+  it('creates the parent directory when missing', () => {
+    const target = path.join(dir, 'nested', 'a.yml');
+    writeFileAtomic(target, 'x');
+    expect(fs.readFileSync(target, 'utf-8')).toBe('x');
+  });
+
+  it('cleans up the temp file when rename fails', () => {
+    // target is a directory -> rename fails
+    const target = path.join(dir, 'adir');
+    fs.mkdirSync(target);
+    expect(() => writeFileAtomic(target, 'x')).toThrow();
+    const leftovers = fs.readdirSync(dir).filter((f) => f !== 'adir');
+    expect(leftovers).toEqual([]);
+  });
+});
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `npx vitest run tests/registry/atomic.test.ts`
+Expected: FAIL — module not found
+
+- [ ] **Step 3: Write the implementation**
+
+```typescript
+import * as fs from 'fs';
+import * as path from 'path';
+
+let counter = 0;
+
+/**
+ * Write `content` to `target` atomically (D52).
+ *
+ * Writes to a temp file in the SAME directory (rename is only atomic
+ * within a filesystem) and renames over the target. A concurrent reader
+ * therefore sees either the old file or the new one, never a truncated
+ * one — which matters because pruneStale* unlinks entries it cannot
+ * parse, turning a torn read into deletion.
+ *
+ * Throws on failure; callers in the registry path wrap in try/catch per
+ * D57 (recording failure never fails the command).
+ */
+export function writeFileAtomic(target: string, content: string): void {
+  const dir = path.dirname(target);
+  fs.mkdirSync(dir, { recursive: true });
+  const tmp = path.join(dir, `.${path.basename(target)}.${process.pid}.${counter++}.tmp`);
+  try {
+    fs.writeFileSync(tmp, content);
+    fs.renameSync(tmp, target);
+  } catch (err) {
+    try { fs.unlinkSync(tmp); } catch { /* already gone */ }
+    throw err;
+  }
+}
+```
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `npx vitest run tests/registry/atomic.test.ts`
+Expected: PASS (5 tests)
+
+- [ ] **Step 5: Convert the existing project-entry write**
+
+In `src/config/registry.ts`, `upsertRegistryEntry` currently ends with a bare `fs.writeFileSync`. Replace it — this file has the same defect today and is about to be written far more often:
+
+```typescript
+import { writeFileAtomic } from '../registry/atomic.js';
+
+// ... inside upsertRegistryEntry, replacing the final try/catch write:
+  try {
+    writeFileAtomic(entryPath, yaml.dump(entry, { lineWidth: 120, noRefs: true }));
+  } catch {
+    // Write failure — silently skip (D57 warning is emitted by the caller)
+    return;
+  }
+```
+
+- [ ] **Step 6: Run the registry suite**
+
+Run: `npx vitest run tests/config/registry.test.ts tests/registry/`
+Expected: PASS
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add src/registry/atomic.ts tests/registry/atomic.test.ts src/config/registry.ts
+git commit -m "fix: atomic registry writes to close the torn-read deletion path [D52]"
+```
+
+---
+
+### Task 3: Flip the registry default and add the opt-out [D43, D44]
+
+Two independent changes are required, and doing only the obvious one is a silent no-op: the `registry` object itself is `.optional()`, so omitting the key yields `undefined` and `config.registry?.enabled` stays falsy regardless of the inner default.
+
+**Files:**
+- Modify: `src/config/schema.ts`
+- Modify: `tests/config/registry.test.ts:228`
+- Test: `tests/config/registry-default.test.ts`
+
+- [ ] **Step 1: Write the failing test**
+
+```typescript
+import { describe, it, expect } from 'vitest';
+import { configSchema } from '../../src/config/schema.js';
+
+describe('registry default (D43)', () => {
+  it('is enabled when the config omits the registry key entirely', () => {
+    const cfg = configSchema.parse({});
+    expect(cfg.registry?.enabled).toBe(true);
+  });
+
+  it('is enabled when registry is present but empty', () => {
+    const cfg = configSchema.parse({ registry: {} });
+    expect(cfg.registry?.enabled).toBe(true);
+  });
+
+  it('honors an explicit opt-out', () => {
+    const cfg = configSchema.parse({ registry: { enabled: false } });
+    expect(cfg.registry?.enabled).toBe(false);
+  });
+});
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `npx vitest run tests/config/registry-default.test.ts`
+Expected: FAIL — first two assertions get `false`/`undefined`
+
+- [ ] **Step 3: Change the schema**
+
+In `src/config/schema.ts`, replace the registry block and its comment:
+
+```typescript
+  // Global registry (D22, amended by D43/D44): cross-project and
+  // cross-library discovery via ~/.gvp/registry/. ON by default —
+  // the opt-in default was falsified by evidence (the flag was set
+  // nowhere and the registry did not exist ~5 months after D22).
+  // Opt out with `registry.enabled: false` or `--no-registry`.
+  // NOTE: `.default({})` on the OBJECT is load-bearing. Without it,
+  // omitting `registry:` yields undefined and the inner default never
+  // applies.
+  registry: z
+    .object({
+      enabled: z.boolean().optional().default(true),
+    })
+    .optional()
+    .default({}),
+```
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `npx vitest run tests/config/registry-default.test.ts`
+Expected: PASS (3 tests)
+
+- [ ] **Step 5: Rewrite the now-inverted D22 test**
+
+`tests/config/registry.test.ts:228` is titled *"is a no-op when registry.enabled is false (the default)"* and asserts the registry dir does not exist. Replace that test with its inverse:
+
+```typescript
+    it('upserts by default now that registry.enabled defaults to true (D43)', () => {
+      const config = configSchema.parse({});
+      const preflight = runProjectPreflight(projectDir);
+      runRegistryPreflight(preflight, config);
+      expect(fs.existsSync(getRegistryDir())).toBe(true);
+    });
+
+    it('is a no-op when registry.enabled is explicitly false', () => {
+      const config = configSchema.parse({ registry: { enabled: false } });
+      const preflight = runProjectPreflight(projectDir);
+      runRegistryPreflight(preflight, config);
+      expect(fs.existsSync(getRegistryDir())).toBe(false);
+    });
+```
+
+- [ ] **Step 6: Run the full suite to catch other default-off assumptions**
+
+Run: `npx vitest run`
+Expected: PASS. Any other failure here is a test that silently depended on the registry never being written — fix it the same way, do not disable it.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add src/config/schema.ts tests/config/registry.test.ts tests/config/registry-default.test.ts
+git commit -m "feat!: registry recording defaults on with opt-out [D43, D44]"
+```
+
+---
+
+## Phase 2 — Recording
+
+### Task 4: Entry key derivation and source canonicalization [D46, D47, D49]
+
+For local libraries the key is the **resolved absolute filesystem path**; for remote it is the `@provider:path@commitish` source spec, because for a remote the filesystem path is a cache location rather than an identity.
+
+**Files:**
+- Create: `src/registry/key.ts`
+- Test: `tests/registry/key.test.ts`
+
+- [ ] **Step 1: Write the failing test**
+
+```typescript
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import { isRemoteSource, canonicalizeSource, entryKey, parseSource } from '../../src/registry/key.js';
+
+describe('registry key (D46, D47)', () => {
+  let dir: string;
+  beforeEach(() => { dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'key-'))); });
+  afterEach(() => { fs.rmSync(dir, { recursive: true, force: true }); });
+
+  it('classifies sources by the @ prefix, with @local local', () => {
+    expect(isRemoteSource('@github:a/b@v1')).toBe(true);
+    expect(isRemoteSource('@local')).toBe(false);
+    expect(isRemoteSource('/abs/path')).toBe(false);
+  });
+
+  it('derives kind and ref from the source rather than storing them (D50)', () => {
+    expect(parseSource('@github:a/b@v1.2.0')).toEqual({ kind: 'remote', ref: 'v1.2.0' });
+    expect(parseSource('/abs/path')).toEqual({ kind: 'local', ref: null });
+  });
+
+  it('canonicalizes a local source to its realpath', () => {
+    const real = path.join(dir, 'lib');
+    fs.mkdirSync(real);
+    const link = path.join(dir, 'link');
+    fs.symlinkSync(real, link);
+    expect(canonicalizeSource(link, dir)).toBe(real);
+    expect(canonicalizeSource(real, dir)).toBe(canonicalizeSource(link, dir));
+  });
+
+  it('collapses tilde and relative forms onto the same key', () => {
+    const real = path.join(dir, 'lib');
+    fs.mkdirSync(real);
+    expect(canonicalizeSource('./lib', dir)).toBe(real);
+    expect(canonicalizeSource(real, dir)).toBe(real);
+  });
+
+  it('leaves remote sources verbatim', () => {
+    expect(canonicalizeSource('@github:a/b@v1', dir)).toBe('@github:a/b@v1');
+  });
+
+  it('produces a stable 16-hex key from source and document path', () => {
+    const k = entryKey('/abs/lib', 'code/common');
+    expect(k).toMatch(/^[0-9a-f]{16}$/);
+    expect(entryKey('/abs/lib', 'code/common')).toBe(k);
+    expect(entryKey('/abs/lib', 'code/other')).not.toBe(k);
+  });
+
+  it('does not collide across sources that share a document path', () => {
+    expect(entryKey('/a', 'personal')).not.toBe(entryKey('/b', 'personal'));
+  });
+});
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `npx vitest run tests/registry/key.test.ts`
+Expected: FAIL — module not found
+
+- [ ] **Step 3: Write the implementation**
+
+```typescript
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import { createHash } from 'crypto';
+
+/**
+ * Is this source a remote spec? Mirrors createSourceResolver's dispatch
+ * (src/inheritance/source-resolver.ts) — an `@` prefix means remote,
+ * except `@local` which is the local library itself.
+ */
+export function isRemoteSource(source: string): boolean {
+  return source.startsWith('@') && source !== '@local';
+}
+
+/**
+ * Derive kind and ref from a source string (D50 — neither is stored).
+ * The remote grammar is exactly `@<provider>:<path>@<commitish>`.
+ */
+export function parseSource(source: string): { kind: 'local' | 'remote'; ref: string | null } {
+  if (!isRemoteSource(source)) return { kind: 'local', ref: null };
+  const m = source.match(/^@(\w+):(.+?)@(.+)$/);
+  return { kind: 'remote', ref: m ? (m[3] as string) : null };
+}
+
+function expandTilde(p: string): string {
+  if (p === '~') return os.homedir();
+  if (p.startsWith('~/')) return path.join(os.homedir(), p.slice(2));
+  return p;
+}
+
+/**
+ * Canonicalize a source for keying (D47).
+ *
+ * Local: expand `~`, resolve against `baseDir`, then realpath. Resolving
+ * is precisely the step that collapses the dual lookup, the tilde form,
+ * a relative form, and symlink aliases onto one identity — which is why
+ * local libraries are keyed by resolved path rather than by the source
+ * string the caller happened to type.
+ *
+ * `config.source` is deliberately NOT accepted here: it is a free-form
+ * string, and two unrelated projects setting the same value would
+ * otherwise collide on one key and overwrite each other. Callers pass
+ * the RESOLVED library directory.
+ *
+ * Remote: already canonical (the ref is part of the string); verbatim.
+ */
+export function canonicalizeSource(source: string, baseDir: string): string {
+  if (isRemoteSource(source)) return source;
+  const abs = path.resolve(baseDir, expandTilde(source));
+  try {
+    return fs.realpathSync(abs);
+  } catch {
+    return abs; // not on disk (e.g. evicted); absolute is the best we can do
+  }
+}
+
+/**
+ * Entry key: first 16 hex of SHA-256 over source + NUL + documentPath.
+ * The NUL separator prevents ('/a/b', 'c') colliding with ('/a', 'b/c').
+ */
+export function entryKey(canonicalSource: string, documentPath: string): string {
+  return createHash('sha256')
+    .update(canonicalSource)
+    .update('\0')
+    .update(documentPath)
+    .digest('hex')
+    .slice(0, 16);
+}
+```
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `npx vitest run tests/registry/key.test.ts`
+Expected: PASS (7 tests)
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/registry/key.ts tests/registry/key.test.ts
+git commit -m "feat: registry entry key derivation and source canonicalization [D46, D47]"
+```
+
+---
+
+### Task 5: Library entry upsert [D45, D48, D50, D51]
+
+Library facts only — **no timestamps**. A single per-writer field would make concurrent writes non-identical and void the no-lock argument (P18).
+
+**Files:**
+- Create: `src/registry/library-entry.ts`
+- Test: `tests/registry/library-entry.test.ts`
+
+- [ ] **Step 1: Write the failing test**
+
+```typescript
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import * as yaml from 'js-yaml';
+import { upsertLibraryEntry, readLibraryEntry, type LibraryEntry } from '../../src/registry/library-entry.js';
+import { getLibrariesDir } from '../../src/registry/paths.js';
+
+const base = (): LibraryEntry => ({
+  name: 'code-common',
+  source: '/abs/lib',
+  document_path: 'code/common',
+  file: 'code/common.yaml',
+  scope: 'universal',
+  project_id: null,
+  library_id: null,
+  element_counts: { principles: 15, rules: 2 },
+});
+
+describe('library entry (D51)', () => {
+  let tmp: string, orig: string | undefined;
+  beforeEach(() => {
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'lib-'));
+    orig = process.env.GVP_REGISTRY_ROOT;
+    process.env.GVP_REGISTRY_ROOT = tmp;
+  });
+  afterEach(() => {
+    if (orig === undefined) delete process.env.GVP_REGISTRY_ROOT; else process.env.GVP_REGISTRY_ROOT = orig;
+    fs.rmSync(tmp, { recursive: true, force: true });
+  });
+
+  it('writes an entry that round-trips', () => {
+    upsertLibraryEntry('deadbeefdeadbeef', base());
+    expect(readLibraryEntry('deadbeefdeadbeef')).toEqual(base());
+  });
+
+  it('carries NO timestamps — they would void idempotence (P18)', () => {
+    upsertLibraryEntry('deadbeefdeadbeef', base());
+    const raw = fs.readFileSync(path.join(getLibrariesDir(), 'deadbeefdeadbeef.yml'), 'utf-8');
+    expect(raw).not.toMatch(/first_seen|last_seen|timestamp/);
+  });
+
+  it('is byte-identical across repeated writes of the same facts', () => {
+    upsertLibraryEntry('k', base());
+    const a = fs.readFileSync(path.join(getLibrariesDir(), 'k.yml'), 'utf-8');
+    upsertLibraryEntry('k', base());
+    const b = fs.readFileSync(path.join(getLibrariesDir(), 'k.yml'), 'utf-8');
+    expect(b).toBe(a);
+  });
+
+  it('last-write-wins when the library content changed', () => {
+    upsertLibraryEntry('k', base());
+    const changed = { ...base(), element_counts: { principles: 16, rules: 2 } };
+    upsertLibraryEntry('k', changed);
+    expect(readLibraryEntry('k')?.element_counts.principles).toBe(16);
+  });
+
+  it('returns null for a missing or corrupt entry rather than throwing', () => {
+    expect(readLibraryEntry('nope')).toBeNull();
+    fs.mkdirSync(getLibrariesDir(), { recursive: true });
+    fs.writeFileSync(path.join(getLibrariesDir(), 'bad.yml'), '::: not yaml');
+    expect(readLibraryEntry('bad')).toBeNull();
+  });
+});
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `npx vitest run tests/registry/library-entry.test.ts`
+Expected: FAIL — module not found
+
+- [ ] **Step 3: Write the implementation**
+
+```typescript
+import * as fs from 'fs';
+import * as path from 'path';
+import * as yaml from 'js-yaml';
+import { getLibrariesDir } from './paths.js';
+import { writeFileAtomic } from './atomic.js';
+
+/**
+ * Facts about one library DOCUMENT (D45 — the document, not the
+ * directory, is the unit, because references resolve as
+ * `<meta.name>:<id>` and a document-level hit is directly citable).
+ *
+ * Deliberately contains NO timestamps. Every field here is derived
+ * purely from the library's current content, so two writers observing
+ * the same library state produce identical bytes and a lost update is a
+ * no-op (P18, D51). Adding a timestamp would silently void that.
+ * Timestamps live on the usage edge — see usage-edge.ts (D53).
+ */
+export interface LibraryEntry {
+  /** meta.name — correlation only, NOT unique, may be absent (D48). */
+  name: string | null;
+  /** inherits: grammar. Canonical resolved path for local; spec for remote (D47, D49). */
+  source: string;
+  /** Extension-less relative path — cairn's internal document identity. */
+  document_path: string;
+  /** Actual filename; .yaml vs .yml is not derivable from document_path. */
+  file: string;
+  /** meta.scope when declared. */
+  scope: string | null;
+  /** Correlation when the library sits in a project with a D21 id (D48). */
+  project_id: string | null;
+  /** Correlation; read-if-present from meta.library_id, see #16 / R9 (D48). */
+  library_id: string | null;
+  /** Per category, including user-defined categories. */
+  element_counts: Record<string, number>;
+}
+
+function entryPath(key: string): string {
+  return path.join(getLibrariesDir(), `${key}.yml`);
+}
+
+/**
+ * Write library facts for `key`. Last-write-wins: when two writers
+ * observed different library states, the later observation is the
+ * fresher one and should win (D51).
+ *
+ * `sortKeys` matters — it makes output byte-stable across writers
+ * regardless of object construction order, which is what the
+ * idempotence argument rests on.
+ */
+export function upsertLibraryEntry(key: string, entry: LibraryEntry): void {
+  writeFileAtomic(
+    entryPath(key),
+    yaml.dump(entry, { lineWidth: 120, noRefs: true, sortKeys: true }),
+  );
+}
+
+/** Read one entry. Returns null when missing or unparseable. */
+export function readLibraryEntry(key: string): LibraryEntry | null {
+  try {
+    const parsed = yaml.load(fs.readFileSync(entryPath(key), 'utf-8'));
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+    const e = parsed as Partial<LibraryEntry>;
+    if (typeof e.source !== 'string' || typeof e.document_path !== 'string') return null;
+    return e as LibraryEntry;
+  } catch {
+    return null;
+  }
+}
+
+/** All entry keys currently on disk. */
+export function listLibraryKeys(): string[] {
+  try {
+    return fs.readdirSync(getLibrariesDir())
+      .filter((f) => f.endsWith('.yml'))
+      .map((f) => f.slice(0, -4));
+  } catch {
+    return [];
+  }
+}
+```
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `npx vitest run tests/registry/library-entry.test.ts`
+Expected: PASS (5 tests)
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/registry/library-entry.ts tests/registry/library-entry.test.ts
+git commit -m "feat: library entry storage, timestamp-free for idempotence [D51]"
+```
+
+---
+
+### Task 6: Usage edge merge [D53]
+
+D22 gives **no cross-project collision** — one file per project UUID. It does *not* give freedom from same-project concurrency, which `C2` declares normal. So the append is a **merge**, not a blind rewrite: a lost update then costs a stale timestamp rather than a dropped edge.
+
+**Files:**
+- Create: `src/registry/usage-edge.ts`
+- Test: `tests/registry/usage-edge.test.ts`
+
+- [ ] **Step 1: Write the failing test**
+
+```typescript
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import { mergeUsageEdges, type UsageEdge } from '../../src/registry/usage-edge.js';
+
+describe('usage edge merge (D53)', () => {
+  let tmp: string, orig: string | undefined;
+  beforeEach(() => {
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'edge-'));
+    orig = process.env.GVP_REGISTRY_ROOT;
+    process.env.GVP_REGISTRY_ROOT = tmp;
+  });
+  afterEach(() => {
+    if (orig === undefined) delete process.env.GVP_REGISTRY_ROOT; else process.env.GVP_REGISTRY_ROOT = orig;
+    fs.rmSync(tmp, { recursive: true, force: true });
+  });
+
+  it('adds new edges', () => {
+    const out = mergeUsageEdges([], ['a', 'b'], '2026-01-02T00:00:00Z');
+    expect(out.map((e) => e.hash).sort()).toEqual(['a', 'b']);
+    expect(out[0]!.first_seen).toBe('2026-01-02T00:00:00Z');
+  });
+
+  it('preserves the earliest first_seen and takes the latest last_seen', () => {
+    const existing: UsageEdge[] = [
+      { hash: 'a', first_seen: '2026-01-01T00:00:00Z', last_seen: '2026-01-01T00:00:00Z' },
+    ];
+    const out = mergeUsageEdges(existing, ['a'], '2026-06-01T00:00:00Z');
+    expect(out[0]!.first_seen).toBe('2026-01-01T00:00:00Z');
+    expect(out[0]!.last_seen).toBe('2026-06-01T00:00:00Z');
+  });
+
+  it('never drops an edge it was not told about — the concurrency property', () => {
+    const existing: UsageEdge[] = [
+      { hash: 'other-session', first_seen: '2026-01-01T00:00:00Z', last_seen: '2026-01-01T00:00:00Z' },
+    ];
+    const out = mergeUsageEdges(existing, ['mine'], '2026-06-01T00:00:00Z');
+    expect(out.map((e) => e.hash).sort()).toEqual(['mine', 'other-session']);
+  });
+
+  it('does not move last_seen backwards', () => {
+    const existing: UsageEdge[] = [
+      { hash: 'a', first_seen: '2026-01-01T00:00:00Z', last_seen: '2026-06-01T00:00:00Z' },
+    ];
+    const out = mergeUsageEdges(existing, ['a'], '2026-03-01T00:00:00Z');
+    expect(out[0]!.last_seen).toBe('2026-06-01T00:00:00Z');
+  });
+
+  it('is deterministic in ordering', () => {
+    const a = mergeUsageEdges([], ['b', 'a'], 'T');
+    const b = mergeUsageEdges([], ['a', 'b'], 'T');
+    expect(a).toEqual(b);
+  });
+});
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `npx vitest run tests/registry/usage-edge.test.ts`
+Expected: FAIL — module not found
+
+- [ ] **Step 3: Write the implementation**
+
+```typescript
+/**
+ * One project-to-library edge (D53). Timestamps live HERE, not on the
+ * library entry, because writers differ and the library entry's
+ * idempotence must be preserved (P18, D51).
+ */
+export interface UsageEdge {
+  hash: string;
+  first_seen: string;
+  last_seen: string;
+}
+
+/**
+ * Merge freshly-observed library keys into a project's existing edges.
+ *
+ * Union by hash, min first_seen, max last_seen — never a blind rewrite.
+ * D22 gives no CROSS-PROJECT collision (one file per project UUID), but
+ * C2 says parallel sessions in ONE project are normal, and those do
+ * contend on that file. Merging means the worst case is a stale
+ * timestamp rather than a dropped edge.
+ *
+ * Result is sorted by hash so output is deterministic.
+ */
+export function mergeUsageEdges(
+  existing: UsageEdge[],
+  observedHashes: string[],
+  now: string,
+): UsageEdge[] {
+  const byHash = new Map<string, UsageEdge>();
+  for (const e of existing) {
+    if (e && typeof e.hash === 'string') byHash.set(e.hash, { ...e });
+  }
+  for (const hash of observedHashes) {
+    const prior = byHash.get(hash);
+    if (!prior) {
+      byHash.set(hash, { hash, first_seen: now, last_seen: now });
+    } else {
+      byHash.set(hash, {
+        hash,
+        first_seen: prior.first_seen < now ? prior.first_seen : now,
+        last_seen: prior.last_seen > now ? prior.last_seen : now,
+      });
+    }
+  }
+  return [...byHash.values()].sort((a, b) => a.hash.localeCompare(b.hash));
+}
+```
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `npx vitest run tests/registry/usage-edge.test.ts`
+Expected: PASS (5 tests)
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/registry/usage-edge.ts tests/registry/usage-edge.test.ts
+git commit -m "feat: usage edge merge semantics for same-project concurrency [D53]"
+```
+
+---
+
+### Task 7: Extend project entry upsert to carry the usage edge [D53]
+
+Fold the D22 location upsert and the usage-edge merge into **one** write. Left separate, each invocation would write the project file twice with a prune between them, doubling the torn-read window.
+
+**Files:**
+- Modify: `src/config/registry.ts`
+- Test: `tests/registry/project-edge.test.ts`
+
+- [ ] **Step 1: Write the failing test**
+
+```typescript
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import * as yaml from 'js-yaml';
+import { upsertRegistryEntry } from '../../src/config/registry.js';
+import { getProjectsDir } from '../../src/registry/paths.js';
+
+describe('project entry with usage edge (D53)', () => {
+  let tmp: string, orig: string | undefined, proj: string;
+  beforeEach(() => {
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'proj-'));
+    orig = process.env.GVP_REGISTRY_ROOT;
+    process.env.GVP_REGISTRY_ROOT = tmp;
+    proj = fs.mkdtempSync(path.join(os.tmpdir(), 'p-'));
+  });
+  afterEach(() => {
+    if (orig === undefined) delete process.env.GVP_REGISTRY_ROOT; else process.env.GVP_REGISTRY_ROOT = orig;
+    fs.rmSync(tmp, { recursive: true, force: true });
+    fs.rmSync(proj, { recursive: true, force: true });
+  });
+
+  const read = (id: string) =>
+    yaml.load(fs.readFileSync(path.join(getProjectsDir(), `${id}.yml`), 'utf-8')) as any;
+
+  it('writes libraries alongside locations in ONE call', () => {
+    upsertRegistryEntry('id-1', 'proj', proj, ['aaa', 'bbb']);
+    const e = read('id-1');
+    expect(e.locations).toHaveLength(1);
+    expect(e.libraries.map((l: any) => l.hash).sort()).toEqual(['aaa', 'bbb']);
+  });
+
+  it('merges rather than replaces on a second call', () => {
+    upsertRegistryEntry('id-1', 'proj', proj, ['aaa']);
+    upsertRegistryEntry('id-1', 'proj', proj, ['bbb']);
+    const e = read('id-1');
+    expect(e.libraries.map((l: any) => l.hash).sort()).toEqual(['aaa', 'bbb']);
+  });
+
+  it('omitting hashes leaves existing edges untouched (D58)', () => {
+    upsertRegistryEntry('id-1', 'proj', proj, ['aaa']);
+    upsertRegistryEntry('id-1', 'proj', proj);
+    expect(read('id-1').libraries.map((l: any) => l.hash)).toEqual(['aaa']);
+  });
+});
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `npx vitest run tests/registry/project-edge.test.ts`
+Expected: FAIL — `upsertRegistryEntry` takes 3 args
+
+- [ ] **Step 3: Extend the signature and merge**
+
+In `src/config/registry.ts`, add the field to `RegistryEntry`, take an optional fourth argument, and merge before the single atomic write:
+
+```typescript
+import { mergeUsageEdges, type UsageEdge } from '../registry/usage-edge.js';
+
+export interface RegistryEntry {
+  project_id: string;
+  project_name: string;
+  locations: RegistryLocation[];
+  /** Usage edge (D53) — which library entries this project resolved. */
+  libraries?: UsageEdge[];
+}
+
+export function upsertRegistryEntry(
+  projectId: string,
+  projectName: string,
+  projectPath: string,
+  observedLibraryHashes?: string[],
+): void {
+  // ... existing read + location upsert, unchanged, then BEFORE the write:
+
+  if (observedLibraryHashes !== undefined) {
+    entry.libraries = mergeUsageEdges(
+      Array.isArray(entry.libraries) ? entry.libraries : [],
+      observedLibraryHashes,
+      now,
+    );
+  } else if (!Array.isArray(entry.libraries)) {
+    delete entry.libraries;
+  }
+
+  // ... single writeFileAtomic call, unchanged
+}
+```
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `npx vitest run tests/registry/project-edge.test.ts tests/config/registry.test.ts`
+Expected: PASS — the D22 tests are unaffected because the argument is optional
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/config/registry.ts tests/registry/project-edge.test.ts
+git commit -m "feat: carry the usage edge in project entries, single write [D53]"
+```
+
+---
+
+### Task 8: recordLibraries orchestration [D40, D41, D57, D58]
+
+**Files:**
+- Create: `src/registry/record.ts`
+- Test: `tests/registry/record.test.ts`
+
+- [ ] **Step 1: Write the failing test**
+
+```typescript
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import { recordLibraries } from '../../src/registry/record.js';
+import { listLibraryKeys, readLibraryEntry } from '../../src/registry/library-entry.js';
+import { getLibrariesDir } from '../../src/registry/paths.js';
+
+function makeLib(dir: string): void {
+  fs.mkdirSync(path.join(dir, 'code'), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'personal.yaml'),
+    'meta:\n  name: personal\n  scope: universal\nprinciples:\n  - id: P1\n    name: One\n    statement: x\n');
+  fs.writeFileSync(path.join(dir, 'code', 'common.yaml'),
+    'meta:\n  name: code-common\nrules:\n  - id: R1\n    name: Two\n    statement: y\n');
+}
+
+describe('recordLibraries (D40, D41, D57, D58)', () => {
+  let tmp: string, lib: string, orig: string | undefined;
+  beforeEach(() => {
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'rec-'));
+    orig = process.env.GVP_REGISTRY_ROOT;
+    process.env.GVP_REGISTRY_ROOT = tmp;
+    lib = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'lib-')));
+    makeLib(lib);
+  });
+  afterEach(() => {
+    if (orig === undefined) delete process.env.GVP_REGISTRY_ROOT; else process.env.GVP_REGISTRY_ROOT = orig;
+    fs.rmSync(tmp, { recursive: true, force: true });
+    fs.rmSync(lib, { recursive: true, force: true });
+  });
+
+  it('records EVERY document in the directory, not only inherited ones (D41)', () => {
+    recordLibraries({ libraryDir: lib, externalSources: [], projectId: null, projectName: null, projectPath: null });
+    const names = listLibraryKeys().map((k) => readLibraryEntry(k)!.name).sort();
+    expect(names).toEqual(['code-common', 'personal']);
+  });
+
+  it('captures scope, filename, and per-category element counts', () => {
+    recordLibraries({ libraryDir: lib, externalSources: [], projectId: null, projectName: null, projectPath: null });
+    const e = listLibraryKeys().map((k) => readLibraryEntry(k)!).find((x) => x.name === 'personal')!;
+    expect(e.scope).toBe('universal');
+    expect(e.file).toBe('personal.yaml');
+    expect(e.document_path).toBe('personal');
+    expect(e.element_counts).toEqual({ principles: 1 });
+  });
+
+  it('records library facts with no project context, skipping the edge (D58)', () => {
+    recordLibraries({ libraryDir: lib, externalSources: [], projectId: null, projectName: null, projectPath: null });
+    expect(listLibraryKeys()).toHaveLength(2);
+  });
+
+  it('never throws when the registry is unwritable (D57)', () => {
+    process.env.GVP_REGISTRY_ROOT = '/proc/nonexistent-registry';
+    expect(() =>
+      recordLibraries({ libraryDir: lib, externalSources: [], projectId: null, projectName: null, projectPath: null }),
+    ).not.toThrow();
+  });
+
+  it('is idempotent — a second run rewrites identical bytes', () => {
+    const args = { libraryDir: lib, externalSources: [], projectId: null, projectName: null, projectPath: null };
+    recordLibraries(args);
+    const snap = listLibraryKeys().map((k) => fs.readFileSync(path.join(getLibrariesDir(), `${k}.yml`), 'utf-8'));
+    recordLibraries(args);
+    const snap2 = listLibraryKeys().map((k) => fs.readFileSync(path.join(getLibrariesDir(), `${k}.yml`), 'utf-8'));
+    expect(snap2).toEqual(snap);
+  });
+});
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `npx vitest run tests/registry/record.test.ts`
+Expected: FAIL — module not found
+
+- [ ] **Step 3: Write the implementation**
+
+```typescript
+import * as fs from 'fs';
+import * as path from 'path';
+import * as yaml from 'js-yaml';
+import { canonicalizeSource, entryKey } from './key.js';
+import { upsertLibraryEntry, type LibraryEntry } from './library-entry.js';
+import { upsertRegistryEntry } from '../config/registry.js';
+
+export interface RecordArgs {
+  /** The resolved root library directory. */
+  libraryDir: string;
+  /** Raw source strings for every external library resolved this run. */
+  externalSources: string[];
+  projectId: string | null;
+  projectName: string | null;
+  projectPath: string | null;
+}
+
+/** Recursively collect .yaml/.yml files under `dir`. */
+function findYamlFiles(dir: string): string[] {
+  const out: string[] = [];
+  const walk = (d: string): void => {
+    for (const ent of fs.readdirSync(d, { withFileTypes: true })) {
+      const p = path.join(d, ent.name);
+      if (ent.isDirectory()) walk(p);
+      else if (/\.ya?ml$/.test(ent.name)) out.push(p);
+    }
+  };
+  try { walk(dir); } catch { /* unreadable — nothing to record */ }
+  return out.sort();
+}
+
+/**
+ * Read one document's registry-relevant facts WITHOUT building a
+ * catalog. Recording must not depend on a document parsing cleanly
+ * enough to become an Element — a library with one broken document
+ * should still have its other documents indexed.
+ */
+function factsFor(file: string, libDir: string, source: string, projectId: string | null): LibraryEntry | null {
+  let data: Record<string, unknown>;
+  try {
+    const raw = yaml.load(fs.readFileSync(file, 'utf-8'));
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+    data = raw as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+  const meta = (data.meta ?? {}) as Record<string, unknown>;
+  const counts: Record<string, number> = {};
+  for (const [k, v] of Object.entries(data)) {
+    if (k === 'meta' || !Array.isArray(v)) continue;
+    counts[k] = v.length;
+  }
+  return {
+    name: typeof meta.name === 'string' ? meta.name : null,
+    source,
+    document_path: path.relative(libDir, file).replace(/\.ya?ml$/, ''),
+    file: path.relative(libDir, file),
+    scope: typeof meta.scope === 'string' ? meta.scope : null,
+    project_id: projectId,
+    // R9 / #16: read-if-present. documentMetaSchema is .passthrough(),
+    // so meta.library_id already survives parsing today.
+    library_id: typeof meta.library_id === 'string' ? meta.library_id : null,
+    element_counts: counts,
+  };
+}
+
+/**
+ * Record every library resolved by this invocation (D40).
+ *
+ * Records EVERY document in each resolved library directory, not only
+ * the inherited ones (D41) — a project that inherits one document from
+ * a library would otherwise never index its siblings, which is where
+ * reusable elements typically live.
+ *
+ * Never throws (D57): the index is not load-bearing for correctness.
+ * Returns a warning string when something failed, for the caller to
+ * emit once.
+ */
+export function recordLibraries(args: RecordArgs): string | undefined {
+  const hashes: string[] = [];
+  let failed = false;
+
+  const record = (dir: string, rawSource: string): void => {
+    const source = canonicalizeSource(rawSource, args.libraryDir);
+    for (const file of findYamlFiles(dir)) {
+      const facts = factsFor(file, dir, source, args.projectId);
+      if (!facts) continue;
+      const key = entryKey(source, facts.document_path);
+      try {
+        upsertLibraryEntry(key, facts);
+        hashes.push(key);
+      } catch {
+        failed = true;
+      }
+    }
+  };
+
+  try {
+    record(args.libraryDir, args.libraryDir);
+    for (const src of args.externalSources) {
+      // Resolution already happened during catalog build; re-resolving
+      // here must never trigger a fetch, so we only record sources
+      // whose resolved directory is already on disk.
+      const resolved = resolveIfCached(src, args.libraryDir);
+      if (resolved) record(resolved, src);
+    }
+  } catch {
+    failed = true;
+  }
+
+  if (args.projectId && args.projectPath && args.projectName) {
+    try {
+      upsertRegistryEntry(args.projectId, args.projectName, args.projectPath, hashes);
+    } catch {
+      failed = true;
+    }
+  }
+
+  return failed ? 'cairn: could not update the library registry (continuing)' : undefined;
+}
+
+/**
+ * Resolve a source to a directory ONLY if it is already present
+ * locally. Recording must never perform network I/O: GitSourceResolver
+ * returns the cached path without fetching when the cache exists, and
+ * throws when it does not — which we swallow into null.
+ */
+function resolveIfCached(source: string, baseDir: string): string | null {
+  try {
+    const dir = createSourceResolver(baseDir).resolve(source);
+    return fs.existsSync(dir) ? dir : null;
+  } catch {
+    return null;
+  }
+}
+```
+
+Add to the imports at the top of the same file:
+
+```typescript
+import { createSourceResolver } from '../inheritance/source-resolver.js';
+```
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `npx vitest run tests/registry/record.test.ts`
+Expected: PASS (5 tests)
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/registry/record.ts tests/registry/record.test.ts
+git commit -m "feat: recordLibraries orchestration [D40, D41, D57, D58]"
+```
+
+---
+
+### Task 9: Wire recording into the CLI [D42, D43]
+
+`buildCatalog` is the choke point for library **loading** but does not hold project identity — `parseConfigOptions` consumes the `PreflightResult` and discards it.
+
+**Files:**
+- Modify: `src/cli/helpers.ts:39-91`, `:132-137`
+- Modify: `src/cli/index.ts`
+- Test: `tests/registry/wiring.test.ts`
+
+- [ ] **Step 1: Write the failing test**
+
+```typescript
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { Command } from 'commander';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import { parseConfigOptions } from '../../src/cli/helpers.js';
+
+describe('recording wiring (D42)', () => {
+  let proj: string, orig: string | undefined, tmp: string;
+  beforeEach(() => {
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'reg-'));
+    orig = process.env.GVP_REGISTRY_ROOT;
+    process.env.GVP_REGISTRY_ROOT = tmp;
+    proj = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'w-')));
+    fs.mkdirSync(path.join(proj, '.gvp', 'library'), { recursive: true });
+    fs.writeFileSync(path.join(proj, '.gvp', 'library', 'x.yaml'), 'meta:\n  name: x\n');
+  });
+  afterEach(() => {
+    if (orig === undefined) delete process.env.GVP_REGISTRY_ROOT; else process.env.GVP_REGISTRY_ROOT = orig;
+    fs.rmSync(tmp, { recursive: true, force: true });
+    fs.rmSync(proj, { recursive: true, force: true });
+  });
+
+  it('surfaces a PreflightResult carrying gvpDir and projectId', () => {
+    const cmd = new Command();
+    cmd.opts = () => ({}) as never;
+    const prev = process.cwd();
+    process.chdir(proj);
+    try {
+      const { preflight } = parseConfigOptions(cmd);
+      expect(preflight.gvpDir).toBe(path.join(proj, '.gvp'));
+      expect(typeof preflight.projectId).toBe('string');
+    } finally {
+      process.chdir(prev);
+    }
+  });
+
+  it('does not write the registry during config parsing — that moved post-catalog (D53)', () => {
+    const cmd = new Command();
+    cmd.opts = () => ({}) as never;
+    const prev = process.cwd();
+    process.chdir(proj);
+    try {
+      parseConfigOptions(cmd);
+      expect(fs.existsSync(path.join(tmp, 'by-id'))).toBe(false);
+    } finally {
+      process.chdir(prev);
+    }
+  });
+});
+```
+
+- [ ] **Step 2: Change `parseConfigOptions` to return the preflight**
+
+```typescript
+export function parseConfigOptions(cmd: Command): {
+  config: GVPConfig;
+  configOptions: LoadConfigOptions;
+  preflight: PreflightResult;
+} {
+  // ... unchanged body ...
+  // REMOVE the runRegistryPreflight(preflight, config) call at line 88 —
+  // it now happens once, after catalog construction (D53).
+  return { config, configOptions, preflight };
+}
+```
+
+- [ ] **Step 3: Add the recording hook to `buildCatalog`**
+
+Add an optional parameter and call `recordLibraries` just before returning the catalog:
+
+```typescript
+export function buildCatalog(
+  config: GVPConfig,
+  cwd: string = process.cwd(),
+  libraryOverride?: string,
+  storeOverride?: string,
+  preflight?: PreflightResult,
+): Catalog {
+  // ... unchanged through catalog construction ...
+  const catalog = new Catalog(resolved, config);
+  logv(`Catalog built: ${catalog.getAllElements().length} elements`);
+
+  if (config.registry?.enabled !== false && !process.env.GVP_NO_REGISTRY) {
+    const warning = recordLibraries({
+      libraryDir: libraryDir!,
+      externalSources: [...sourceDocCache.keys()],
+      projectId: preflight?.projectId ?? null,
+      projectName: preflight?.gvpDir ? path.basename(path.dirname(preflight.gvpDir)) : null,
+      projectPath: preflight?.gvpDir ? path.dirname(preflight.gvpDir) : null,
+    });
+    if (warning) process.stderr.write(warning + '\n');
+  }
+
+  return catalog;
+}
+```
+
+- [ ] **Step 4: Add the `--no-registry` flag**
+
+In `src/cli/index.ts`, add to the program options and translate it to the env var the helper reads:
+
+```typescript
+  .option('--no-registry', 'Skip registry recording for this invocation (D43)')
+```
+
+and, before `program.parse()`:
+
+```typescript
+program.hook('preAction', (thisCommand) => {
+  if (thisCommand.opts().registry === false) process.env.GVP_NO_REGISTRY = '1';
+});
+```
+
+- [ ] **Step 5: Update every `buildCatalog` call site**
+
+All 11 commands call `buildCatalog(config, process.cwd(), getLibraryOverride(cmd), getStoreOverride(cmd))`. Update each to destructure and pass the preflight:
+
+```typescript
+const { config, preflight } = parseConfigOptions(cmd);
+const catalog = buildCatalog(config, process.cwd(), getLibraryOverride(cmd), getStoreOverride(cmd), preflight);
+```
+
+Files: `add.ts`, `analyze.ts`, `diff.ts`, `edit.ts`, `export.ts`, `import.ts`, `inspect.ts`, `mv.ts`, `query.ts`, `review.ts`, `validate.ts`.
+
+- [ ] **Step 6: Build and run the full suite**
+
+Run: `npm run build && npx vitest run`
+Expected: PASS, zero TypeScript errors
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add src/cli/ tests/registry/wiring.test.ts
+git commit -m "feat: wire library recording into catalog construction [D42, D43]"
+```
+
+---
+
+## Phase 3 — Read side and CLI
+
+### Task 10: Registry query and inversion [D50, D53]
+
+**Files:**
+- Create: `src/registry/query.ts`
+- Test: `tests/registry/query.test.ts`
+
+- [ ] **Step 1: Write the failing test**
+
+```typescript
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import * as yaml from 'js-yaml';
+import { loadAllLibraries, invertUsage } from '../../src/registry/query.js';
+import { upsertLibraryEntry } from '../../src/registry/library-entry.js';
+import { getProjectsDir } from '../../src/registry/paths.js';
+
+describe('registry query (D50, D53)', () => {
+  let tmp: string, orig: string | undefined;
+  beforeEach(() => {
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'q-'));
+    orig = process.env.GVP_REGISTRY_ROOT;
+    process.env.GVP_REGISTRY_ROOT = tmp;
+  });
+  afterEach(() => {
+    if (orig === undefined) delete process.env.GVP_REGISTRY_ROOT; else process.env.GVP_REGISTRY_ROOT = orig;
+    fs.rmSync(tmp, { recursive: true, force: true });
+  });
+
+  const entry = (over: Record<string, unknown> = {}) => ({
+    name: 'personal', source: '/abs/lib', document_path: 'personal', file: 'personal.yaml',
+    scope: null, project_id: null, library_id: null, element_counts: { values: 3 }, ...over,
+  }) as any;
+
+  it('derives kind and ref rather than reading stored fields (D50)', () => {
+    upsertLibraryEntry('k1', entry());
+    upsertLibraryEntry('k2', entry({ source: '@github:a/b@v0.7.0' }));
+    const libs = loadAllLibraries();
+    expect(libs.find((l) => l.key === 'k1')!.kind).toBe('local');
+    expect(libs.find((l) => l.key === 'k2')!.kind).toBe('remote');
+    expect(libs.find((l) => l.key === 'k2')!.ref).toBe('v0.7.0');
+  });
+
+  it('inverts the usage edge into seen_from with min/max timestamps', () => {
+    fs.mkdirSync(getProjectsDir(), { recursive: true });
+    fs.writeFileSync(path.join(getProjectsDir(), 'p1.yml'), yaml.dump({
+      project_id: 'p1', project_name: 'one', locations: [{ path: '/p/one', last_seen: 'T' }],
+      libraries: [{ hash: 'k1', first_seen: '2026-01-01T00:00:00Z', last_seen: '2026-02-01T00:00:00Z' }],
+    }));
+    fs.writeFileSync(path.join(getProjectsDir(), 'p2.yml'), yaml.dump({
+      project_id: 'p2', project_name: 'two', locations: [{ path: '/p/two', last_seen: 'T' }],
+      libraries: [{ hash: 'k1', first_seen: '2025-06-01T00:00:00Z', last_seen: '2026-09-01T00:00:00Z' }],
+    }));
+    const usage = invertUsage();
+    expect(usage.get('k1')!.seen_from.sort()).toEqual(['/p/one', '/p/two']);
+    expect(usage.get('k1')!.first_seen).toBe('2025-06-01T00:00:00Z');
+    expect(usage.get('k1')!.last_seen).toBe('2026-09-01T00:00:00Z');
+  });
+
+  it('marks a remote whose cache is gone as not cached', () => {
+    upsertLibraryEntry('k2', entry({ source: '@github:a/b@v0.7.0' }));
+    expect(loadAllLibraries().find((l) => l.key === 'k2')!.cached).toBe(false);
+  });
+
+  it('skips corrupt project entries instead of throwing', () => {
+    fs.mkdirSync(getProjectsDir(), { recursive: true });
+    fs.writeFileSync(path.join(getProjectsDir(), 'bad.yml'), '::: nope');
+    expect(() => invertUsage()).not.toThrow();
+  });
+});
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `npx vitest run tests/registry/query.test.ts`
+Expected: FAIL — module not found
+
+- [ ] **Step 3: Write the implementation**
+
+```typescript
+import * as fs from 'fs';
+import * as path from 'path';
+import * as yaml from 'js-yaml';
+import { getProjectsDir } from './paths.js';
+import { listLibraryKeys, readLibraryEntry, type LibraryEntry } from './library-entry.js';
+import { parseSource, isRemoteSource } from './key.js';
+import { createSourceResolver } from '../inheritance/source-resolver.js';
+
+export interface LibraryView extends LibraryEntry {
+  key: string;
+  /** Derived from source, never stored (D50). */
+  kind: 'local' | 'remote';
+  ref: string | null;
+  /** Is the content available on disk right now? */
+  cached: boolean;
+}
+
+export interface UsageView {
+  seen_from: string[];
+  first_seen: string | null;
+  last_seen: string | null;
+}
+
+/** Resolve an entry's on-disk directory without any network I/O. */
+function cachedDir(entry: LibraryEntry): string | null {
+  if (!isRemoteSource(entry.source)) {
+    return fs.existsSync(entry.source) ? entry.source : null;
+  }
+  try {
+    const dir = createSourceResolver(process.cwd()).resolve(entry.source);
+    return fs.existsSync(dir) ? dir : null;
+  } catch {
+    return null;
+  }
+}
+
+export function loadAllLibraries(): LibraryView[] {
+  const out: LibraryView[] = [];
+  for (const key of listLibraryKeys()) {
+    const e = readLibraryEntry(key);
+    if (!e) continue;
+    const { kind, ref } = parseSource(e.source);
+    out.push({ ...e, key, kind, ref, cached: cachedDir(e) !== null });
+  }
+  return out;
+}
+
+/** Invert the project-side usage edge into per-library usage (D53). */
+export function invertUsage(): Map<string, UsageView> {
+  const usage = new Map<string, UsageView>();
+  let files: string[];
+  try {
+    files = fs.readdirSync(getProjectsDir()).filter((f) => f.endsWith('.yml'));
+  } catch {
+    return usage;
+  }
+  for (const f of files) {
+    let entry: any;
+    try {
+      entry = yaml.load(fs.readFileSync(path.join(getProjectsDir(), f), 'utf-8'));
+    } catch {
+      continue;
+    }
+    if (!entry || typeof entry !== 'object' || !Array.isArray(entry.libraries)) continue;
+    const paths: string[] = Array.isArray(entry.locations)
+      ? entry.locations.map((l: any) => l?.path).filter((p: unknown) => typeof p === 'string')
+      : [];
+    for (const edge of entry.libraries) {
+      if (!edge || typeof edge.hash !== 'string') continue;
+      const prior = usage.get(edge.hash) ?? { seen_from: [], first_seen: null, last_seen: null };
+      for (const p of paths) if (!prior.seen_from.includes(p)) prior.seen_from.push(p);
+      if (!prior.first_seen || (edge.first_seen && edge.first_seen < prior.first_seen)) {
+        prior.first_seen = edge.first_seen ?? prior.first_seen;
+      }
+      if (!prior.last_seen || (edge.last_seen && edge.last_seen > prior.last_seen)) {
+        prior.last_seen = edge.last_seen ?? prior.last_seen;
+      }
+      usage.set(edge.hash, prior);
+    }
+  }
+  return usage;
+}
+```
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `npx vitest run tests/registry/query.test.ts`
+Expected: PASS (4 tests)
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/registry/query.ts tests/registry/query.test.ts
+git commit -m "feat: registry query with derived kind/ref and usage inversion [D50, D53]"
+```
+
+---
+
+### Task 11: Schema-dispatched search [D54, R6]
+
+`search` must **not** match "names and statements". Decisions carry `rationale`; constraints carry `impact`. Hard-coding those names would ship a search structurally unable to match a decision — the exact content the motivating incident was about — and would violate `R6`.
+
+**Files:**
+- Modify: `src/registry/query.ts`
+- Test: `tests/registry/search.test.ts`
+
+- [ ] **Step 1: Write the failing test**
+
+```typescript
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import { searchLibraries } from '../../src/registry/query.js';
+import { upsertLibraryEntry } from '../../src/registry/library-entry.js';
+
+describe('libs search (D54, R6)', () => {
+  let tmp: string, lib: string, orig: string | undefined;
+  beforeEach(() => {
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), 's-'));
+    orig = process.env.GVP_REGISTRY_ROOT;
+    process.env.GVP_REGISTRY_ROOT = tmp;
+    lib = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'sl-')));
+    fs.writeFileSync(path.join(lib, 'p.yaml'),
+      'meta:\n  name: personal\n' +
+      'principles:\n  - id: P17\n    name: Build a tentative flex point\n    statement: seam uncertain\n' +
+      'decisions:\n  - id: D1\n    name: Pick a thing\n    rationale: the flex point argument\n');
+    upsertLibraryEntry('k', {
+      name: 'personal', source: lib, document_path: 'p', file: 'p.yaml', scope: null,
+      project_id: null, library_id: null, element_counts: { principles: 1, decisions: 1 },
+    });
+  });
+  afterEach(() => {
+    if (orig === undefined) delete process.env.GVP_REGISTRY_ROOT; else process.env.GVP_REGISTRY_ROOT = orig;
+    fs.rmSync(tmp, { recursive: true, force: true });
+    fs.rmSync(lib, { recursive: true, force: true });
+  });
+
+  it('matches element names', () => {
+    expect(searchLibraries('tentative').map((r) => r.id)).toContain('P17');
+  });
+
+  it('matches a DECISION rationale — the incident case', () => {
+    const ids = searchLibraries('flex point argument').map((r) => r.id);
+    expect(ids).toContain('D1');
+  });
+
+  it('matches a principle statement', () => {
+    expect(searchLibraries('seam uncertain').map((r) => r.id)).toContain('P17');
+  });
+
+  it('is case-insensitive', () => {
+    expect(searchLibraries('TENTATIVE').map((r) => r.id)).toContain('P17');
+  });
+
+  it('reports uncached remotes rather than silently skipping them', () => {
+    upsertLibraryEntry('r', {
+      name: 'up', source: '@github:a/b@v1', document_path: 'x', file: 'x.yaml', scope: null,
+      project_id: null, library_id: null, element_counts: {},
+    });
+    const { skipped } = searchLibrariesWithSkips('tentative');
+    expect(skipped).toContain('@github:a/b@v1');
+  });
+});
+```
+
+> `searchLibrariesWithSkips` is the same function returning `{ results, skipped }`; implement `searchLibraries` as a thin wrapper returning `.results` and import both in the test.
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `npx vitest run tests/registry/search.test.ts`
+Expected: FAIL — `searchLibraries` not exported
+
+- [ ] **Step 3: Write the implementation**
+
+Append to `src/registry/query.ts`:
+
+```typescript
+import { CategoryRegistry } from '../model/category-registry.js';
+import { loadDefaults } from '../schema/defaults-loader.js';
+
+export interface SearchHit {
+  key: string;
+  library: string | null;
+  document_path: string;
+  category: string;
+  id: string;
+  name: string;
+  field: string;
+  excerpt: string;
+}
+
+/**
+ * Search element names and each category's PRIMARY FIELD across every
+ * known library (D54).
+ *
+ * The primary field is resolved from the category schema, never
+ * hard-coded (R6): decisions carry `rationale`, constraints carry
+ * `impact`, principles carry `statement`. Hard-coding "statement" would
+ * make it impossible to match a decision — precisely the content the
+ * motivating incident was about.
+ *
+ * Uncached remotes are SKIPPED and NAMED, never silently dropped, and
+ * never fetched: resolving one would trigger network I/O inside a read
+ * command. `--fetch` opts in at the CLI layer.
+ */
+export function searchLibrariesWithSkips(
+  query: string,
+  opts: { fetch?: boolean } = {},
+): { results: SearchHit[]; skipped: string[] } {
+  const needle = query.toLowerCase();
+  const registry = CategoryRegistry.fromDefaults(loadDefaults());
+  const results: SearchHit[] = [];
+  const skipped: string[] = [];
+
+  for (const lib of loadAllLibraries()) {
+    const dir = cachedDir(lib);
+    if (!dir) {
+      if (!opts.fetch) { skipped.push(lib.source); continue; }
+      skipped.push(lib.source);
+      continue; // --fetch handling is added at the CLI layer in Task 12
+    }
+    const file = path.join(dir, lib.file);
+    let data: Record<string, unknown>;
+    try {
+      const raw = yaml.load(fs.readFileSync(file, 'utf-8'));
+      if (!raw || typeof raw !== 'object') continue;
+      data = raw as Record<string, unknown>;
+    } catch { continue; }
+
+    for (const [yamlKey, list] of Object.entries(data)) {
+      if (yamlKey === 'meta' || !Array.isArray(list)) continue;
+      const catDef = registry.getByYamlKey(yamlKey);
+      const primary = catDef?.definition?.primary_field ?? 'statement';
+      for (const el of list) {
+        if (!el || typeof el !== 'object') continue;
+        const e = el as Record<string, unknown>;
+        for (const field of ['name', primary]) {
+          const val = e[field];
+          if (typeof val !== 'string' || !val.toLowerCase().includes(needle)) continue;
+          results.push({
+            key: lib.key,
+            library: lib.name,
+            document_path: lib.document_path,
+            category: yamlKey,
+            id: String(e.id ?? '?'),
+            name: String(e.name ?? ''),
+            field,
+            excerpt: val.slice(0, 160),
+          });
+          break;
+        }
+      }
+    }
+  }
+  return { results, skipped };
+}
+
+export function searchLibraries(query: string, opts: { fetch?: boolean } = {}): SearchHit[] {
+  return searchLibrariesWithSkips(query, opts).results;
+}
+```
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `npx vitest run tests/registry/search.test.ts`
+Expected: PASS (5 tests)
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/registry/query.ts tests/registry/search.test.ts
+git commit -m "feat: schema-dispatched search across known libraries [D54, R6]"
+```
+
+---
+
+### Task 12: The `cairn libs` command family [D54]
+
+**Files:**
+- Create: `src/cli/commands/libs.ts`
+- Modify: `src/cli/index.ts`
+- Test: `tests/cli/libs.test.ts`
+
+- [ ] **Step 1: Write the failing test**
+
+```typescript
+import { describe, it, expect } from 'vitest';
+import { libsCommand } from '../../src/cli/commands/libs.js';
+
+describe('cairn libs (D54)', () => {
+  it('registers list, show, search, forget, and prune', () => {
+    const names = libsCommand().commands.map((c) => c.name()).sort();
+    expect(names).toEqual(['forget', 'list', 'prune', 'search', 'show']);
+  });
+
+  it('exposes --json on list, show, and search', () => {
+    const cmd = libsCommand();
+    for (const sub of ['list', 'show', 'search']) {
+      const c = cmd.commands.find((x) => x.name() === sub)!;
+      expect(c.options.some((o) => o.long === '--json')).toBe(true);
+    }
+  });
+
+  it('exposes --kind and --scope on list', () => {
+    const list = libsCommand().commands.find((c) => c.name() === 'list')!;
+    const longs = list.options.map((o) => o.long);
+    expect(longs).toContain('--kind');
+    expect(longs).toContain('--scope');
+  });
+
+  it('exposes --fetch on search', () => {
+    const s = libsCommand().commands.find((c) => c.name() === 'search')!;
+    expect(s.options.some((o) => o.long === '--fetch')).toBe(true);
+  });
+});
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `npx vitest run tests/cli/libs.test.ts`
+Expected: FAIL — module not found
+
+- [ ] **Step 3: Write the command**
+
+```typescript
+import { Command } from 'commander';
+import { loadAllLibraries, invertUsage, searchLibrariesWithSkips } from '../../registry/query.js';
+import { listLibraryKeys, readLibraryEntry } from '../../registry/library-entry.js';
+import { getLibrariesDir } from '../../registry/paths.js';
+import * as fs from 'fs';
+import * as path from 'path';
+
+export function libsCommand(): Command {
+  const cmd = new Command('libs').description('Inspect the registry of GVP libraries cairn has resolved');
+
+  cmd.command('list')
+    .description('Enumerate every known library document')
+    .option('--kind <kind>', 'Filter by kind (local|remote)')
+    .option('--scope <scope>', 'Filter by meta.scope')
+    .option('--json', 'Machine-readable output')
+    .action((opts) => {
+      let libs = loadAllLibraries();
+      if (opts.kind) libs = libs.filter((l) => l.kind === opts.kind);
+      if (opts.scope) libs = libs.filter((l) => l.scope === opts.scope);
+      if (opts.json) { console.log(JSON.stringify(libs, null, 2)); return; }
+      if (libs.length === 0) { console.log('No libraries recorded yet.'); return; }
+      for (const l of libs.sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''))) {
+        const total = Object.values(l.element_counts).reduce((a, b) => a + b, 0);
+        const mark = l.cached ? '' : ' (not cached)';
+        console.log(`${(l.name ?? '(unnamed)').padEnd(22)} ${l.kind.padEnd(6)} ${String(total).padStart(4)}  ${l.source}${mark}`);
+      }
+    });
+
+  cmd.command('show')
+    .description('Show one library document, including which projects have used it')
+    .argument('<selector>', 'meta.name, or <source>:<document_path> to disambiguate')
+    .option('--json', 'Machine-readable output')
+    .action((selector: string, opts) => {
+      const usage = invertUsage();
+      let matches = loadAllLibraries().filter((l) => l.name === selector);
+      if (matches.length === 0) {
+        matches = loadAllLibraries().filter((l) => `${l.source}:${l.document_path}` === selector);
+      }
+      if (matches.length === 0) { console.error(`No library matches '${selector}'.`); process.exit(1); }
+      // Names are explicitly NOT unique (D46) — never silently first-match.
+      if (matches.length > 1 && !opts.json) {
+        console.error(`'${selector}' is ambiguous — ${matches.length} matches. Disambiguate with <source>:<document_path>:`);
+        for (const m of matches) console.error(`  ${m.source}:${m.document_path}`);
+        process.exit(1);
+      }
+      const out = matches.map((m) => ({ ...m, usage: usage.get(m.key) ?? { seen_from: [], first_seen: null, last_seen: null } }));
+      if (opts.json) { console.log(JSON.stringify(out, null, 2)); return; }
+      const m = out[0]!;
+      console.log(`${m.name ?? '(unnamed)'}  [${m.kind}${m.cached ? '' : ', not cached'}]`);
+      console.log(`  source:   ${m.source}`);
+      console.log(`  file:     ${m.file}`);
+      if (m.ref) console.log(`  ref:      ${m.ref}`);
+      if (m.scope) console.log(`  scope:    ${m.scope}`);
+      console.log(`  elements: ${Object.entries(m.element_counts).map(([k, v]) => `${k}=${v}`).join(' ') || '(none)'}`);
+      console.log(`  seen from:`);
+      for (const p of m.usage.seen_from) console.log(`    ${p}`);
+    });
+
+  cmd.command('search')
+    .description('Search element names and primary fields across all known libraries')
+    .argument('<query>')
+    .option('--fetch', 'Fetch uncached remote libraries (performs network I/O)')
+    .option('--json', 'Machine-readable output')
+    .action((query: string, opts) => {
+      const { results, skipped } = searchLibrariesWithSkips(query, { fetch: Boolean(opts.fetch) });
+      if (opts.json) { console.log(JSON.stringify({ results, skipped }, null, 2)); return; }
+      for (const r of results) {
+        console.log(`${r.library ?? '(unnamed)'}:${r.id}  [${r.category}/${r.field}]  ${r.name}`);
+        console.log(`    ${r.excerpt}`);
+      }
+      if (results.length === 0) console.log('No matches.');
+      // Never silently miss — naming skips is the point (D54).
+      for (const s of skipped) console.error(`cairn: skipped uncached remote ${s} (use --fetch to include)`);
+    });
+
+  cmd.command('forget')
+    .description('Remove one library entry from the registry')
+    .argument('<selector>', '<source>:<document_path>')
+    .action((selector: string) => {
+      let removed = 0;
+      for (const key of listLibraryKeys()) {
+        const e = readLibraryEntry(key);
+        if (!e) continue;
+        if (`${e.source}:${e.document_path}` === selector || e.name === selector) {
+          fs.unlinkSync(path.join(getLibrariesDir(), `${key}.yml`));
+          removed++;
+        }
+      }
+      console.log(`Removed ${removed} entr${removed === 1 ? 'y' : 'ies'}.`);
+    });
+
+  cmd.command('prune')
+    .description('Drop local entries whose document is gone; optionally drop uncached remotes')
+    .option('--remote', 'Also drop remote entries that are no longer cached')
+    .action((opts) => {
+      let removed = 0;
+      for (const lib of loadAllLibraries()) {
+        // D55: local prunes by DOCUMENT, not by library dir — otherwise
+        // deleting one document orphans its entry forever.
+        const gone = lib.kind === 'local'
+          ? !fs.existsSync(path.join(lib.source, lib.file))
+          : Boolean(opts.remote) && !lib.cached;
+        if (gone) { fs.unlinkSync(path.join(getLibrariesDir(), `${lib.key}.yml`)); removed++; }
+      }
+      console.log(`Pruned ${removed} entr${removed === 1 ? 'y' : 'ies'}.`);
+    });
+
+  return cmd;
+}
+```
+
+- [ ] **Step 4: Register the command**
+
+In `src/cli/index.ts`:
+
+```typescript
+import { libsCommand } from './commands/libs.js';
+// ...
+program.addCommand(libsCommand());
+```
+
+- [ ] **Step 5: Run test to verify it passes**
+
+Run: `npm run build && npx vitest run tests/cli/libs.test.ts`
+Expected: PASS (4 tests)
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add src/cli/commands/libs.ts src/cli/index.ts tests/cli/libs.test.ts
+git commit -m "feat: cairn libs list/show/search/forget/prune [D54, D55]"
+```
+
+---
+
+### Task 13: Document-level prune for local entries [D55]
+
+**Files:**
+- Modify: `src/registry/library-entry.ts`
+- Test: `tests/registry/prune.test.ts`
+
+- [ ] **Step 1: Write the failing test**
+
+```typescript
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import { pruneLibraryEntries } from '../../src/registry/library-entry.js';
+import { upsertLibraryEntry, listLibraryKeys } from '../../src/registry/library-entry.js';
+
+describe('library prune (D55)', () => {
+  let tmp: string, lib: string, orig: string | undefined;
+  beforeEach(() => {
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pr-'));
+    orig = process.env.GVP_REGISTRY_ROOT;
+    process.env.GVP_REGISTRY_ROOT = tmp;
+    lib = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'pl-')));
+    fs.writeFileSync(path.join(lib, 'a.yaml'), 'meta:\n  name: a\n');
+    fs.writeFileSync(path.join(lib, 'b.yaml'), 'meta:\n  name: b\n');
+    const base = { scope: null, project_id: null, library_id: null, element_counts: {} };
+    upsertLibraryEntry('ka', { ...base, name: 'a', source: lib, document_path: 'a', file: 'a.yaml' } as any);
+    upsertLibraryEntry('kb', { ...base, name: 'b', source: lib, document_path: 'b', file: 'b.yaml' } as any);
+    upsertLibraryEntry('kr', { ...base, name: 'r', source: '@github:x/y@v1', document_path: 'r', file: 'r.yaml' } as any);
+  });
+  afterEach(() => {
+    if (orig === undefined) delete process.env.GVP_REGISTRY_ROOT; else process.env.GVP_REGISTRY_ROOT = orig;
+    fs.rmSync(tmp, { recursive: true, force: true });
+    fs.rmSync(lib, { recursive: true, force: true });
+  });
+
+  it('drops a deleted document but keeps its live siblings', () => {
+    fs.unlinkSync(path.join(lib, 'a.yaml'));
+    pruneLibraryEntries();
+    expect(listLibraryKeys().sort()).toEqual(['kb', 'kr']);
+  });
+
+  it('retains remote entries even when uncached (D55)', () => {
+    pruneLibraryEntries();
+    expect(listLibraryKeys()).toContain('kr');
+  });
+
+  it('drops nothing when everything is present', () => {
+    pruneLibraryEntries();
+    expect(listLibraryKeys().sort()).toEqual(['ka', 'kb', 'kr']);
+  });
+});
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `npx vitest run tests/registry/prune.test.ts`
+Expected: FAIL — `pruneLibraryEntries` not exported
+
+- [ ] **Step 3: Write the implementation**
+
+Append to `src/registry/library-entry.ts`:
+
+```typescript
+import { isRemoteSource } from './key.js';
+
+/**
+ * Prune library entries (D55).
+ *
+ * Local entries are dropped when THE DOCUMENT FILE is gone — not when
+ * the library directory is gone. D22's directory-level prune would
+ * orphan a deleted document's entry forever while its siblings stayed
+ * live.
+ *
+ * Remote entries are NEVER dropped here: an evicted cache is still
+ * re-fetchable while the ref is served, and forgetting it discards
+ * exactly what the index exists to hold. `cairn libs prune --remote`
+ * is the explicit opt-in.
+ */
+export function pruneLibraryEntries(): void {
+  for (const key of listLibraryKeys()) {
+    const e = readLibraryEntry(key);
+    if (!e) {
+      // Unparseable — but only remove it if we can also confirm it is
+      // not a torn read in progress. Atomic writes (D52) mean a
+      // well-formed writer never produces one, so this is safe.
+      try { fs.unlinkSync(path.join(getLibrariesDir(), `${key}.yml`)); } catch { /* gone */ }
+      continue;
+    }
+    if (isRemoteSource(e.source)) continue;
+    if (!fs.existsSync(path.join(e.source, e.file))) {
+      try { fs.unlinkSync(path.join(getLibrariesDir(), `${key}.yml`)); } catch { /* gone */ }
+    }
+  }
+}
+```
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `npx vitest run tests/registry/prune.test.ts`
+Expected: PASS (3 tests)
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/registry/library-entry.ts tests/registry/prune.test.ts
+git commit -m "feat: document-level prune, remote retention [D55]"
+```
+
+---
+
+### Task 14: Concurrency and end-to-end verification [P18, C2, D52]
+
+**Files:**
+- Test: `tests/registry/concurrency.test.ts`
+- Test: `tests/registry/e2e.test.ts`
+
+- [ ] **Step 1: Write the concurrency test**
+
+```typescript
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import { upsertLibraryEntry, readLibraryEntry } from '../../src/registry/library-entry.js';
+import { getLibrariesDir } from '../../src/registry/paths.js';
+
+describe('registry concurrency (C2, P18, D52)', () => {
+  let tmp: string, orig: string | undefined;
+  beforeEach(() => {
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cc-'));
+    orig = process.env.GVP_REGISTRY_ROOT;
+    process.env.GVP_REGISTRY_ROOT = tmp;
+  });
+  afterEach(() => {
+    if (orig === undefined) delete process.env.GVP_REGISTRY_ROOT; else process.env.GVP_REGISTRY_ROOT = orig;
+    fs.rmSync(tmp, { recursive: true, force: true });
+  });
+
+  const entry = () => ({
+    name: 'x', source: '/abs', document_path: 'd', file: 'd.yaml', scope: null,
+    project_id: null, library_id: null, element_counts: { values: 1 },
+  }) as any;
+
+  it('many interleaved writers leave exactly one valid entry', async () => {
+    await Promise.all(Array.from({ length: 50 }, () =>
+      Promise.resolve().then(() => upsertLibraryEntry('k', entry()))));
+    expect(fs.readdirSync(getLibrariesDir())).toEqual(['k.yml']);
+    expect(readLibraryEntry('k')).toEqual(entry());
+  });
+
+  it('a reader interleaved with writers never sees a partial file', async () => {
+    let bad = 0;
+    const writers = Array.from({ length: 40 }, () =>
+      Promise.resolve().then(() => upsertLibraryEntry('k', entry())));
+    const readers = Array.from({ length: 40 }, () =>
+      Promise.resolve().then(() => {
+        const e = readLibraryEntry('k');
+        if (e !== null && e.source !== '/abs') bad++;
+      }));
+    await Promise.all([...writers, ...readers]);
+    expect(bad).toBe(0);
+    expect(fs.readdirSync(getLibrariesDir()).filter((f) => f.endsWith('.tmp'))).toEqual([]);
+  });
+});
+```
+
+- [ ] **Step 2: Run it**
+
+Run: `npx vitest run tests/registry/concurrency.test.ts`
+Expected: PASS (2 tests)
+
+- [ ] **Step 3: Write the end-to-end test**
+
+```typescript
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { execFileSync } from 'child_process';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+
+const CLI = path.resolve('dist/cli/index.js');
+
+function run(args: string[], cwd: string, root: string): string {
+  return execFileSync('node', [CLI, ...args], {
+    cwd, encoding: 'utf-8', env: { ...process.env, GVP_REGISTRY_ROOT: root },
+  });
+}
+
+describe('libs end-to-end', () => {
+  let proj: string, root: string;
+  beforeEach(() => {
+    root = fs.mkdtempSync(path.join(os.tmpdir(), 'e2e-reg-'));
+    proj = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'e2e-p-')));
+    const lib = path.join(proj, '.gvp', 'library');
+    fs.mkdirSync(lib, { recursive: true });
+    fs.writeFileSync(path.join(lib, 'main.yaml'),
+      'meta:\n  name: e2elib\n' +
+      'goals:\n  - id: G1\n    name: A goal\n    statement: g\n' +
+      'values:\n  - id: V1\n    name: A value\n    statement: v\n' +
+      'decisions:\n  - id: D1\n    name: A choice\n' +
+      '    rationale: chosen for the zebra property\n' +
+      '    maps_to:\n      - e2elib:G1\n      - e2elib:V1\n');
+  });
+  afterEach(() => {
+    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(proj, { recursive: true, force: true });
+  });
+
+  it('validate populates the registry and list reports the document', () => {
+    run(['validate'], proj, root);
+    const libs = JSON.parse(run(['libs', 'list', '--json'], proj, root));
+    expect(libs.map((l: any) => l.name)).toContain('e2elib');
+    expect(libs.find((l: any) => l.name === 'e2elib').kind).toBe('local');
+  });
+
+  it('search matches a DECISION rationale — the incident case', () => {
+    run(['validate'], proj, root);
+    const { results } = JSON.parse(run(['libs', 'search', 'zebra property', '--json'], proj, root));
+    expect(results.map((r: any) => r.id)).toContain('D1');
+    expect(results.find((r: any) => r.id === 'D1').field).toBe('rationale');
+  });
+
+  it('show reports which projects have used the library', () => {
+    run(['validate'], proj, root);
+    const out = JSON.parse(run(['libs', 'show', 'e2elib', '--json'], proj, root));
+    expect(out[0].usage.seen_from).toContain(proj);
+  });
+
+  it('--no-registry writes nothing', () => {
+    const clean = fs.mkdtempSync(path.join(os.tmpdir(), 'e2e-clean-'));
+    run(['--no-registry', 'validate'], proj, clean);
+    expect(fs.existsSync(path.join(clean, 'libraries'))).toBe(false);
+    fs.rmSync(clean, { recursive: true, force: true });
+  });
+});
+```
+
+- [ ] **Step 4: Run the full suite and build**
+
+Run: `npm run build && npx vitest run`
+Expected: PASS, zero TypeScript errors
+
+- [ ] **Step 5: Add refs to the guiding elements**
+
+Every decision D40–D58 needs `refs` pointing at its implementation, so `cairn validate --coverage` passes. Use `cairn edit`, never direct YAML edits.
+
+Run: `node dist/cli/index.js validate --coverage`
+Expected: no `W013` for D40–D58
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add tests/registry/ .gvp/library/gvp.yaml
+git commit -m "test: concurrency and end-to-end coverage; add refs to D40-D58 [P18, C2, D52]"
+```
+
+---
+
+### Task 15: Document the registry's delete-and-rebuild semantics [D56]
+
+D22 argued "registry, not cache" because "cache" implies the tool will rebuild. #15 requires "always safe to delete and rebuild." Both are right about different halves, and the documentation must state both rather than collapse to either label.
+
+**Files:**
+- Modify: `README.md`
+- Test: `tests/registry/docs.test.ts`
+
+- [ ] **Step 1: Write the failing test**
+
+```typescript
+import { describe, it, expect } from 'vitest';
+import * as fs from 'fs';
+
+describe('registry documentation (D56)', () => {
+  const readme = () => fs.readFileSync('README.md', 'utf-8');
+
+  it('documents the registry location and the enumerate command', () => {
+    const r = readme();
+    expect(r).toMatch(/~\/\.gvp\/registry/);
+    expect(r).toMatch(/cairn libs list/);
+    expect(r).toMatch(/GVP_REGISTRY_ROOT/);
+  });
+
+  it('states BOTH halves — deleting is safe, rebuilding is lossy (D56)', () => {
+    const r = readme().toLowerCase();
+    expect(r).toMatch(/safe to delete/);
+    expect(r).toMatch(/not automatic|lossy|only when cairn next/);
+  });
+
+  it('documents the opt-out', () => {
+    expect(readme()).toMatch(/--no-registry|registry\.enabled/);
+  });
+});
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `npx vitest run tests/registry/docs.test.ts`
+Expected: FAIL — README has no registry section
+
+- [ ] **Step 3: Add the README section**
+
+```markdown
+## Library registry
+
+Cairn records every library it resolves into `~/.gvp/registry/`
+(override with `GVP_REGISTRY_ROOT`), so a new project can discover
+guiding elements that already exist instead of re-deriving them.
+
+    cairn libs list                  # everything cairn has seen
+    cairn libs search "flex point"   # across every known library
+    cairn libs show personal         # detail + which projects use it
+
+Recording is on by default. Opt out with `registry.enabled: false` in
+any config layer, or `--no-registry` for one invocation. Recording
+never changes a command's exit code or output; on failure it warns once
+to stderr and carries on.
+
+**Deleting the registry is safe — but rebuilding it is lossy.** Nothing
+breaks if you `rm -rf ~/.gvp/registry`, and cairn will not complain.
+But it does not rebuild itself: each library reappears only when cairn
+next resolves it, so a library you have not touched since deleting is
+simply absent until you work in a project that uses it.
+```
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `npx vitest run tests/registry/docs.test.ts`
+Expected: PASS (3 tests)
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add README.md tests/registry/docs.test.ts
+git commit -m "docs: registry location, commands, and delete-vs-rebuild semantics [D56]"
+```
+
+---
+
+## Post-implementation: the #15 handoff comment
+
+**Do not do this until the feature is merged and working.** #15's author has a monitor polling that ticket, and the comment triggers a downstream `ai-infra` rule. Posting it early points agents at a path that does not exist.
+
+- [ ] Verify `cairn libs list` works on a real machine with a populated registry
+- [ ] Comment on #15:
+
+> Landed. Registry root: `~/.gvp/registry/` (override with `GVP_REGISTRY_ROOT`).
+> Library entries in `libraries/`, project entries in `by-id/`.
+> Enumerate: `cairn libs list` (`--json`, `--kind`, `--scope`)
+> Search: `cairn libs search "<query>"` — matches element names and each category's primary field, so decision rationale is searchable.
+> Detail: `cairn libs show <name>` — includes which projects have used it.
+> Recording is on by default; opt out with `registry.enabled: false` or `--no-registry`.
+>
+> Note on the priority order in the issue: tiers 1 (personal), 3 (similar projects), and 4 (cherry-pick) are served. **Tier 2 (organization-scoped) is not** — cairn has no org-scope concept; `--scope` filters an arbitrary user-supplied `meta.scope` string. That gap is tracked separately.
+
+---
+
+## Deferred / not in this plan
+
+- **#16 portable library UUID** — `R9` is recorded but not enforceable; `library_id` is read-if-present only.
+- **Organization-scoped libraries** — no cairn concept exists (see #15 comment above).
+- **Caching remote library content** for offline enumeration — #15 ranks it below the index.
