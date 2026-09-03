@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
 import { getProjectsDir } from '../registry/paths.js';
+import { writeFileAtomic } from '../registry/atomic.js';
 
 /**
  * Global project registry (D22) — opt-in cross-project discovery
@@ -49,10 +50,10 @@ export function getRegistryDir(): string {
 /**
  * Upsert the current project's registry entry. Creates the entry
  * if it doesn't exist, updates the timestamp and path-list if it
- * does. No-op if the registry directory can't be created (e.g.,
- * read-only home directory in a sandboxed environment); the
- * caller should not fail hard on registry errors because the
- * feature is non-load-bearing for correctness.
+ * does. THROWS if the write fails (e.g., read-only home directory
+ * in a sandboxed environment) so the caller can surface D57's single
+ * warning; the caller must catch, because registry recording is
+ * non-load-bearing for correctness and never fails the command.
  *
  * The `projectPath` is the filesystem location of the project's
  * `.gvp/` parent directory (NOT the .gvp/ itself — we track the
@@ -66,12 +67,9 @@ export function upsertRegistryEntry(
   const registryDir = getProjectsDir();
   const entryPath = path.join(registryDir, `${projectId}.yml`);
 
-  try {
-    fs.mkdirSync(registryDir, { recursive: true });
-  } catch {
-    return; // Can't create dir — silently skip, preserving caller stability
-  }
-
+  // No mkdir early-return here: writeFileAtomic does the mkdir and throws
+  // uniformly. Returning early meant a read-only $HOME produced no write AND
+  // no warning — the D22 behavior that D57 amends.
   const now = new Date().toISOString();
 
   let entry: RegistryEntry = {
@@ -120,13 +118,12 @@ export function upsertRegistryEntry(
   }
 
   try {
-    fs.writeFileSync(
-      entryPath,
-      yaml.dump(entry, { lineWidth: 120, noRefs: true }),
-    );
+    writeFileAtomic(entryPath, yaml.dump(entry, { lineWidth: 120, noRefs: true }));
   } catch {
-    // Write failure — silently skip
-    return;
+    // Signal failure so recordLibraries can emit D57's single warning.
+    // Swallowing here would make the failure invisible to the caller and
+    // silently preserve D22's warn-about-nothing behavior.
+    throw new Error('registry write failed');
   }
 }
 
@@ -198,10 +195,7 @@ export function pruneStaleRegistryEntries(): void {
       // Some locations pruned — rewrite the entry
       entry.locations = liveLocations;
       try {
-        fs.writeFileSync(
-          entryPath,
-          yaml.dump(entry, { lineWidth: 120, noRefs: true }),
-        );
+        writeFileAtomic(entryPath, yaml.dump(entry, { lineWidth: 120, noRefs: true }));
       } catch {
         // ignore
       }

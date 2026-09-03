@@ -175,6 +175,10 @@ export function runRegistryPreflight(
   // set a display name yet.
   const projectName = path.basename(projectPath);
 
-  upsertRegistryEntry(preflightResult.projectId, projectName, projectPath);
-  pruneStaleRegistryEntries();
+  try {
+    upsertRegistryEntry(preflightResult.projectId, projectName, projectPath);
+    pruneStaleRegistryEntries();
+  } catch {
+    // D57: registry failure never fails the command.
+  }
 }
