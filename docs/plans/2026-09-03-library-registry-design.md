@@ -446,6 +446,11 @@ a required deliverable, not a courtesy:
 - Read-only commands now write to `$HOME` by default. This is the substantive change
   and what the opt-out exists for.
 - No change to library resolution, inheritance, or any existing command output.
+- **D22 project entries are now written only by catalog-building commands.** Once
+  `runRegistryPreflight` moves out of `parseConfigOptions`, `cairn init` — and any
+  command that exits before `buildCatalog` — no longer registers the project. This
+  follows from the hook placement above and is intended, but it is a real change
+  from D22's every-invocation behavior.
 
 ## Not in scope
 

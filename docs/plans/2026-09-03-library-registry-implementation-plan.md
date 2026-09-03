@@ -30,7 +30,8 @@
 - `src/config/schema.ts` — flip default; object-level `.default({ enabled: true })` [D43, D44]
 - `src/config/registry.ts` — use `paths.ts`, atomic writes [D52]
 - `src/inheritance/source-resolver.ts` — export a pure, cache-only `cachedPathFor` [D54]
-- `vitest.config.ts` — `setupFiles` isolating `GVP_REGISTRY_ROOT` for the whole suite
+- `vitest.config.ts` — add `globalSetup` isolating `GVP_REGISTRY_ROOT` for the whole suite
+- `tests/setup.ts` — the globalSetup file (created; not collected as a test)
 - `src/cli/helpers.ts` — return `PreflightResult`, call `recordLibraries` [D42]
 - `src/cli/index.ts` — register `libs`, add `--no-registry` [D43, D54]
 - `tests/config/registry.test.ts` — rewrite the default-off test [D43]
@@ -418,9 +419,20 @@ Expected: PASS (3 tests)
     });
 ```
 
-- [ ] **Step 6: Isolate the registry for the whole test suite**
+- [ ] **Step 6: Verify the opt-out survives config layering**
 
-> **Watch for this while implementing:** `mergeConfigs` (`src/config/loader.ts:130`) replaces the whole `registry` object per layer rather than merging into it, so a project config containing `registry: {}` silently discards a global `registry.enabled: false` and the inner default re-enables it. That shallow-merge behavior is pre-existing, but the default flip makes it load-bearing for the first time — the spec promises the opt-out works "in any config layer". Add a test for global-off + project-`registry: {}`, and deep-merge the key if it fails.
+`mergeConfigs` (`src/config/loader.ts:132`) puts `registry` in the "closer scope wins" branch — it replaces the whole object per layer rather than merging into it, and `configSchema.parse` runs once *after* the merge. So a project config containing `registry: {}` discards a global `registry.enabled: false`, and the inner default re-enables recording. Pre-existing behavior, but D43 promises the opt-out works "in any config layer", so the flip makes it load-bearing for the first time.
+
+```typescript
+it('a global opt-out survives a project layer that mentions registry (D43)', () => {
+  const merged = mergeConfigs({ registry: { enabled: false } }, { registry: {} });
+  expect(configSchema.parse(merged).registry?.enabled).toBe(false);
+});
+```
+
+If it fails, deep-merge `registry` in `mergeConfigs` rather than weakening the test.
+
+- [ ] **Step 7: Isolate the registry for the whole test suite**
 
 Flipping the default makes ~80 `buildCatalog` calls across `tests/cli/`, `tests/validation/`, and `tests/exporters/` write into the developer's **real** `~/.gvp/registry/`, indexing throwaway tmp fixtures. Nothing fails, so the next step will not catch it. Only `tests/config/registry.test.ts` sets `GVP_REGISTRY_ROOT` today.
 
@@ -453,24 +465,24 @@ export default function setup() {
 
 Verify: `node -e "console.log(require('fs').existsSync(require('os').homedir()+'/.gvp/registry'))"` before and after a full run — the answer must not change.
 
-- [ ] **Step 7: Run the full suite to catch other default-off assumptions**
+- [ ] **Step 8: Run the full suite to catch other default-off assumptions**
 
 Run: `npx vitest run`
 Expected: PASS. Any other failure here is a test that silently depended on the registry never being written — fix it the same way, do not disable it.
 
-- [ ] **Step 8: Update the stale opt-in docblocks**
+- [ ] **Step 9: Update the stale opt-in docblocks**
 
 Two docblocks still describe the feature as opt-in and will mislead the next reader:
 
 - `src/config/registry.ts:11-14` — "When the `registry.enabled: true` config flag is set…"
-- `src/config/preflight.ts:141-152` — "Opt-in: this function is a no-op unless `config.registry?.enabled` is explicitly true."
+- `src/config/preflight.ts` (the `runRegistryPreflight` docblock, ~line 144) — "Opt-in: this function is a no-op unless `config.registry?.enabled` is explicitly true."
 
 Rewrite both for the amended behavior: on by default, opt out via `registry.enabled: false` or `--no-registry`, per D43 and the D22 amendment.
 
-- [ ] **Step 9: Commit**
+- [ ] **Step 10: Commit**
 
 ```bash
-git add src/config/schema.ts src/config/registry.ts src/config/preflight.ts tests/config/registry.test.ts tests/config/registry-default.test.ts tests/setup.ts vitest.config.ts
+git add src/config/schema.ts src/config/loader.ts src/config/registry.ts src/config/preflight.ts tests/config/registry.test.ts tests/config/registry-default.test.ts tests/setup.ts vitest.config.ts
 git commit -m "feat!: registry recording defaults on with opt-out [D43, D44]"
 ```
 
@@ -493,7 +505,6 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import * as os from 'os';
 import { isRemoteSource, canonicalizeSource, entryKey, parseSource } from '../../src/registry/key.js';
 import { LocalSourceResolver } from '../../src/inheritance/source-resolver.js';
 
@@ -533,10 +544,17 @@ describe('registry key (D46, D47)', () => {
     // The spec names this case: expandTilde runs in the CLI before
     // resolve, but sourceDocCache is keyed by the RAW string and
     // path.resolve does not expand `~`.
-    const home = os.homedir();
-    const rel = path.relative(home, dir);
-    if (!rel.startsWith('..')) {
-      expect(canonicalizeSource(`~/${rel}`, '/nonexistent')).toBe(dir);
+    //
+    // The directory MUST be under $HOME — os.tmpdir() is not on Linux or
+    // macOS, so guarding on `path.relative` would silently skip the
+    // assertion and the test would pass green with zero coverage.
+    const underHome = fs.realpathSync(
+      fs.mkdtempSync(path.join(os.homedir(), '.cairn-key-test-')));
+    try {
+      const rel = path.relative(os.homedir(), underHome);
+      expect(canonicalizeSource(`~/${rel}`, '/nonexistent')).toBe(underHome);
+    } finally {
+      fs.rmSync(underHome, { recursive: true, force: true });
     }
   });
 
@@ -599,12 +617,22 @@ export function isRemoteSource(source: string): boolean {
 }
 
 /**
+ * The remote source grammar: `@<provider>:<path>@<commitish>`.
+ *
+ * Exported and reused by cachedPathFor (Task 5) and GitSourceResolver so
+ * there is exactly ONE definition — three copies had accumulated, the same
+ * P11 duplication Task 5 consolidated cacheKey and findLibraryDir for.
+ * Update GitSourceResolver.resolve to use this too.
+ */
+export const REMOTE_SOURCE_RE = /^@(\w+):(.+?)@(.+)$/;
+
+/**
  * Derive kind and ref from a source string (D50 — neither is stored).
  * The remote grammar is exactly `@<provider>:<path>@<commitish>`.
  */
 export function parseSource(source: string): { kind: 'local' | 'remote'; ref: string | null } {
   if (!isRemoteSource(source)) return { kind: 'local', ref: null };
-  const m = source.match(/^@(\w+):(.+?)@(.+)$/);
+  const m = REMOTE_SOURCE_RE.exec(source);
   return { kind: 'remote', ref: m ? (m[3] as string) : null };
 }
 
@@ -657,7 +685,7 @@ export function entryKey(canonicalSource: string, documentPath: string): string 
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run tests/registry/key.test.ts`
-Expected: PASS (7 tests)
+Expected: PASS (10 tests)
 
 - [ ] **Step 5: Commit**
 
@@ -759,7 +787,8 @@ export function remoteCacheKey(provider: string, repoPath: string, commitish: st
  * would fetch (D54).
  */
 export function cachedPathFor(source: string, cacheDir: string = defaultCacheDir()): string | null {
-  const m = source.match(/^@(\w+):(.+?)@(.+)$/);
+  // Reuses the single grammar definition exported from registry/key.ts.
+  const m = REMOTE_SOURCE_RE.exec(source);
   if (!m) return null;
   const dir = path.join(cacheDir, remoteCacheKey(m[1] as string, m[2] as string, m[3] as string));
   if (!fs.existsSync(dir)) return null;
@@ -1577,7 +1606,17 @@ export function recordLibraries(args: RecordArgs): string | undefined {
   const record = (dir: string, source: string): void => {
     if (seenSources.has(source)) return;
     seenSources.add(source);
-    for (const file of findYamlFiles(dir)) {
+    // findYamlFiles THROWS on an unreadable/vanished directory (it keeps
+    // the strict behavior buildCatalog needs). Guard it here so one bad
+    // source cannot abort the external sources not yet recorded.
+    let files: string[];
+    try {
+      files = findYamlFiles(dir);
+    } catch {
+      failed = true;
+      return;
+    }
+    for (const file of files) {
       // The WHOLE body is guarded, not just the write: factsFor can throw
       // (e.g. baseRegistry.merge on a malformed definitions block), and one
       // broken document must not abort the remaining documents or the
@@ -1815,7 +1854,12 @@ In `src/cli/index.ts`, add to the program options and translate it to the env va
 `parseConfigOptions` already reads global options via `cmd.optsWithGlobals()`, so route the flag through the **config** rather than the environment — the spec names exactly two opt-out surfaces, and an env var would be an undocumented third:
 
 ```typescript
-  // in parseConfigOptions, after loadConfig:
+  // in parseConfigOptions: `const config = loadConfig(...)` at
+  // src/cli/helpers.ts:75 must become `let config` — reassigning a const
+  // is TS2588. (Line 82 nearby MUTATES rather than reassigns, so the file
+  // gives no hint that this is needed.)
+  let config = loadConfig(configOptions);
+  ...
   if (opts.registry === false) {
     config = { ...config, registry: { ...config.registry, enabled: false } };
   }
@@ -2019,7 +2063,7 @@ export function invertUsage(): Map<string, UsageView> {
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run tests/registry/query.test.ts`
-Expected: PASS (4 tests)
+Expected: PASS (5 tests)
 
 - [ ] **Step 5: Commit**
 
@@ -2481,8 +2525,11 @@ describe('registry concurrency (C2, P18, D52)', () => {
     fs.rmSync(tmp, { recursive: true, force: true });
   });
 
+  // A REMOTE source: pruneLibraryEntries never removes remote entries
+  // (D55), so in the prune-race test below only a torn read could delete
+  // it -- which is exactly the D52 failure being hunted.
   const entry = () => ({
-    name: 'x', source: '/abs', document_path: 'd', file: 'd.yaml', scope: null,
+    name: 'x', source: '@github:a/b@v1', document_path: 'd', file: 'd.yaml', scope: null,
     project_id: null, library_id: null, element_counts: { values: 1 },
   }) as any;
 
@@ -2511,12 +2558,13 @@ describe('registry concurrency (C2, P18, D52)', () => {
       const files = fs.readdirSync(getLibrariesDir());
       expect(files.filter((f) => f.endsWith('.tmp'))).toEqual([]);
       expect(files).toEqual(['k.yml']);
-      // The decisive assertion: after 1600 DIFFERING interleaved writes
-      // across 8 processes with no lock, the entry is still a complete,
-      // well-formed record -- not a blend of two writers' bytes.
+      // NOTE: this asserts only on the FINAL state, after every writer
+      // has exited, so it passes with or without atomic writes. It guards
+      // against leftover temp files and lost entries, not against torn
+      // reads -- the concurrent-reader test below is what discriminates.
       const final = readLibraryEntry('k');
       expect(final).not.toBeNull();
-      expect(final!.source).toBe('/abs');
+      expect(final!.source).toBe('@github:a/b@v1');
       expect(final!.document_path).toBe('d');
       expect(Object.keys(final!.element_counts)).toEqual(['values']);
     });
@@ -2540,6 +2588,35 @@ describe('registry concurrency (C2, P18, D52)', () => {
     });
   }, 30_000);
 
+  it('a concurrent PRUNE never deletes a live entry (the D52 data-loss path)', () => {
+    assertBuilt();
+    // D52's actual argument: a torn read makes pruneLibraryEntries unlink
+    // a LIVE entry, because it deletes anything it cannot parse. Nothing
+    // else in this suite exercises that path.
+    const w = path.join(os.tmpdir(), `wp-${process.pid}.mjs`);
+    const pr = path.join(os.tmpdir(), `pp-${process.pid}.mjs`);
+    fs.writeFileSync(w, `
+      import { upsertLibraryEntry } from '${path.resolve('dist/registry/library-entry.js')}';
+      const base = ${JSON.stringify(entry())};
+      for (let i = 0; i < 400; i++) upsertLibraryEntry('k', { ...base, element_counts: { values: i } });
+    `);
+    fs.writeFileSync(pr, `
+      import { pruneLibraryEntries } from '${path.resolve('dist/registry/library-entry.js')}';
+      for (let i = 0; i < 400; i++) pruneLibraryEntries();
+    `);
+    const procs = [
+      ...Array.from({ length: 3 }, () => spawn(process.execPath, [w], { env: { ...process.env, GVP_REGISTRY_ROOT: tmp } })),
+      spawn(process.execPath, [pr], { env: { ...process.env, GVP_REGISTRY_ROOT: tmp } }),
+    ];
+    return Promise.all(procs.map((p) => new Promise((res) => p.on('exit', res)))).then(() => {
+      fs.unlinkSync(w); fs.unlinkSync(pr);
+      // The entry's source is /abs, which does not exist, so a
+      // LOCAL-kind prune would legitimately remove it -- use a remote
+      // source here so only a TORN READ could cause deletion.
+      expect(readLibraryEntry('k')).not.toBeNull();
+    });
+  }, 30_000);
+
   it('a concurrent reader never observes a partial file', () => {
     assertBuilt();
     const script = path.join(os.tmpdir(), `w2-${process.pid}.mjs`);
@@ -2556,12 +2633,23 @@ describe('registry concurrency (C2, P18, D52)', () => {
     let bad = 0, reads = 0;
     const done = Promise.all(procs.map((p) => new Promise((res) => p.on('exit', res))));
     const poll = setInterval(() => {
-      const e = readLibraryEntry('k');
+      // THE DISCRIMINATOR: an entry that EXISTS but does not parse.
+      //
+      // Counting null as acceptable is what made an earlier version of
+      // this test unable to fail. `sortKeys: true` sorts `source` last in
+      // the dumped YAML, so every truncated read is missing it and
+      // readLibraryEntry returns null -- converting the exact failure this
+      // test hunts into a pass. Non-atomic writes also cannot produce a
+      // "blended" record, because O_TRUNC prevents old bytes surviving.
+      //
+      // Measured: with a bare writeFileSync this counter lands in the
+      // 10-22 range per run; with temp+rename it is 0.
+      if (!fs.existsSync(path.join(getLibrariesDir(), 'k.yml'))) return;
       reads++;
-      // A torn read yields null (unparseable). A NON-null entry that is
-      // incomplete or blended means atomicity failed.
-      if (e !== null && (e.source !== '/abs' || e.document_path !== 'd'
-          || typeof e.element_counts?.values !== 'number')) bad++;
+      const e = readLibraryEntry('k');
+      if (e === null) { bad++; return; }
+      if (e.source !== '@github:a/b@v1' || e.document_path !== 'd'
+          || typeof e.element_counts?.values !== 'number') bad++;
     }, 1);
     return done.then(() => {
       clearInterval(poll);
@@ -2612,6 +2700,9 @@ const CLI = path.resolve('dist/cli/index.js');
 function assertFreshBuild(): void {
   if (!fs.existsSync(CLI)) throw new Error('dist/ missing — run `npm run build` first');
   const built = fs.statSync(CLI).mtimeMs;
+  // NOTE: `recursive: true` requires Node >= 18.17. On 18.0-18.16 it
+  // silently returns only top-level entries, so this would see just
+  // src/*.ts. package.json declares engines >= 18.0.0.
   const newest = fs.readdirSync('src', { recursive: true, encoding: 'utf-8' })
     .filter((f) => typeof f === 'string' && f.endsWith('.ts'))
     .map((f) => fs.statSync(path.join('src', f)).mtimeMs)
@@ -2670,7 +2761,13 @@ describe('libs end-to-end', () => {
     // Seed the cache directly so no network I/O occurs, then inherit it.
     // The spec's end-to-end item requires BOTH a local library and a
     // remote @github: source to appear in `libs list`.
+    // There is no cacheDir override on the CLI path, so this necessarily
+    // touches the real cache. Fail loudly rather than overwrite if
+    // something is already there (a crashed earlier run, or a real entry).
     const cacheRoot = path.join(os.homedir(), '.cache', 'cairn', 'sources', 'github', 'e2e--fixture');
+    if (fs.existsSync(cacheRoot)) {
+      throw new Error(`${cacheRoot} already exists — remove it before running this test`);
+    }
     const cached = path.join(cacheRoot, 'v1.0.0');
     fs.mkdirSync(cached, { recursive: true });
     fs.writeFileSync(path.join(cached, 'up.yaml'),
@@ -2720,17 +2817,27 @@ describe('libs end-to-end', () => {
 Run: `npm run build && npx vitest run`
 Expected: PASS, zero TypeScript errors
 
-- [ ] **Step 6: Add refs to the guiding elements**
+- [ ] **Step 6: Make `npm test` build first**
+
+`assertBuilt()` and `assertFreshBuild()` throw when `dist/` is missing or stale, but `package.json` still has `"test": "vitest run"` — so a fresh clone's `npm test` now errors. Change it:
+
+```json
+    "test": "npm run build && vitest run",
+```
+
+Verify: `rm -rf dist && npm test` completes rather than throwing.
+
+- [ ] **Step 7: Add refs to the guiding elements**
 
 Every decision D40–D58 needs `refs` pointing at its implementation, so `cairn validate --coverage` passes. Use `cairn edit`, never direct YAML edits.
 
 Run: `node dist/cli/index.js validate --coverage`
 Expected: no `W013` for D40–D58
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
-git add tests/registry/ .gvp/library/gvp.yaml
+git add tests/registry/ package.json .gvp/library/gvp.yaml
 git commit -m "test: concurrency and end-to-end coverage; add refs to D40-D58 [P18, C2, D52]"
 ```
 
