@@ -22,6 +22,7 @@
 - `src/registry/library-entry.ts` — `LibraryEntry` type, upsert, prune [D45, D48, D50, D51, D55]
 - `src/registry/usage-edge.ts` — project-side usage edge merge [D53]
 - `src/registry/record.ts` — `recordLibraries` orchestration [D40, D41, D57, D58]
+- `src/utils/yaml-files.ts` — shared recursive YAML walk, moved out of `helpers.ts` [P11]
 - `src/registry/query.ts` — read side: load, invert, search [D50, D53, D54]
 - `src/cli/commands/libs.ts` — the `libs` command family [D54, D55]
 
@@ -419,6 +420,8 @@ Expected: PASS (3 tests)
 
 - [ ] **Step 6: Isolate the registry for the whole test suite**
 
+> **Watch for this while implementing:** `mergeConfigs` (`src/config/loader.ts:130`) replaces the whole `registry` object per layer rather than merging into it, so a project config containing `registry: {}` silently discards a global `registry.enabled: false` and the inner default re-enables it. That shallow-merge behavior is pre-existing, but the default flip makes it load-bearing for the first time — the spec promises the opt-out works "in any config layer". Add a test for global-off + project-`registry: {}`, and deep-merge the key if it fails.
+
 Flipping the default makes ~80 `buildCatalog` calls across `tests/cli/`, `tests/validation/`, and `tests/exporters/` write into the developer's **real** `~/.gvp/registry/`, indexing throwaway tmp fixtures. Nothing fails, so the next step will not catch it. Only `tests/config/registry.test.ts` sets `GVP_REGISTRY_ROOT` today.
 
 and register it in `vitest.config.ts` by **adding one line** — do not replace the file. `globals: true` and especially `testTimeout: 20000` must survive; the existing comment explains that 5s flakes for the git-shelling and remote-probing tests, and ~80 tests are about to do extra registry I/O:
@@ -490,7 +493,9 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import * as os from 'os';
 import { isRemoteSource, canonicalizeSource, entryKey, parseSource } from '../../src/registry/key.js';
+import { LocalSourceResolver } from '../../src/inheritance/source-resolver.js';
 
 describe('registry key (D46, D47)', () => {
   let dir: string;
@@ -517,11 +522,41 @@ describe('registry key (D46, D47)', () => {
     expect(canonicalizeSource(real, dir)).toBe(canonicalizeSource(link, dir));
   });
 
-  it('collapses tilde and relative forms onto the same key', () => {
+  it('collapses relative and absolute forms onto the same key', () => {
     const real = path.join(dir, 'lib');
     fs.mkdirSync(real);
     expect(canonicalizeSource('./lib', dir)).toBe(real);
     expect(canonicalizeSource(real, dir)).toBe(real);
+  });
+
+  it('collapses the tilde form onto the same key', () => {
+    // The spec names this case: expandTilde runs in the CLI before
+    // resolve, but sourceDocCache is keyed by the RAW string and
+    // path.resolve does not expand `~`.
+    const home = os.homedir();
+    const rel = path.relative(home, dir);
+    if (!rel.startsWith('..')) {
+      expect(canonicalizeSource(`~/${rel}`, '/nonexistent')).toBe(dir);
+    }
+  });
+
+  it('collapses the dual-lookup forms onto one key', () => {
+    // <p> and <p>/.gvp/library name ONE library. Recording keys on the
+    // RESOLVER'S output, so both must agree.
+    const proj = path.join(dir, 'proj');
+    fs.mkdirSync(path.join(proj, '.gvp', 'library'), { recursive: true });
+    const resolver = new LocalSourceResolver(dir);
+    expect(canonicalizeSource(resolver.resolve(proj), dir))
+      .toBe(canonicalizeSource(resolver.resolve(path.join(proj, '.gvp', 'library')), dir));
+  });
+
+  it('never lets a free-form config.source value become a key', () => {
+    // Two unrelated projects both setting `source: mylib` must not
+    // collide: recording keys on the resolved dir, never config.source.
+    const a = path.join(dir, 'a'); const b = path.join(dir, 'b');
+    fs.mkdirSync(a); fs.mkdirSync(b);
+    expect(entryKey(canonicalizeSource(a, dir), 'x'))
+      .not.toBe(entryKey(canonicalizeSource(b, dir), 'x'));
   });
 
   it('leaves remote sources verbatim', () => {
@@ -763,7 +798,6 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import * as yaml from 'js-yaml';
 import { upsertLibraryEntry, readLibraryEntry, type LibraryEntry } from '../../src/registry/library-entry.js';
 import { getLibrariesDir } from '../../src/registry/paths.js';
 
@@ -900,7 +934,20 @@ export function readLibraryEntry(key: string): LibraryEntry | null {
     const parsed = yaml.load(fs.readFileSync(entryPath(key), 'utf-8'));
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
     const e = parsed as Partial<LibraryEntry>;
-    if (typeof e.source !== 'string' || typeof e.document_path !== 'string') return null;
+    // Validate/normalize EVERY field a consumer dereferences. `libs list`
+    // reduces over element_counts, `show` iterates it, `search` joins
+    // `file` -- a parseable-but-incomplete entry throws a TypeError in all
+    // three, and pruneLibraryEntries only deletes UNparseable entries, so
+    // that state is reachable and sticky.
+    if (typeof e.source !== 'string') return null;
+    if (typeof e.document_path !== 'string') return null;
+    if (typeof e.file !== 'string') return null;
+    const counts = e.element_counts;
+    e.element_counts = counts && typeof counts === 'object' && !Array.isArray(counts) ? counts : {};
+    if (typeof e.name !== 'string') e.name = null;
+    if (typeof e.scope !== 'string') e.scope = null;
+    if (typeof e.project_id !== 'string') e.project_id = null;
+    if (typeof e.library_id !== 'string') e.library_id = null;
     return e as LibraryEntry;
   } catch {
     return null;
@@ -935,8 +982,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { pruneLibraryEntries } from '../../src/registry/library-entry.js';
-import { upsertLibraryEntry, listLibraryKeys } from '../../src/registry/library-entry.js';
+import { pruneLibraryEntries, upsertLibraryEntry, listLibraryKeys } from '../../src/registry/library-entry.js';
 
 describe('library prune (D55)', () => {
   let tmp: string, lib: string, orig: string | undefined;
@@ -1381,7 +1427,6 @@ import { upsertRegistryEntry, pruneStaleRegistryEntries } from '../config/regist
 import { LocalSourceResolver, cachedPathFor } from '../inheritance/source-resolver.js';
 import { CategoryRegistry } from '../model/category-registry.js';
 import { loadDefaults } from '../schema/defaults-loader.js';
-import { getRegistryRoot } from './paths.js';
 import type { CategoryDefinition } from '../schema/category-definition.js';
 
 export interface RecordArgs {
@@ -1401,8 +1446,10 @@ export interface RecordArgs {
  *      exporting `findYamlFiles(dir: string): string[]`,
  *   2. have helpers.ts import it from there,
  *   3. import it here.
- * Ensure the shared version sorts, so recording order is deterministic,
- * and that it swallows an unreadable directory rather than throwing.
+ * Keep the EXISTING throwing behavior — do NOT make it swallow. Recording
+ * wants leniency but catalog construction does not, and silently loading a
+ * partial document set would be worse than failing. record()'s per-file
+ * try/catch and recordLibraries' outer try supply the leniency on this side.
  */
 import { findYamlFiles } from '../utils/yaml-files.js';
 
@@ -1475,28 +1522,6 @@ function factsFor(
   };
 }
 
-const PRUNE_INTERVAL_MS = 60 * 60 * 1000;
-
-/** Has it been long enough since the last prune? Never throws. */
-function pruneDue(): boolean {
-  try {
-    const stamp = path.join(getRegistryRoot(), '.last-prune');
-    if (!fs.existsSync(stamp)) return true;
-    return Date.now() - fs.statSync(stamp).mtimeMs > PRUNE_INTERVAL_MS;
-  } catch {
-    return false;
-  }
-}
-
-/** Record that a prune just happened. Never throws. */
-function markPruned(): void {
-  try {
-    const root = getRegistryRoot();
-    fs.mkdirSync(root, { recursive: true });
-    fs.writeFileSync(path.join(root, '.last-prune'), '');
-  } catch { /* best effort */ }
-}
-
 /**
  * The project_id of the project that OWNS `libDir`, by walking up for a
  * `.gvp/config.yaml`. Cached per directory — this runs once per document
@@ -1553,10 +1578,14 @@ export function recordLibraries(args: RecordArgs): string | undefined {
     if (seenSources.has(source)) return;
     seenSources.add(source);
     for (const file of findYamlFiles(dir)) {
-      const facts = factsFor(file, dir, source, baseRegistry);
-      if (!facts) continue;
-      const key = entryKey(source, facts.document_path);
+      // The WHOLE body is guarded, not just the write: factsFor can throw
+      // (e.g. baseRegistry.merge on a malformed definitions block), and one
+      // broken document must not abort the remaining documents or the
+      // external sources not yet recorded.
       try {
+        const facts = factsFor(file, dir, source, baseRegistry);
+        if (!facts) continue;
+        const key = entryKey(source, facts.document_path);
         upsertLibraryEntry(key, facts);
         hashes.push(key);
       } catch {
@@ -1595,16 +1624,15 @@ export function recordLibraries(args: RecordArgs): string | undefined {
   // runRegistryPreflight from parseConfigOptions. Re-home it here so it
   // still runs -- D52's rationale assumes it does.
   //
-  // But NOT on every invocation: both prunes read and yaml-parse EVERY
-  // entry, and D55 retains remote entries unboundedly, so the cost grows
-  // over time and is paid by read commands like `cairn query`. Gate on a
-  // stamp file so it runs at most hourly.
+  // Runs on EVERY invocation, deliberately. D22 records "auto-prune on
+  // access", and D52's rationale explicitly rests on the prune running
+  // for every user on every invocation. An hourly stamp-file gate was
+  // drafted and removed: it would have changed recorded behavior without
+  // amending the decision that records it. The cost is real and is noted
+  // under Deferred as needing a decision, not a quiet optimization.
   try {
-    if (pruneDue()) {
-      pruneStaleRegistryEntries();
-      pruneLibraryEntries();
-      markPruned();
-    }
+    pruneStaleRegistryEntries();
+    pruneLibraryEntries();
   } catch {
     failed = true;
   }
@@ -1639,6 +1667,8 @@ function resolveIfCached(source: string, baseDir: string): string | null {
 ```
 
 > `expandTilde` and `isRemoteSource` are exported from `src/registry/key.ts` in Task 4.
+>
+> Also delete `src/cli/helpers.ts`'s private `expandTilde` (`helpers.ts:429`) and import the exported one — otherwise there are two copies of the same logic, the P11 duplication this plan already avoided for `findYamlFiles`.
 
 - [ ] **Step 4: Run test to verify it passes**
 
@@ -1648,7 +1678,7 @@ Expected: PASS (5 tests)
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/registry/record.ts tests/registry/record.test.ts
+git add src/registry/record.ts src/utils/yaml-files.ts src/cli/helpers.ts tests/registry/record.test.ts
 git commit -m "feat: recordLibraries orchestration [D40, D41, D57, D58]"
 ```
 
@@ -1721,7 +1751,7 @@ describe('recording wiring (D42)', () => {
 
 - [ ] **Step 2: Update imports in `src/cli/helpers.ts`**
 
-The file imports `runProjectPreflight, runRegistryPreflight` but not the `PreflightResult` type, which the new signatures need in two places. `runRegistryPreflight` also becomes unused here (its prune moved into `recordLibraries` in Task 8):
+The file imports `runProjectPreflight, runRegistryPreflight` but not the `PreflightResult` type, which the new signatures need in two places. `runRegistryPreflight` also becomes unused here (its prune moved into `recordLibraries` in Task 9):
 
 ```typescript
 import { runProjectPreflight, type PreflightResult } from '../config/preflight.js';
@@ -1759,7 +1789,7 @@ export function buildCatalog(
   const catalog = new Catalog(resolved, config);
   logv(`Catalog built: ${catalog.getAllElements().length} elements`);
 
-  if (config.registry?.enabled !== false && !process.env.GVP_NO_REGISTRY) {
+  if (config.registry?.enabled !== false) {
     const warning = recordLibraries({
       libraryDir: libraryDir!,
       externalSources: [...sourceDocCache.keys()],
@@ -1782,13 +1812,16 @@ In `src/cli/index.ts`, add to the program options and translate it to the env va
   .option('--no-registry', 'Skip registry recording for this invocation (D43)')
 ```
 
-and, before `program.parse()`:
+`parseConfigOptions` already reads global options via `cmd.optsWithGlobals()`, so route the flag through the **config** rather than the environment — the spec names exactly two opt-out surfaces, and an env var would be an undocumented third:
 
 ```typescript
-program.hook('preAction', (thisCommand) => {
-  if (thisCommand.opts().registry === false) process.env.GVP_NO_REGISTRY = '1';
-});
+  // in parseConfigOptions, after loadConfig:
+  if (opts.registry === false) {
+    config = { ...config, registry: { ...config.registry, enabled: false } };
+  }
 ```
+
+`buildCatalog` then needs no env check: `config.registry?.enabled !== false` covers both surfaces.
 
 - [ ] **Step 6: Update every `buildCatalog` call site**
 
@@ -2108,16 +2141,24 @@ export interface SearchHit {
 export function searchLibrariesWithSkips(
   query: string,
   opts: { fetch?: boolean } = {},
-): { results: SearchHit[]; skipped: string[] } {
+): { results: SearchHit[]; skipped: string[]; missingLocal: string[] } {
   const needle = query.toLowerCase();
   const baseRegistry = CategoryRegistry.fromDefaults(loadDefaults());
   const results: SearchHit[] = [];
   const skipped: string[] = [];
+  const missingLocal: string[] = [];
 
   for (const lib of loadAllLibraries()) {
     // Cache-only by default. cachedPathFor NEVER performs network I/O
     // (Task 5) -- calling the resolver here would clone.
     let dir = cachedDir(lib);
+    if (!dir && lib.kind === 'local') {
+      // A local library whose directory is gone is NOT an uncached remote
+      // and is never eligible for --fetch: D54's skip/fetch policy is
+      // about remotes. The next prune removes this entry.
+      missingLocal.push(lib.source);
+      continue;
+    }
     if (!dir) {
       if (!opts.fetch) { skipped.push(lib.source); continue; }
       // --fetch: network I/O is explicitly opted into.
@@ -2177,7 +2218,7 @@ export function searchLibrariesWithSkips(
       }
     }
   }
-  return { results, skipped };
+  return { results, skipped, missingLocal };
 }
 
 export function searchLibraries(query: string, opts: { fetch?: boolean } = {}): SearchHit[] {
@@ -2302,6 +2343,8 @@ export function libsCommand(): Command {
       if (m.ref) console.log(`  ref:      ${m.ref}`);
       if (m.scope) console.log(`  scope:    ${m.scope}`);
       console.log(`  elements: ${Object.entries(m.element_counts).map(([k, v]) => `${k}=${v}`).join(' ') || '(none)'}`);
+      if (m.usage.first_seen) console.log(`  first seen: ${m.usage.first_seen}`);
+      if (m.usage.last_seen) console.log(`  last seen:  ${m.usage.last_seen}`);
       console.log(`  seen from:`);
       for (const p of m.usage.seen_from) console.log(`    ${p}`);
     });
@@ -2312,8 +2355,8 @@ export function libsCommand(): Command {
     .option('--fetch', 'Fetch uncached remote libraries (performs network I/O)')
     .option('--json', 'Machine-readable output')
     .action((query: string, opts) => {
-      const { results, skipped } = searchLibrariesWithSkips(query, { fetch: Boolean(opts.fetch) });
-      if (opts.json) { console.log(JSON.stringify({ results, skipped }, null, 2)); return; }
+      const { results, skipped, missingLocal } = searchLibrariesWithSkips(query, { fetch: Boolean(opts.fetch) });
+      if (opts.json) { console.log(JSON.stringify({ results, skipped, missingLocal }, null, 2)); return; }
       for (const r of results) {
         console.log(`${r.library ?? '(unnamed)'}:${r.id}  [${r.category}/${r.field}]  ${r.name}`);
         console.log(`    ${r.excerpt}`);
@@ -2324,6 +2367,9 @@ export function libsCommand(): Command {
         console.error(opts.fetch
           ? `cairn: could not fetch remote ${s}`
           : `cairn: skipped uncached remote ${s} (use --fetch to include)`);
+      }
+      for (const s of missingLocal) {
+        console.error(`cairn: local library no longer on disk, skipped: ${s}`);
       }
     });
 
@@ -2339,8 +2385,8 @@ export function libsCommand(): Command {
         // unique (D46), so matching it would silently delete every entry
         // sharing a name -- `show` refuses to guess, and so must this.
         if (`${e.source}:${e.document_path}` === selector) {
-          // A concurrent prune runs on every cairn invocation (C2), so
-          // the file may already be gone.
+          // A concurrent prune runs on every cairn invocation (C2), so the
+          // file may already be gone.
           try { fs.unlinkSync(path.join(getLibrariesDir(), `${key}.yml`)); removed++; } catch { /* gone */ }
         }
       }
@@ -2449,8 +2495,13 @@ describe('registry concurrency (C2, P18, D52)', () => {
     const script = path.join(os.tmpdir(), `w-${process.pid}.mjs`);
     fs.writeFileSync(script, `
       import { upsertLibraryEntry } from '${path.resolve('dist/registry/library-entry.js')}';
+      const base = ${JSON.stringify(entry())};
+      // Each iteration writes DISTINCT bytes. Identical payloads would hit
+      // upsertLibraryEntry's read-compare-skip and turn this into a
+      // tautology -- after the first write there is nothing left to tear,
+      // so it would pass even without atomic writes.
       for (let i = 0; i < 200; i++) {
-        upsertLibraryEntry('k', ${JSON.stringify(entry())});
+        upsertLibraryEntry('k', { ...base, element_counts: { values: i } });
       }
     `);
     const procs = Array.from({ length: 8 }, () =>
@@ -2460,9 +2511,14 @@ describe('registry concurrency (C2, P18, D52)', () => {
       const files = fs.readdirSync(getLibrariesDir());
       expect(files.filter((f) => f.endsWith('.tmp'))).toEqual([]);
       expect(files).toEqual(['k.yml']);
-      // The decisive assertion: after 1600 interleaved writes across 8
-      // processes with no lock, the entry is still valid and complete.
-      expect(readLibraryEntry('k')).toEqual(entry());
+      // The decisive assertion: after 1600 DIFFERING interleaved writes
+      // across 8 processes with no lock, the entry is still a complete,
+      // well-formed record -- not a blend of two writers' bytes.
+      const final = readLibraryEntry('k');
+      expect(final).not.toBeNull();
+      expect(final!.source).toBe('/abs');
+      expect(final!.document_path).toBe('d');
+      expect(Object.keys(final!.element_counts)).toEqual(['values']);
     });
   }, 30_000);
 
@@ -2489,7 +2545,11 @@ describe('registry concurrency (C2, P18, D52)', () => {
     const script = path.join(os.tmpdir(), `w2-${process.pid}.mjs`);
     fs.writeFileSync(script, `
       import { upsertLibraryEntry } from '${path.resolve('dist/registry/library-entry.js')}';
-      for (let i = 0; i < 400; i++) upsertLibraryEntry('k', ${JSON.stringify(entry())});
+      const base = ${JSON.stringify(entry())};
+      // Distinct bytes per iteration -- see the note in the test above.
+      for (let i = 0; i < 400; i++) {
+        upsertLibraryEntry('k', { ...base, element_counts: { values: i } });
+      }
     `);
     const procs = Array.from({ length: 4 }, () =>
       spawn(process.execPath, [script], { env: { ...process.env, GVP_REGISTRY_ROOT: tmp } }));
@@ -2498,9 +2558,10 @@ describe('registry concurrency (C2, P18, D52)', () => {
     const poll = setInterval(() => {
       const e = readLibraryEntry('k');
       reads++;
-      // readLibraryEntry returns null for a torn read; a NON-null entry
-      // with wrong content would mean atomicity failed.
-      if (e !== null && e.source !== '/abs') bad++;
+      // A torn read yields null (unparseable). A NON-null entry that is
+      // incomplete or blended means atomicity failed.
+      if (e !== null && (e.source !== '/abs' || e.document_path !== 'd'
+          || typeof e.element_counts?.values !== 'number')) bad++;
     }, 1);
     return done.then(() => {
       clearInterval(poll);
@@ -2512,17 +2573,31 @@ describe('registry concurrency (C2, P18, D52)', () => {
 });
 ```
 
-- [ ] **Step 2: Run it**
+- [ ] **Step 2: Add a separate test for the skip behavior**
+
+Read-compare-skip deserves its own assertion, kept away from the
+concurrency tests so it cannot mask them:
+
+```typescript
+  it('skips the write when the bytes are already identical', () => {
+    upsertLibraryEntry('k', entry());
+    const before = fs.statSync(path.join(getLibrariesDir(), 'k.yml')).mtimeMs;
+    upsertLibraryEntry('k', entry());
+    expect(fs.statSync(path.join(getLibrariesDir(), 'k.yml')).mtimeMs).toBe(before);
+  });
+```
+
+- [ ] **Step 3: Run it**
 
 Run: `npm run build && npx vitest run tests/registry/concurrency.test.ts`
-Expected: PASS (2 tests)
+Expected: PASS (4 tests)
 
 The build is REQUIRED — the test spawns real node processes against
 `dist/registry/library-entry.js`, which does not exist until `src/registry/`
 has been compiled. Without it all 8 children fail to import and the failure
 looks like an atomicity bug.
 
-- [ ] **Step 3: Write the end-to-end test**
+- [ ] **Step 4: Write the end-to-end test**
 
 ```typescript
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
@@ -2591,6 +2666,32 @@ describe('libs end-to-end', () => {
     expect(out[0].usage.seen_from).toContain(proj);
   });
 
+  it('records a remote @github: source end-to-end', () => {
+    // Seed the cache directly so no network I/O occurs, then inherit it.
+    // The spec's end-to-end item requires BOTH a local library and a
+    // remote @github: source to appear in `libs list`.
+    const cacheRoot = path.join(os.homedir(), '.cache', 'cairn', 'sources', 'github', 'e2e--fixture');
+    const cached = path.join(cacheRoot, 'v1.0.0');
+    fs.mkdirSync(cached, { recursive: true });
+    fs.writeFileSync(path.join(cached, 'up.yaml'),
+      'meta:\n  name: e2eup\nvalues:\n  - id: V1\n    name: Up\n    statement: u\n');
+    try {
+      const main = path.join(proj, '.gvp', 'library', 'main.yaml');
+      fs.writeFileSync(main, fs.readFileSync(main, 'utf-8').replace(
+        'meta:\n  name: e2elib\n',
+        'meta:\n  name: e2elib\n  inherits:\n    - source: "@github:e2e/fixture@v1.0.0"\n'));
+      run(['validate'], proj, root);
+      const libs = JSON.parse(run(['libs', 'list', '--json'], proj, root));
+      const remote = libs.find((l: any) => l.name === 'e2eup');
+      expect(remote).toBeDefined();
+      expect(remote.kind).toBe('remote');
+      expect(remote.ref).toBe('v1.0.0');
+      expect(libs.find((l: any) => l.name === 'e2elib')).toBeDefined();
+    } finally {
+      fs.rmSync(cacheRoot, { recursive: true, force: true });
+    }
+  });
+
   it('an unwritable registry leaves exit code and stdout unchanged (D57)', () => {
     // The D57 guarantee exercised through the real CLI, not through
     // recordLibraries in isolation.
@@ -2614,19 +2715,19 @@ describe('libs end-to-end', () => {
 });
 ```
 
-- [ ] **Step 4: Run the full suite and build**
+- [ ] **Step 5: Run the full suite and build**
 
 Run: `npm run build && npx vitest run`
 Expected: PASS, zero TypeScript errors
 
-- [ ] **Step 5: Add refs to the guiding elements**
+- [ ] **Step 6: Add refs to the guiding elements**
 
 Every decision D40–D58 needs `refs` pointing at its implementation, so `cairn validate --coverage` passes. Use `cairn edit`, never direct YAML edits.
 
 Run: `node dist/cli/index.js validate --coverage`
 Expected: no `W013` for D40–D58
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
 git add tests/registry/ .gvp/library/gvp.yaml
@@ -2738,3 +2839,4 @@ git commit -m "docs: registry location, commands, and delete-vs-rebuild semantic
 - **#16 portable library UUID** — `R9` is recorded but not enforceable; `library_id` is read-if-present only.
 - **Organization-scoped libraries** — no cairn concept exists (see #15 comment above).
 - **Caching remote library content** for offline enumeration — #15 ranks it below the index.
+- **Throttling the prune.** Both prunes read and yaml-parse every entry on every invocation, and D55's unbounded remote retention makes that cost grow. A stamp-file gate was drafted and dropped: D22 records "auto-prune on access" and D52's rationale depends on it running every time, so changing the cadence needs a decision amendment rather than a quiet optimization. Revisit once real registries are large enough to measure.
