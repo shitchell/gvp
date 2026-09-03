@@ -175,10 +175,20 @@ export function runRegistryPreflight(
   // set a display name yet.
   const projectName = path.basename(projectPath);
 
+  // Two INDEPENDENT guards, not one. Sharing a try means a permanently
+  // failing upsert (e.g. a root-owned entry left by one `sudo cairn` run,
+  // giving EACCES forever) would permanently disable pruning for the whole
+  // registry -- and D43 is about to make prune the hygiene mechanism for
+  // every user on every invocation.
   try {
     upsertRegistryEntry(preflightResult.projectId, projectName, projectPath);
+  } catch {
+    // D57: registry failure never fails the command. The warn-once half
+    // arrives with recordLibraries in Task 9.
+  }
+  try {
     pruneStaleRegistryEntries();
   } catch {
-    // D57: registry failure never fails the command.
+    // D57, as above.
   }
 }

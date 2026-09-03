@@ -130,11 +130,7 @@ goals:
       - gvp:G7
     origin:
       - date: '2026-09-03'
-        note: >-
-          Filed as issue #15 after a session hand-authored ~48 elements for a new
-          project and flagged three as having unrecoverable rationale -- all three
-          already existed in the owner's personal library. One derived substitute was
-          wrong and propagated into project guidance before a human caught it.
+        note: 'Filed as issue #15 after a session hand-authored ~48 elements for a new project and flagged three as having unrecoverable rationale -- all three already existed in the owner''s personal library. One derived substitute was wrong and propagated into project guidance before a human caught it.'
 values:
   - id: V1
     name: Alignment
@@ -531,11 +527,7 @@ principles:
       - gvp:V10
     origin:
       - date: '2026-09-03'
-        note: >-
-          Extracted while designing the library registry (#15), where two projects
-          inheriting the same library would otherwise contend on one entry file. The
-          fragility and atomicity caveats were added after adversarial review found
-          the first draft of this design had already violated both.
+        note: Extracted while designing the library registry (#15), where two projects inheriting the same library would otherwise contend on one entry file. The fragility and atomicity caveats were added after adversarial review found the first draft of this design had already violated both.
 heuristics:
   - id: H1
     name: Core vs. example placement
@@ -858,12 +850,7 @@ rules:
       - gvp:P17
     origin:
       - date: '2026-09-03'
-        note: >-
-          Raised while designing the library registry (#15) and filed upstream as
-          issue #16. Recorded as a rule rather than a constraint on the human's
-          correction: the impossibility of locally agreeing on a generated identity
-          is the external fact, but requiring identity to be decreed upstream is a
-          rule this project made.
+        note: 'Raised while designing the library registry (#15) and filed upstream as issue #16. Recorded as a rule rather than a constraint on the human''s correction: the impossibility of locally agreeing on a generated identity is the external fact, but requiring identity to be decreed upstream is a rule this project made.'
 decisions:
   - id: D1
     name: Walk-backwards config discovery
@@ -1450,10 +1437,7 @@ decisions:
       - date: '2026-04-08'
         note: Requested by the claude-worker PM as feature 2 of the PM lifecycle architecture, building on D21 project_id as the registry key. Landed in the same session as D21 since the two features are tightly coupled; registry is useless without stable identity, and D21 is nearly useless without a way to correlate IDs across projects.
       - date: '2026-09-03'
-        note: >-
-          Amended for issue #15. Name changed from "Opt-in global project registry at
-          ~/.gvp/registry/by-id" -- the opt-in qualifier is no longer accurate. Five
-          parts superseded or extended; see the AMENDED block in the rationale.
+        note: 'Amended for issue #15. Name changed from "Opt-in global project registry at ~/.gvp/registry/by-id" -- the opt-in qualifier is no longer accurate. Five parts superseded or extended; see the AMENDED block in the rationale.'
   - id: D23
     name: Scalar example field on procedure steps
     rationale: |
@@ -2029,8 +2013,7 @@ decisions:
           - gvp:G8
     origin:
       - date: '2026-09-03'
-        note: Requested in issue #15 with a downstream consumer (ai-infra) waiting on the enumerate command.
-
+        note: Requested in issue
   - id: D41
     name: Record every document in the resolved library directory, not only inherited ones
     rationale: |
@@ -2046,11 +2029,7 @@ decisions:
       - gvp:D40
     origin:
       - date: '2026-09-03'
-        note: >-
-          Added after a library-only fidelity check found the recording scope
-          undefined, and that the most literal reading would have excluded the very
-          document the motivating incident was about.
-
+        note: Added after a library-only fidelity check found the recording scope undefined, and that the most literal reading would have excluded the very document the motivating incident was about.
   - id: D42
     name: Hook recording at catalog construction, not per-command
     rationale: |
@@ -2065,11 +2044,7 @@ decisions:
       - gvp:D40
     origin:
       - date: '2026-09-03'
-        note: >-
-          The project-identity caveat was added after adversarial review found the
-          claim that buildCatalog "already holds" everything required was overstated
-          in the one dimension the usage edge depends on.
-
+        note: The project-identity caveat was added after adversarial review found the claim that buildCatalog "already holds" everything required was overstated in the one dimension the usage edge depends on.
   - id: D43
     name: Library recording defaults on, with a named opt-out
     rationale: |
@@ -2105,10 +2080,7 @@ decisions:
           - gvp:P14
     origin:
       - date: '2026-09-03'
-        note: >-
-          Human decision, issue #15. The opt-in default was tested against five months
-          of real use and produced zero entries.
-
+        note: 'Human decision, issue #15. The opt-in default was tested against five months of real use and produced zero entries.'
   - id: D44
     name: One registry flag governs both project and library recording
     rationale: |
@@ -2133,7 +2105,6 @@ decisions:
     origin:
       - date: '2026-09-03'
         note: Human decision after the coupling between the usage edge and D22's opt-in default was surfaced.
-
   - id: D45
     name: Index unit is the document, not the library directory
     rationale: |
@@ -2156,8 +2127,7 @@ decisions:
           - gvp:V6
     origin:
       - date: '2026-09-03'
-        note: Human decision; #15's suggested entry shape assumed one name per library, which does not hold for any real library on the author's machine.
-
+        note: Human decision;
   - id: D46
     name: Entries are keyed by source identity, not by name or UUID
     rationale: |
@@ -2195,10 +2165,7 @@ decisions:
           - gvp:V10
     origin:
       - date: '2026-09-03'
-        note: >-
-          Refined twice -- first from name-keying to path-keying, then from path-keying
-          to source identity after review found resolved paths unstable for remotes.
-
+        note: Refined twice -- first from name-keying to path-keying, then from path-keying to source identity after review found resolved paths unstable for remotes.
   - id: D47
     name: Local libraries are keyed by resolved filesystem path, not by the source string
     rationale: |
@@ -2220,11 +2187,7 @@ decisions:
       - gvp:D46
     origin:
       - date: '2026-09-03'
-        note: >-
-          Every one of the four failures was found by adversarial review of the first
-          draft, which specified only "normalize to absolute" and would have shipped
-          duplicate and colliding keys.
-
+        note: Every one of the four failures was found by adversarial review of the first draft, which specified only "normalize to absolute" and would have shipped duplicate and colliding keys.
   - id: D48
     name: Name, project_id, and library_id are correlation fields, not keys
     rationale: |
@@ -2241,11 +2204,7 @@ decisions:
       - gvp:D46
     origin:
       - date: '2026-09-03'
-        note: >-
-          Filed the upstream half as issue #16 during this design, after confirming
-          the remote cache (a bare library repo with no .gvp/) carries no project_id
-          and cannot be given one locally.
-
+        note: 'Filed the upstream half as issue #16 during this design, after confirming the remote cache (a bare library repo with no .gvp/) carries no project_id and cannot be given one locally.'
   - id: D49
     name: Location is expressed as a source string reusing inherits grammar
     rationale: |
@@ -2263,7 +2222,6 @@ decisions:
     origin:
       - date: '2026-09-03'
         note: Human suggestion -- reuse the key the import mechanism already uses for both filepaths and remotes rather than introducing a separate location field.
-
   - id: D50
     name: The resolved cache path is derived, never stored
     rationale: |
@@ -2278,10 +2236,7 @@ decisions:
       - gvp:D49
     origin:
       - date: '2026-09-03'
-        note: >-
-          Extended during self-review, which found the draft storing kind and ref
-          while simultaneously declaring derived values must not be stored.
-
+        note: Extended during self-review, which found the draft storing kind and ref while simultaneously declaring derived values must not be stored.
   - id: D51
     name: Split registry writes by write-shape
     rationale: |
@@ -2322,16 +2277,14 @@ decisions:
           - gvp:P18
     origin:
       - date: '2026-09-03'
-        note: >-
-          Chosen after recognizing that a library index breaks D22's per-project
-          no-collision property, then corrected on review when the first draft was
-          found to have violated its own idempotence premise.
-
+        note: Chosen after recognizing that a library index breaks D22's per-project no-collision property, then corrected on review when the first draft was found to have violated its own idempotence premise.
   - id: D52
     name: Registry writes are atomic
     rationale: |
       Idempotent content is not sufficient on its own. D22's write path is a bare synchronous file write, which truncates and then writes, so a concurrent reader can observe a partially written file. That is not merely a bad read: the existing prune UNLINKS any entry it cannot parse, and with the default flipped by D43 it runs for every user on every invocation. A torn read during a concurrent write would therefore delete a live entry -- data loss, not a benign lost update, arising from the interaction of two behaviors that are each individually reasonable.
       All registry writes are therefore performed by writing a temporary file in the same directory and renaming it over the target, which is atomic on POSIX. This applies to the existing project entries as well, which carry the same defect today and are being written far more often after D43.
+            **Scope: atomic with respect to concurrent READERS, not durable across machine crashes.** The temp file is not fsynced before the rename and the parent directory is not fsynced after it, so a crash can still leave the entry at its previous content or, on filesystems without ordered-rename semantics, absent entirely. This is stated because the decision's own name would otherwise overclaim: a reader — human or, per G7, an agent planning against this library — would take "writes are atomic" as the full crash-safety guarantee, and V10 requires a guarantee to be reliable or visibly absent. The decision already scopes itself on the adjacent axis ("atomic on POSIX"); this is the same move on the durability axis.
+            Rationale for accepting the boundary, recorded by the implementer rather than decreed by the maintainer: per-write fsync would put a write barrier on every cairn invocation for every user once D43 makes recording universal, and D56 already ratifies that a lost registry entry is survivable — deleting the registry breaks nothing, it is only lossy to rebuild. A crash-lost entry is precisely a partial deletion of that already-survivable kind. If the maintainer weighs this differently, the fix is four lines in writeFileAtomic; the point of recording it is that the next reader inherits the trade instead of re-deriving it or silently paying for fsync.
     tags:
       - framework
       - integrity
@@ -2344,11 +2297,14 @@ decisions:
       - gvp:D22
     origin:
       - date: '2026-09-03'
-        note: >-
-          Found by adversarial review. Neither the first draft nor D22 addressed
-          atomicity; the data-loss path only becomes reachable once D43 makes the
-          prune run for everyone on every invocation.
-
+        note: Found by adversarial review. Neither the first draft nor D22 addressed atomicity; the data-loss path only becomes reachable once D43 makes the prune run for everyone on every invocation.
+    updated_by:
+      - id: 0d0f76da-a0be-4444-a67c-e956e097bf5d
+        date: '2026-09-03T18:35:28.751Z'
+        rationale: Record the atomicity/durability scope boundary surfaced during Task 2 implementation. D52's name claims 'writes are atomic'; writeFileAtomic does not fsync, so a crash can still lose the last write. V10 requires a guarantee to be reliable or visibly absent, and the decision already scopes itself on the POSIX axis. Acceptance reasoning attributed to the implementer, not the maintainer.
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
   - id: D53
     name: The usage edge is stored project-side and derived by inversion
     rationale: |
@@ -2366,11 +2322,7 @@ decisions:
       - gvp:D51
     origin:
       - date: '2026-09-03'
-        note: >-
-          The seen_from field requested in #15 is derived rather than stored. The
-          merge semantics and the double-write fix were added after review found the
-          cited zero-contention property was never claimed by D22 and is false.
-
+        note: 'The seen_from field requested in #15 is derived rather than stored. The merge semantics and the double-write fix were added after review found the cited zero-contention property was never claimed by D22 and is false.'
   - id: D54
     name: Ship cairn libs list, show, and search
     rationale: |
@@ -2395,12 +2347,7 @@ decisions:
       - gvp:D51
     origin:
       - date: '2026-09-03'
-        note: >-
-          Supersedes D22's out-of-scope note. The four clarifications were added after
-          a library-only fidelity check found that a literal implementation of the
-          first draft could never match a decision -- the one thing the feature exists
-          to find.
-
+        note: Supersedes D22's out-of-scope note. The four clarifications were added after a library-only fidelity check found that a literal implementation of the first draft could never match a decision -- the one thing the feature exists to find.
   - id: D55
     name: Prune local entries by document; retain remote entries; provide explicit forget
     rationale: |
@@ -2418,11 +2365,7 @@ decisions:
       - gvp:D40
     origin:
       - date: '2026-09-03'
-        note: >-
-          Divergence from D22's uniform prune. Document-level granularity, the
-          re-fetchability qualifier, and the eviction commands were all added after
-          review found the first draft leaked entries in both directions.
-
+        note: Divergence from D22's uniform prune. Document-level granularity, the re-fetchability qualifier, and the eviction commands were all added after review found the first draft leaked entries in both directions.
   - id: D56
     name: Registry deletion is safe; rebuild is lossy and incremental
     rationale: |
@@ -2439,10 +2382,7 @@ decisions:
       - gvp:D22
     origin:
       - date: '2026-09-03'
-        note: >-
-          Resolves a direct conflict between D22's stated naming rationale and #15's
-          stated scope note.
-
+        note: 'Resolves a direct conflict between D22''s stated naming rationale and #15''s stated scope note.'
   - id: D57
     name: Recording failure never fails the command
     rationale: |
@@ -2458,8 +2398,7 @@ decisions:
       - gvp:D22
     origin:
       - date: '2026-09-03'
-        note: Amends D22's silent-failure behavior to warn once, per #15's request to carry on and at most warn.
-
+        note: Amends D22's silent-failure behavior to warn once, per
   - id: D58
     name: Library facts are recorded without project context; the usage edge is skipped
     rationale: |
@@ -2483,7 +2422,6 @@ constraints:
       - framework
       - usability
     maps_to: []
-
   - id: C2
     name: Cairn invocations can run concurrently against shared state
     impact: |

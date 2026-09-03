@@ -300,4 +300,49 @@ describe('Registry (D22)', () => {
       expect(entry.project_name).toBe('my-fancy-project');
     });
   });
+
+  describe('prune safety (D52)', () => {
+    it("leaves another process's in-flight temp file alone", () => {
+      // Cross-module coupling with no test until now: temps end .tmp, prune
+      // filters .yml. Renaming the temp suffix or loosening the filter would
+      // silently reopen the exact deletion path D52 exists to close.
+      const dir = getRegistryDir();
+      fs.mkdirSync(dir, { recursive: true });
+      const tmp = path.join(dir, '.abc.yml.99999.0.deadbeef.tmp');
+      fs.writeFileSync(tmp, 'half-written');
+      pruneStaleRegistryEntries();
+      expect(fs.existsSync(tmp)).toBe(true);
+    });
+
+    it('sweeps an ORPHANED temp file older than an hour', () => {
+      const dir = getRegistryDir();
+      fs.mkdirSync(dir, { recursive: true });
+      const tmp = path.join(dir, '.old.yml.1.0.cafebabe.tmp');
+      fs.writeFileSync(tmp, 'crashed mid-write');
+      const old = Date.now() - 2 * 60 * 60 * 1000;
+      fs.utimesSync(tmp, old / 1000, old / 1000);
+      pruneStaleRegistryEntries();
+      expect(fs.existsSync(tmp)).toBe(false);
+    });
+
+    // Root ignores permission bits; skip rather than prove nothing.
+    const asRoot = typeof process.getuid === 'function' && process.getuid() === 0;
+
+    it.skipIf(asRoot)('does NOT delete an entry it cannot read', () => {
+      // A transient read error must not be mistaken for corruption. The
+      // catch used to delete on ANY throw, which is D52's data-loss shape
+      // with an fs error as the tearer instead of a concurrent writer.
+      const dir = getRegistryDir();
+      fs.mkdirSync(dir, { recursive: true });
+      const entry = path.join(dir, 'unreadable.yml');
+      fs.writeFileSync(entry, yaml.dump({ project_id: 'x', project_name: 'y', locations: [] }));
+      fs.chmodSync(entry, 0o000);
+      try {
+        pruneStaleRegistryEntries();
+        expect(fs.existsSync(entry)).toBe(true);
+      } finally {
+        fs.chmodSync(entry, 0o600);
+      }
+    });
+  });
 });

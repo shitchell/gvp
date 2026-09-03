@@ -1915,7 +1915,13 @@ In `src/cli/index.ts`, add to the program options and translate it to the env va
 
 `buildCatalog` then needs no env check: `config.registry?.enabled !== false` covers both surfaces.
 
-- [ ] **Step 6: Update every `buildCatalog` call site**
+- [ ] **Step 6: Remove `runRegistryPreflight`'s silent-catch path**
+
+Task 2 guarded `runRegistryPreflight` so nothing crashed mid-plan, but its catches are empty — so on that path the net behavior is still D22's silent swallow, and D57's warn-once half never fires. Once `recordLibraries` owns both the upsert and the prune, `runRegistryPreflight` has no remaining caller: **delete it** (and its now-unused imports) rather than leaving a permanent D57 hole.
+
+Verify: `grep -rn runRegistryPreflight src/ tests/` returns only the rewritten tests, or nothing.
+
+- [ ] **Step 7: Update every `buildCatalog` call site**
 
 All 11 commands call `buildCatalog(config, process.cwd(), getLibraryOverride(cmd), getStoreOverride(cmd))`. Update each to destructure and pass the preflight:
 
@@ -1926,15 +1932,15 @@ const catalog = buildCatalog(config, process.cwd(), getLibraryOverride(cmd), get
 
 Files: `add.ts`, `analyze.ts`, `diff.ts`, `edit.ts`, `export.ts`, `import.ts`, `inspect.ts`, `mv.ts`, `query.ts`, `review.ts`, `validate.ts`.
 
-- [ ] **Step 7: Build and run the full suite**
+- [ ] **Step 8: Build and run the full suite**
 
 Run: `npm run build && npx vitest run`
 Expected: PASS, zero TypeScript errors
 
-- [ ] **Step 8: Commit**
+- [ ] **Step 9: Commit**
 
 ```bash
-git add src/cli/ tests/registry/wiring.test.ts
+git add src/cli/ src/config/preflight.ts tests/ tests/registry/wiring.test.ts
 git commit -m "feat: wire library recording into catalog construction [D42, D43]"
 ```
 

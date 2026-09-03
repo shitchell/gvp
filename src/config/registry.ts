@@ -119,11 +119,14 @@ export function upsertRegistryEntry(
 
   try {
     writeFileAtomic(entryPath, yaml.dump(entry, { lineWidth: 120, noRefs: true }));
-  } catch {
-    // Signal failure so recordLibraries can emit D57's single warning.
-    // Swallowing here would make the failure invisible to the caller and
-    // silently preserve D22's warn-about-nothing behavior.
-    throw new Error('registry write failed');
+  } catch (err) {
+    // Signal failure so recordLibraries (Task 9) can emit D57's single
+    // warning -- no caller emits one YET, so as of this commit the net
+    // behavior is still a silent skip. Preserve `cause`: a warning reading
+    // "registry write failed" with no errno cannot distinguish EROFS
+    // (read-only home) from ENOSPC (full disk) from EACCES, which are three
+    // different user actions.
+    throw new Error('registry write failed', { cause: err });
   }
 }
 
@@ -147,20 +150,49 @@ export function pruneStaleRegistryEntries(): void {
     return;
   }
 
+  const now = Date.now();
   for (const file of files) {
+    // Sweep orphaned temp files. A crash between writeFileSync and
+    // renameSync leaves one behind, and the very `.yml` filter below that
+    // keeps them SAFE from deletion also makes them immortal -- nothing
+    // else in the codebase removes them. The age bound is what makes this
+    // safe: no live write takes an hour.
+    if (file.endsWith('.tmp')) {
+      try {
+        if (now - fs.statSync(path.join(registryDir, file)).mtimeMs > 60 * 60 * 1000) {
+          fs.unlinkSync(path.join(registryDir, file));
+        }
+      } catch {
+        // Raced with another sweeper, or unreadable — leave it.
+      }
+      continue;
+    }
     if (!file.endsWith('.yml')) continue;
     const entryPath = path.join(registryDir, file);
+
+    // Read and PARSE are separated deliberately. Sharing one try means a
+    // transient EIO, an EACCES on a root-owned entry, or ENFILE under load
+    // is indistinguishable from corrupt YAML -- and the catch DELETES. That
+    // is the same data-loss shape D52 closes for torn reads, with an fs
+    // error as the tearer instead of a concurrent writer.
+    let raw: string;
+    try {
+      raw = fs.readFileSync(entryPath, 'utf-8');
+    } catch {
+      continue; // Cannot read it => cannot judge it => must not delete it.
+    }
+
     let entry: RegistryEntry;
     try {
-      const parsed = yaml.load(fs.readFileSync(entryPath, 'utf-8'));
+      const parsed = yaml.load(raw);
       if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-        // Corrupt entry — remove it
+        // Genuinely corrupt content — remove it
         fs.unlinkSync(entryPath);
         continue;
       }
       entry = parsed as RegistryEntry;
     } catch {
-      // Can't parse — remove it
+      // Genuinely unparseable — remove it
       try {
         fs.unlinkSync(entryPath);
       } catch {
