@@ -26,12 +26,15 @@
 - `src/cli/commands/libs.ts` — the `libs` command family [D54, D55]
 
 **Modify:**
-- `src/config/schema.ts` — flip default, add `.default({})` [D43, D44]
+- `src/config/schema.ts` — flip default; object-level `.default({ enabled: true })` [D43, D44]
 - `src/config/registry.ts` — use `paths.ts`, atomic writes [D52]
-- `src/config/preflight.ts` — defer registry preflight to post-catalog [D53]
+- `src/inheritance/source-resolver.ts` — export a pure, cache-only `cachedPathFor` [D54]
+- `vitest.config.ts` — `setupFiles` isolating `GVP_REGISTRY_ROOT` for the whole suite
 - `src/cli/helpers.ts` — return `PreflightResult`, call `recordLibraries` [D42]
 - `src/cli/index.ts` — register `libs`, add `--no-registry` [D43, D54]
 - `tests/config/registry.test.ts` — rewrite the default-off test [D43]
+
+> `src/config/preflight.ts` is deliberately NOT modified: `runRegistryPreflight` stays as-is, but stops being called from `parseConfigOptions` (Task 9). Its prune is re-homed into `recordLibraries`.
 
 ---
 
@@ -258,17 +261,30 @@ import { writeFileAtomic } from '../registry/atomic.js';
   try {
     writeFileAtomic(entryPath, yaml.dump(entry, { lineWidth: 120, noRefs: true }));
   } catch {
-    // Write failure — silently skip (D57 warning is emitted by the caller)
-    return;
+    // Signal failure so recordLibraries can emit D57's single warning.
+    // Swallowing here would make the failure invisible to the caller and
+    // silently preserve D22's warn-about-nothing behavior.
+    throw new Error('registry write failed');
   }
 ```
 
-- [ ] **Step 6: Run the registry suite**
+- [ ] **Step 6: Convert the prune's rewrite path too**
+
+`pruneStaleRegistryEntries` also rewrites entries (trimming dead locations) via a bare `fs.writeFileSync` at `src/config/registry.ts:210`. D52 says **all** registry writes are atomic — leaving this one is the same defect in the same file:
+
+```typescript
+    // was: fs.writeFileSync(entryPath, yaml.dump(...))
+    writeFileAtomic(entryPath, yaml.dump(entry, { lineWidth: 120, noRefs: true }));
+```
+
+Verify with `grep -n "fs.writeFileSync" src/config/registry.ts` — expected: no matches.
+
+- [ ] **Step 7: Run the registry suite**
 
 Run: `npx vitest run tests/config/registry.test.ts tests/registry/`
 Expected: PASS
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
 git add src/registry/atomic.ts tests/registry/atomic.test.ts src/config/registry.ts
@@ -325,15 +341,20 @@ In `src/config/schema.ts`, replace the registry block and its comment:
   // the opt-in default was falsified by evidence (the flag was set
   // nowhere and the registry did not exist ~5 months after D22).
   // Opt out with `registry.enabled: false` or `--no-registry`.
-  // NOTE: `.default({})` on the OBJECT is load-bearing. Without it,
-  // omitting `registry:` yields undefined and the inner default never
-  // applies.
+  // NOTE: the OBJECT-level default is load-bearing, and it must carry
+  // `enabled` explicitly. Without an object default, omitting
+  // `registry:` yields undefined and the inner default never applies.
+  // And under zod 4 (this repo pins ^4.3.6) `.default({})` SHORT-CIRCUITS
+  // -- it returns the default without parsing it, so the inner
+  // `.default(true)` still never runs. Verified against zod 4.3.6:
+  //   .default({})             + omit -> { registry: {} }           WRONG
+  //   .default({enabled:true}) + omit -> { registry:{enabled:true} } RIGHT
   registry: z
     .object({
       enabled: z.boolean().optional().default(true),
     })
     .optional()
-    .default({}),
+    .default({ enabled: true }),
 ```
 
 - [ ] **Step 4: Run test to verify it passes**
@@ -361,15 +382,50 @@ Expected: PASS (3 tests)
     });
 ```
 
-- [ ] **Step 6: Run the full suite to catch other default-off assumptions**
+- [ ] **Step 6: Isolate the registry for the whole test suite**
+
+Flipping the default makes ~80 `buildCatalog` calls across `tests/cli/`, `tests/validation/`, and `tests/exporters/` write into the developer's **real** `~/.gvp/registry/`, indexing throwaway tmp fixtures. Nothing fails, so the next step will not catch it. Only `tests/config/registry.test.ts` sets `GVP_REGISTRY_ROOT` today.
+
+Create `tests/setup.ts`:
+
+```typescript
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+
+// Every test run gets its own registry root, so no test can touch the
+// developer's real ~/.gvp/registry. Individual tests may still override
+// GVP_REGISTRY_ROOT; this is the floor, not a ceiling.
+const root = fs.mkdtempSync(path.join(os.tmpdir(), 'cairn-test-registry-'));
+process.env.GVP_REGISTRY_ROOT = root;
+
+process.on('exit', () => {
+  try { fs.rmSync(root, { recursive: true, force: true }); } catch { /* best effort */ }
+});
+```
+
+and register it in `vitest.config.ts`:
+
+```typescript
+export default defineConfig({
+  test: {
+    include: ['tests/**/*.test.ts'],
+    setupFiles: ['./tests/setup.ts'],
+  },
+});
+```
+
+Verify: `node -e "console.log(require('fs').existsSync(require('os').homedir()+'/.gvp/registry'))"` before and after a full run — the answer must not change.
+
+- [ ] **Step 7: Run the full suite to catch other default-off assumptions**
 
 Run: `npx vitest run`
 Expected: PASS. Any other failure here is a test that silently depended on the registry never being written — fix it the same way, do not disable it.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
-git add src/config/schema.ts tests/config/registry.test.ts tests/config/registry-default.test.ts
+git add src/config/schema.ts tests/config/registry.test.ts tests/config/registry-default.test.ts tests/setup.ts vitest.config.ts
 git commit -m "feat!: registry recording defaults on with opt-out [D43, D44]"
 ```
 
@@ -535,7 +591,122 @@ git commit -m "feat: registry entry key derivation and source canonicalization [
 
 ---
 
-### Task 5: Library entry upsert [D45, D48, D50, D51]
+### Task 5: Pure cache-only remote path derivation [D54]
+
+`GitSourceResolver.resolve` returns the cached path **only if the cache exists** — otherwise it runs `git ls-remote` and a shallow clone (`src/inheritance/source-resolver.ts:186-222`). The registry must never trigger that: recording would hit the network on every command, and `libs search` would become N clones, which D54 explicitly rejects.
+
+**Files:**
+- Modify: `src/inheritance/source-resolver.ts`
+- Test: `tests/inheritance/cached-path.test.ts`
+
+- [ ] **Step 1: Write the failing test**
+
+```typescript
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import { cachedPathFor } from '../../src/inheritance/source-resolver.js';
+
+describe('cachedPathFor (D54)', () => {
+  let cache: string;
+  const key = path.join('github', 'shitchell--gvp-docs', 'v0.7.0');
+
+  beforeEach(() => {
+    cache = fs.mkdtempSync(path.join(os.tmpdir(), 'cache-'));
+  });
+  afterEach(() => fs.rmSync(cache, { recursive: true, force: true }));
+
+  it('returns null for an uncached remote WITHOUT touching the network', () => {
+    expect(cachedPathFor('@github:shitchell/gvp-docs@v0.7.0', cache)).toBeNull();
+  });
+
+  it('returns the repo root when the cache exists with no gvp/ subdir', () => {
+    const dir = path.join(cache, key);
+    fs.mkdirSync(dir, { recursive: true });
+    expect(cachedPathFor('@github:shitchell/gvp-docs@v0.7.0', cache)).toBe(dir);
+  });
+
+  it('applies the dual lookup, preferring gvp/', () => {
+    const dir = path.join(cache, key);
+    fs.mkdirSync(path.join(dir, 'gvp'), { recursive: true });
+    fs.mkdirSync(path.join(dir, '.gvp', 'library'), { recursive: true });
+    expect(cachedPathFor('@github:shitchell/gvp-docs@v0.7.0', cache)).toBe(path.join(dir, 'gvp'));
+  });
+
+  it('falls back to .gvp/library when gvp/ is absent', () => {
+    const dir = path.join(cache, key);
+    fs.mkdirSync(path.join(dir, '.gvp', 'library'), { recursive: true });
+    expect(cachedPathFor('@github:shitchell/gvp-docs@v0.7.0', cache)).toBe(path.join(dir, '.gvp', 'library'));
+  });
+
+  it('returns null for a malformed source', () => {
+    expect(cachedPathFor('@github:no-commitish', cache)).toBeNull();
+    expect(cachedPathFor('/a/local/path', cache)).toBeNull();
+  });
+});
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `npx vitest run tests/inheritance/cached-path.test.ts`
+Expected: FAIL — `cachedPathFor` is not exported
+
+- [ ] **Step 3: Extract the shared pieces and export the pure derivation**
+
+`GitSourceResolver` currently holds `findLibraryDir` as a private method and derives `cacheKey` inline at `:184-186`. Lift both to module scope so the resolver and the new function share one implementation (no duplicated derivation to drift):
+
+```typescript
+/**
+ * Dual lookup within a resolved repo directory (DEC-1.2, DEC-1.10):
+ * gvp/ wins over .gvp/library/, falling back to the repo root.
+ * Lifted from GitSourceResolver so cachedPathFor can share it.
+ */
+export function findLibraryDirIn(repoDir: string): string {
+  const gvpDir = path.join(repoDir, 'gvp');
+  if (fs.existsSync(gvpDir) && fs.statSync(gvpDir).isDirectory()) return gvpDir;
+  const dotGvpLibrary = path.join(repoDir, '.gvp', 'library');
+  if (fs.existsSync(dotGvpLibrary) && fs.statSync(dotGvpLibrary).isDirectory()) return dotGvpLibrary;
+  return repoDir;
+}
+
+/** Cache key for a parsed remote source. Single source of truth. */
+export function remoteCacheKey(provider: string, repoPath: string, commitish: string): string {
+  return `${provider}/${repoPath.replace(/\//g, '--')}/${commitish}`;
+}
+
+/**
+ * The cached library directory for a remote source, or null if it is
+ * not on disk. PURE — never performs network I/O, never clones. This is
+ * what the registry uses; calling GitSourceResolver.resolve instead
+ * would fetch (D54).
+ */
+export function cachedPathFor(source: string, cacheDir: string = defaultCacheDir()): string | null {
+  const m = source.match(/^@(\w+):(.+?)@(.+)$/);
+  if (!m) return null;
+  const dir = path.join(cacheDir, remoteCacheKey(m[1] as string, m[2] as string, m[3] as string));
+  if (!fs.existsSync(dir)) return null;
+  return findLibraryDirIn(dir);
+}
+```
+
+Then replace `GitSourceResolver`'s private `findLibraryDir` body with a call to `findLibraryDirIn(repoDir)` and its inline `cacheKey` with `remoteCacheKey(...)`, so there is exactly one derivation.
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `npx vitest run tests/inheritance/`
+Expected: PASS — including the existing `source-resolver.test.ts`, unchanged
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/inheritance/source-resolver.ts tests/inheritance/cached-path.test.ts
+git commit -m "feat: pure cache-only remote path derivation, no network I/O [D54]"
+```
+
+---
+
+### Task 6: Library entry upsert [D45, D48, D50, D51]
 
 Library facts only — **no timestamps**. A single per-writer field would make concurrent writes non-identical and void the no-lock argument (P18).
 
@@ -706,16 +877,118 @@ export function listLibraryKeys(): string[] {
 Run: `npx vitest run tests/registry/library-entry.test.ts`
 Expected: PASS (5 tests)
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 5: Add document-level prune to the same module [D55]**
+
+`recordLibraries` (Task 8) calls this, so it must exist here rather than in a later task. D22's prune is directory-level; for library entries that is too coarse — deleting one document inside a live library would orphan its entry forever.
+
+Write the failing test first, in `tests/registry/prune.test.ts`:
+
+```typescript
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import { pruneLibraryEntries } from '../../src/registry/library-entry.js';
+import { upsertLibraryEntry, listLibraryKeys } from '../../src/registry/library-entry.js';
+
+describe('library prune (D55)', () => {
+  let tmp: string, lib: string, orig: string | undefined;
+  beforeEach(() => {
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pr-'));
+    orig = process.env.GVP_REGISTRY_ROOT;
+    process.env.GVP_REGISTRY_ROOT = tmp;
+    lib = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'pl-')));
+    fs.writeFileSync(path.join(lib, 'a.yaml'), 'meta:\n  name: a\n');
+    fs.writeFileSync(path.join(lib, 'b.yaml'), 'meta:\n  name: b\n');
+    const base = { scope: null, project_id: null, library_id: null, element_counts: {} };
+    upsertLibraryEntry('ka', { ...base, name: 'a', source: lib, document_path: 'a', file: 'a.yaml' } as any);
+    upsertLibraryEntry('kb', { ...base, name: 'b', source: lib, document_path: 'b', file: 'b.yaml' } as any);
+    upsertLibraryEntry('kr', { ...base, name: 'r', source: '@github:x/y@v1', document_path: 'r', file: 'r.yaml' } as any);
+  });
+  afterEach(() => {
+    if (orig === undefined) delete process.env.GVP_REGISTRY_ROOT; else process.env.GVP_REGISTRY_ROOT = orig;
+    fs.rmSync(tmp, { recursive: true, force: true });
+    fs.rmSync(lib, { recursive: true, force: true });
+  });
+
+  it('drops a deleted document but keeps its live siblings', () => {
+    fs.unlinkSync(path.join(lib, 'a.yaml'));
+    pruneLibraryEntries();
+    expect(listLibraryKeys().sort()).toEqual(['kb', 'kr']);
+  });
+
+  it('retains remote entries even when uncached (D55)', () => {
+    pruneLibraryEntries();
+    expect(listLibraryKeys()).toContain('kr');
+  });
+
+  it('drops nothing when everything is present', () => {
+    pruneLibraryEntries();
+    expect(listLibraryKeys().sort()).toEqual(['ka', 'kb', 'kr']);
+  });
+});
+```
+
+
+- [ ] **Step 6: Run it to verify it fails**
+
+Run: `npx vitest run tests/registry/prune.test.ts`
+Expected: FAIL — `pruneLibraryEntries` is not exported
+
+- [ ] **Step 7: Implement it**
+
+Append to `src/registry/library-entry.ts`:
+
+```typescript
+import { isRemoteSource } from './key.js';
+
+/**
+ * Prune library entries (D55).
+ *
+ * Local entries are dropped when THE DOCUMENT FILE is gone — not when
+ * the library directory is gone. D22's directory-level prune would
+ * orphan a deleted document's entry forever while its siblings stayed
+ * live.
+ *
+ * Remote entries are NEVER dropped here: an evicted cache is still
+ * re-fetchable while the ref is served, and forgetting it discards
+ * exactly what the index exists to hold. `cairn libs prune --remote`
+ * is the explicit opt-in.
+ */
+export function pruneLibraryEntries(): void {
+  for (const key of listLibraryKeys()) {
+    const e = readLibraryEntry(key);
+    if (!e) {
+      // Unparseable — but only remove it if we can also confirm it is
+      // not a torn read in progress. Atomic writes (D52) mean a
+      // well-formed writer never produces one, so this is safe.
+      try { fs.unlinkSync(path.join(getLibrariesDir(), `${key}.yml`)); } catch { /* gone */ }
+      continue;
+    }
+    if (isRemoteSource(e.source)) continue;
+    if (!fs.existsSync(path.join(e.source, e.file))) {
+      try { fs.unlinkSync(path.join(getLibrariesDir(), `${key}.yml`)); } catch { /* gone */ }
+    }
+  }
+}
+```
+
+
+- [ ] **Step 8: Run tests to verify they pass**
+
+Run: `npx vitest run tests/registry/prune.test.ts tests/registry/library-entry.test.ts`
+Expected: PASS
+
+- [ ] **Step 9: Commit**
 
 ```bash
-git add src/registry/library-entry.ts tests/registry/library-entry.test.ts
-git commit -m "feat: library entry storage, timestamp-free for idempotence [D51]"
+git add src/registry/library-entry.ts tests/registry/library-entry.test.ts tests/registry/prune.test.ts
+git commit -m "feat: library entry storage and document-level prune [D51, D55]"
 ```
 
 ---
 
-### Task 6: Usage edge merge [D53]
+### Task 7: Usage edge merge [D53]
 
 D22 gives **no cross-project collision** — one file per project UUID. It does *not* give freedom from same-project concurrency, which `C2` declares normal. So the append is a **merge**, not a blind rewrite: a lost update then costs a stale timestamp rather than a dropped edge.
 
@@ -852,7 +1125,7 @@ git commit -m "feat: usage edge merge semantics for same-project concurrency [D5
 
 ---
 
-### Task 7: Extend project entry upsert to carry the usage edge [D53]
+### Task 8: Extend project entry upsert to carry the usage edge [D53]
 
 Fold the D22 location upsert and the usage-edge merge into **one** write. Left separate, each invocation would write the project file twice with a prune between them, doubling the torn-read window.
 
@@ -966,7 +1239,7 @@ git commit -m "feat: carry the usage edge in project entries, single write [D53]
 
 ---
 
-### Task 8: recordLibraries orchestration [D40, D41, D57, D58]
+### Task 9: recordLibraries orchestration [D40, D41, D57, D58]
 
 **Files:**
 - Create: `src/registry/record.ts`
@@ -1057,7 +1330,10 @@ import * as path from 'path';
 import * as yaml from 'js-yaml';
 import { canonicalizeSource, entryKey } from './key.js';
 import { upsertLibraryEntry, type LibraryEntry } from './library-entry.js';
-import { upsertRegistryEntry } from '../config/registry.js';
+import { upsertRegistryEntry, pruneStaleRegistryEntries } from '../config/registry.js';
+import { pruneLibraryEntries } from './library-entry.js';
+import { CategoryRegistry } from '../model/category-registry.js';
+import { loadDefaults } from '../schema/defaults-loader.js';
 
 export interface RecordArgs {
   /** The resolved root library directory. */
@@ -1099,10 +1375,16 @@ function factsFor(file: string, libDir: string, source: string, projectId: strin
     return null;
   }
   const meta = (data.meta ?? {}) as Record<string, unknown>;
+  // Count per CATEGORY (D40/D45), keyed by category name rather than by
+  // raw YAML key, and skipping top-level arrays that are not categories
+  // at all -- otherwise an unrelated list key becomes a phantom count.
+  const registry = CategoryRegistry.fromDefaults(loadDefaults());
   const counts: Record<string, number> = {};
   for (const [k, v] of Object.entries(data)) {
     if (k === 'meta' || !Array.isArray(v)) continue;
-    counts[k] = v.length;
+    const cat = registry.getByYamlKey(k);
+    if (!cat) continue;
+    counts[cat.name] = v.length;
   }
   return {
     name: typeof meta.name === 'string' ? meta.name : null,
@@ -1134,10 +1416,15 @@ export function recordLibraries(args: RecordArgs): string | undefined {
   const hashes: string[] = [];
   let failed = false;
 
-  const record = (dir: string, rawSource: string): void => {
-    const source = canonicalizeSource(rawSource, args.libraryDir);
+  // `isRoot` gates project_id: stamping the CONSUMING project's id onto
+  // an external library's entry would make two projects write different
+  // bytes for the same key, ping-ponging that file forever and destroying
+  // the byte-identical property the whole no-lock argument rests on
+  // (P18, D51). project_id is a fact about where the library LIVES (D48),
+  // not about who read it.
+  const record = (dir: string, source: string, isRoot: boolean): void => {
     for (const file of findYamlFiles(dir)) {
-      const facts = factsFor(file, dir, source, args.projectId);
+      const facts = factsFor(file, dir, source, isRoot ? args.projectId : null);
       if (!facts) continue;
       const key = entryKey(source, facts.document_path);
       try {
@@ -1150,13 +1437,18 @@ export function recordLibraries(args: RecordArgs): string | undefined {
   };
 
   try {
-    record(args.libraryDir, args.libraryDir);
+    record(args.libraryDir, canonicalizeSource(args.libraryDir, args.libraryDir), true);
     for (const src of args.externalSources) {
-      // Resolution already happened during catalog build; re-resolving
-      // here must never trigger a fetch, so we only record sources
-      // whose resolved directory is already on disk.
       const resolved = resolveIfCached(src, args.libraryDir);
-      if (resolved) record(resolved, src);
+      if (!resolved) continue;
+      // Key local sources on the RESOLVER'S OUTPUT, not the raw string.
+      // LocalSourceResolver maps `<p>`, `<p>/gvp` and `<p>/.gvp/library`
+      // onto one directory -- the dual lookup D47 exists to collapse.
+      // Canonicalizing the STRING leaves those as separate keys, and
+      // `libs prune` would then join a source missing the `.gvp/library`
+      // segment and delete live entries on every run.
+      const source = isRemoteSource(src) ? src : canonicalizeSource(resolved, args.libraryDir);
+      record(resolved, source, false);
     }
   } catch {
     failed = true;
@@ -1170,19 +1462,39 @@ export function recordLibraries(args: RecordArgs): string | undefined {
     }
   }
 
+  // D22's auto-prune lost its only call site when Task 10 removed
+  // runRegistryPreflight from parseConfigOptions. Re-home it here so it
+  // still runs once per invocation -- D52's rationale assumes it does.
+  try {
+    pruneStaleRegistryEntries();
+    pruneLibraryEntries();
+  } catch {
+    failed = true;
+  }
+
+  // At most ONE warning per invocation (D57), regardless of how many
+  // individual writes failed.
   return failed ? 'cairn: could not update the library registry (continuing)' : undefined;
 }
 
 /**
- * Resolve a source to a directory ONLY if it is already present
- * locally. Recording must never perform network I/O: GitSourceResolver
- * returns the cached path without fetching when the cache exists, and
- * throws when it does not — which we swallow into null.
+ * Resolve a source to a directory ONLY if it is already on disk.
+ *
+ * MUST NOT call createSourceResolver().resolve() for remotes:
+ * GitSourceResolver.resolve returns the cached path only when the cache
+ * EXISTS -- otherwise it runs `git ls-remote` plus a shallow clone. That
+ * would make every catalog-building command hit the network for any
+ * evicted remote. cachedPathFor (Task 5) is the pure, cache-only
+ * derivation.
+ *
+ * expandTilde matters here: sourceDocCache is keyed by the RAW source and
+ * LocalSourceResolver does not expand `~`, so path.resolve would
+ * otherwise yield `<baseDir>/~/lib` and silently record nothing.
  */
 function resolveIfCached(source: string, baseDir: string): string | null {
+  if (isRemoteSource(source)) return cachedPathFor(source);
   try {
-    const dir = createSourceResolver(baseDir).resolve(source);
-    return fs.existsSync(dir) ? dir : null;
+    return new LocalSourceResolver(baseDir).resolve(expandTilde(source));
   } catch {
     return null;
   }
@@ -1192,8 +1504,11 @@ function resolveIfCached(source: string, baseDir: string): string | null {
 Add to the imports at the top of the same file:
 
 ```typescript
-import { createSourceResolver } from '../inheritance/source-resolver.js';
+import { LocalSourceResolver, cachedPathFor } from '../inheritance/source-resolver.js';
+import { isRemoteSource, expandTilde, canonicalizeSource, entryKey } from './key.js';
 ```
+
+`expandTilde` must be exported from `src/registry/key.ts` (currently module-private — add `export`).
 
 - [ ] **Step 4: Run test to verify it passes**
 
@@ -1209,7 +1524,7 @@ git commit -m "feat: recordLibraries orchestration [D40, D41, D57, D58]"
 
 ---
 
-### Task 9: Wire recording into the CLI [D42, D43]
+### Task 10: Wire recording into the CLI [D42, D43]
 
 `buildCatalog` is the choke point for library **loading** but does not hold project identity — `parseConfigOptions` consumes the `PreflightResult` and discards it.
 
@@ -1246,7 +1561,8 @@ describe('recording wiring (D42)', () => {
 
   it('surfaces a PreflightResult carrying gvpDir and projectId', () => {
     const cmd = new Command();
-    cmd.opts = () => ({}) as never;
+    // parseConfigOptions calls optsWithGlobals(), not opts().
+    cmd.optsWithGlobals = () => ({}) as never;
     const prev = process.cwd();
     process.chdir(proj);
     try {
@@ -1260,7 +1576,7 @@ describe('recording wiring (D42)', () => {
 
   it('does not write the registry during config parsing — that moved post-catalog (D53)', () => {
     const cmd = new Command();
-    cmd.opts = () => ({}) as never;
+    cmd.optsWithGlobals = () => ({}) as never;
     const prev = process.cwd();
     process.chdir(proj);
     try {
@@ -1273,7 +1589,16 @@ describe('recording wiring (D42)', () => {
 });
 ```
 
-- [ ] **Step 2: Change `parseConfigOptions` to return the preflight**
+- [ ] **Step 2: Update imports in `src/cli/helpers.ts`**
+
+The file imports `runProjectPreflight, runRegistryPreflight` but not the `PreflightResult` type, which the new signatures need in two places. `runRegistryPreflight` also becomes unused here (its prune moved into `recordLibraries` in Task 8):
+
+```typescript
+import { runProjectPreflight, type PreflightResult } from '../config/preflight.js';
+import { recordLibraries } from '../registry/record.js';
+```
+
+- [ ] **Step 3: Change `parseConfigOptions` to return the preflight**
 
 ```typescript
 export function parseConfigOptions(cmd: Command): {
@@ -1288,7 +1613,7 @@ export function parseConfigOptions(cmd: Command): {
 }
 ```
 
-- [ ] **Step 3: Add the recording hook to `buildCatalog`**
+- [ ] **Step 4: Add the recording hook to `buildCatalog`**
 
 Add an optional parameter and call `recordLibraries` just before returning the catalog:
 
@@ -1319,7 +1644,7 @@ export function buildCatalog(
 }
 ```
 
-- [ ] **Step 4: Add the `--no-registry` flag**
+- [ ] **Step 5: Add the `--no-registry` flag**
 
 In `src/cli/index.ts`, add to the program options and translate it to the env var the helper reads:
 
@@ -1335,7 +1660,7 @@ program.hook('preAction', (thisCommand) => {
 });
 ```
 
-- [ ] **Step 5: Update every `buildCatalog` call site**
+- [ ] **Step 6: Update every `buildCatalog` call site**
 
 All 11 commands call `buildCatalog(config, process.cwd(), getLibraryOverride(cmd), getStoreOverride(cmd))`. Update each to destructure and pass the preflight:
 
@@ -1346,12 +1671,12 @@ const catalog = buildCatalog(config, process.cwd(), getLibraryOverride(cmd), get
 
 Files: `add.ts`, `analyze.ts`, `diff.ts`, `edit.ts`, `export.ts`, `import.ts`, `inspect.ts`, `mv.ts`, `query.ts`, `review.ts`, `validate.ts`.
 
-- [ ] **Step 6: Build and run the full suite**
+- [ ] **Step 7: Build and run the full suite**
 
 Run: `npm run build && npx vitest run`
 Expected: PASS, zero TypeScript errors
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
 git add src/cli/ tests/registry/wiring.test.ts
@@ -1362,7 +1687,7 @@ git commit -m "feat: wire library recording into catalog construction [D42, D43]
 
 ## Phase 3 — Read side and CLI
 
-### Task 10: Registry query and inversion [D50, D53]
+### Task 11: Registry query and inversion [D50, D53]
 
 **Files:**
 - Create: `src/registry/query.ts`
@@ -1449,7 +1774,7 @@ import * as yaml from 'js-yaml';
 import { getProjectsDir } from './paths.js';
 import { listLibraryKeys, readLibraryEntry, type LibraryEntry } from './library-entry.js';
 import { parseSource, isRemoteSource } from './key.js';
-import { createSourceResolver } from '../inheritance/source-resolver.js';
+import { createSourceResolver, cachedPathFor } from '../inheritance/source-resolver.js';
 
 export interface LibraryView extends LibraryEntry {
   key: string;
@@ -1466,17 +1791,18 @@ export interface UsageView {
   last_seen: string | null;
 }
 
-/** Resolve an entry's on-disk directory without any network I/O. */
+/**
+ * Resolve an entry's on-disk directory with NO network I/O. Uses
+ * cachedPathFor rather than the resolver: calling
+ * GitSourceResolver.resolve on an evicted remote would clone it, which
+ * is exactly what D54 rejects ("search would silently become N network
+ * clones").
+ */
 function cachedDir(entry: LibraryEntry): string | null {
   if (!isRemoteSource(entry.source)) {
     return fs.existsSync(entry.source) ? entry.source : null;
   }
-  try {
-    const dir = createSourceResolver(process.cwd()).resolve(entry.source);
-    return fs.existsSync(dir) ? dir : null;
-  } catch {
-    return null;
-  }
+  return cachedPathFor(entry.source);
 }
 
 export function loadAllLibraries(): LibraryView[] {
@@ -1541,7 +1867,7 @@ git commit -m "feat: registry query with derived kind/ref and usage inversion [D
 
 ---
 
-### Task 11: Schema-dispatched search [D54, R6]
+### Task 12: Schema-dispatched search [D54, R6]
 
 `search` must **not** match "names and statements". Decisions carry `rationale`; constraints carry `impact`. Hard-coding those names would ship a search structurally unable to match a decision — the exact content the motivating incident was about — and would violate `R6`.
 
@@ -1556,7 +1882,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { searchLibraries } from '../../src/registry/query.js';
+import { searchLibraries, searchLibrariesWithSkips } from '../../src/registry/query.js';
 import { upsertLibraryEntry } from '../../src/registry/library-entry.js';
 
 describe('libs search (D54, R6)', () => {
@@ -1609,8 +1935,6 @@ describe('libs search (D54, R6)', () => {
 });
 ```
 
-> `searchLibrariesWithSkips` is the same function returning `{ results, skipped }`; implement `searchLibraries` as a thin wrapper returning `.results` and import both in the test.
-
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run tests/registry/search.test.ts`
@@ -1659,11 +1983,18 @@ export function searchLibrariesWithSkips(
   const skipped: string[] = [];
 
   for (const lib of loadAllLibraries()) {
-    const dir = cachedDir(lib);
+    // Cache-only by default. cachedPathFor NEVER performs network I/O
+    // (Task 5) -- calling the resolver here would clone.
+    let dir = cachedDir(lib);
     if (!dir) {
       if (!opts.fetch) { skipped.push(lib.source); continue; }
-      skipped.push(lib.source);
-      continue; // --fetch handling is added at the CLI layer in Task 12
+      // --fetch: network I/O is explicitly opted into.
+      try {
+        dir = createSourceResolver(process.cwd()).resolve(lib.source);
+      } catch {
+        skipped.push(lib.source);
+        continue;
+      }
     }
     const file = path.join(dir, lib.file);
     let data: Record<string, unknown>;
@@ -1676,7 +2007,11 @@ export function searchLibrariesWithSkips(
     for (const [yamlKey, list] of Object.entries(data)) {
       if (yamlKey === 'meta' || !Array.isArray(list)) continue;
       const catDef = registry.getByYamlKey(yamlKey);
-      const primary = catDef?.definition?.primary_field ?? 'statement';
+        // getByYamlKey returns { name, def } -- the CategoryDefinition
+        // is `.def`. Getting this wrong makes EVERY category fall back to
+        // 'statement', so decisions (rationale) and constraints (impact)
+        // become unsearchable -- the exact failure D54 exists to prevent.
+        const primary = catDef?.def.primary_field ?? 'statement';
       for (const el of list) {
         if (!el || typeof el !== 'object') continue;
         const e = el as Record<string, unknown>;
@@ -1720,7 +2055,7 @@ git commit -m "feat: schema-dispatched search across known libraries [D54, R6]"
 
 ---
 
-### Task 12: The `cairn libs` command family [D54]
+### Task 13: The `cairn libs` command family [D54, D55]
 
 **Files:**
 - Create: `src/cli/commands/libs.ts`
@@ -1771,7 +2106,7 @@ Expected: FAIL — module not found
 ```typescript
 import { Command } from 'commander';
 import { loadAllLibraries, invertUsage, searchLibrariesWithSkips } from '../../registry/query.js';
-import { listLibraryKeys, readLibraryEntry } from '../../registry/library-entry.js';
+import { listLibraryKeys, readLibraryEntry, pruneLibraryEntries } from '../../registry/library-entry.js';
 import { getLibrariesDir } from '../../registry/paths.js';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -1841,7 +2176,11 @@ export function libsCommand(): Command {
       }
       if (results.length === 0) console.log('No matches.');
       // Never silently miss — naming skips is the point (D54).
-      for (const s of skipped) console.error(`cairn: skipped uncached remote ${s} (use --fetch to include)`);
+      for (const s of skipped) {
+        console.error(opts.fetch
+          ? `cairn: could not fetch remote ${s}`
+          : `cairn: skipped uncached remote ${s} (use --fetch to include)`);
+      }
     });
 
   cmd.command('forget')
@@ -1852,7 +2191,10 @@ export function libsCommand(): Command {
       for (const key of listLibraryKeys()) {
         const e = readLibraryEntry(key);
         if (!e) continue;
-        if (`${e.source}:${e.document_path}` === selector || e.name === selector) {
+        // Match ONLY the unambiguous selector. `name` is explicitly not
+        // unique (D46), so matching it would silently delete every entry
+        // sharing a name -- `show` refuses to guess, and so must this.
+        if (`${e.source}:${e.document_path}` === selector) {
           fs.unlinkSync(path.join(getLibrariesDir(), `${key}.yml`));
           removed++;
         }
@@ -1864,14 +2206,21 @@ export function libsCommand(): Command {
     .description('Drop local entries whose document is gone; optionally drop uncached remotes')
     .option('--remote', 'Also drop remote entries that are no longer cached')
     .action((opts) => {
-      let removed = 0;
-      for (const lib of loadAllLibraries()) {
-        // D55: local prunes by DOCUMENT, not by library dir — otherwise
-        // deleting one document orphans its entry forever.
-        const gone = lib.kind === 'local'
-          ? !fs.existsSync(path.join(lib.source, lib.file))
-          : Boolean(opts.remote) && !lib.cached;
-        if (gone) { fs.unlinkSync(path.join(getLibrariesDir(), `${lib.key}.yml`)); removed++; }
+      // Delegate the local half to the ONE implementation (Task 5).
+      // Duplicating it here would be the redundant-mechanism smell P11
+      // exists to catch, and the two copies would drift.
+      const before = listLibraryKeys().length;
+      pruneLibraryEntries();
+      let removed = before - listLibraryKeys().length;
+      if (opts.remote) {
+        // Remote eviction is opt-in only (D55): an uncached remote is
+        // still re-fetchable, so it is never dropped automatically.
+        for (const lib of loadAllLibraries()) {
+          if (lib.kind === 'remote' && !lib.cached) {
+            fs.unlinkSync(path.join(getLibrariesDir(), `${lib.key}.yml`));
+            removed++;
+          }
+        }
       }
       console.log(`Pruned ${removed} entr${removed === 1 ? 'y' : 'ies'}.`);
     });
@@ -1904,117 +2253,6 @@ git commit -m "feat: cairn libs list/show/search/forget/prune [D54, D55]"
 
 ---
 
-### Task 13: Document-level prune for local entries [D55]
-
-**Files:**
-- Modify: `src/registry/library-entry.ts`
-- Test: `tests/registry/prune.test.ts`
-
-- [ ] **Step 1: Write the failing test**
-
-```typescript
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import * as fs from 'fs';
-import * as os from 'os';
-import * as path from 'path';
-import { pruneLibraryEntries } from '../../src/registry/library-entry.js';
-import { upsertLibraryEntry, listLibraryKeys } from '../../src/registry/library-entry.js';
-
-describe('library prune (D55)', () => {
-  let tmp: string, lib: string, orig: string | undefined;
-  beforeEach(() => {
-    tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pr-'));
-    orig = process.env.GVP_REGISTRY_ROOT;
-    process.env.GVP_REGISTRY_ROOT = tmp;
-    lib = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'pl-')));
-    fs.writeFileSync(path.join(lib, 'a.yaml'), 'meta:\n  name: a\n');
-    fs.writeFileSync(path.join(lib, 'b.yaml'), 'meta:\n  name: b\n');
-    const base = { scope: null, project_id: null, library_id: null, element_counts: {} };
-    upsertLibraryEntry('ka', { ...base, name: 'a', source: lib, document_path: 'a', file: 'a.yaml' } as any);
-    upsertLibraryEntry('kb', { ...base, name: 'b', source: lib, document_path: 'b', file: 'b.yaml' } as any);
-    upsertLibraryEntry('kr', { ...base, name: 'r', source: '@github:x/y@v1', document_path: 'r', file: 'r.yaml' } as any);
-  });
-  afterEach(() => {
-    if (orig === undefined) delete process.env.GVP_REGISTRY_ROOT; else process.env.GVP_REGISTRY_ROOT = orig;
-    fs.rmSync(tmp, { recursive: true, force: true });
-    fs.rmSync(lib, { recursive: true, force: true });
-  });
-
-  it('drops a deleted document but keeps its live siblings', () => {
-    fs.unlinkSync(path.join(lib, 'a.yaml'));
-    pruneLibraryEntries();
-    expect(listLibraryKeys().sort()).toEqual(['kb', 'kr']);
-  });
-
-  it('retains remote entries even when uncached (D55)', () => {
-    pruneLibraryEntries();
-    expect(listLibraryKeys()).toContain('kr');
-  });
-
-  it('drops nothing when everything is present', () => {
-    pruneLibraryEntries();
-    expect(listLibraryKeys().sort()).toEqual(['ka', 'kb', 'kr']);
-  });
-});
-```
-
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `npx vitest run tests/registry/prune.test.ts`
-Expected: FAIL — `pruneLibraryEntries` not exported
-
-- [ ] **Step 3: Write the implementation**
-
-Append to `src/registry/library-entry.ts`:
-
-```typescript
-import { isRemoteSource } from './key.js';
-
-/**
- * Prune library entries (D55).
- *
- * Local entries are dropped when THE DOCUMENT FILE is gone — not when
- * the library directory is gone. D22's directory-level prune would
- * orphan a deleted document's entry forever while its siblings stayed
- * live.
- *
- * Remote entries are NEVER dropped here: an evicted cache is still
- * re-fetchable while the ref is served, and forgetting it discards
- * exactly what the index exists to hold. `cairn libs prune --remote`
- * is the explicit opt-in.
- */
-export function pruneLibraryEntries(): void {
-  for (const key of listLibraryKeys()) {
-    const e = readLibraryEntry(key);
-    if (!e) {
-      // Unparseable — but only remove it if we can also confirm it is
-      // not a torn read in progress. Atomic writes (D52) mean a
-      // well-formed writer never produces one, so this is safe.
-      try { fs.unlinkSync(path.join(getLibrariesDir(), `${key}.yml`)); } catch { /* gone */ }
-      continue;
-    }
-    if (isRemoteSource(e.source)) continue;
-    if (!fs.existsSync(path.join(e.source, e.file))) {
-      try { fs.unlinkSync(path.join(getLibrariesDir(), `${key}.yml`)); } catch { /* gone */ }
-    }
-  }
-}
-```
-
-- [ ] **Step 4: Run test to verify it passes**
-
-Run: `npx vitest run tests/registry/prune.test.ts`
-Expected: PASS (3 tests)
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add src/registry/library-entry.ts tests/registry/prune.test.ts
-git commit -m "feat: document-level prune, remote retention [D55]"
-```
-
----
-
 ### Task 14: Concurrency and end-to-end verification [P18, C2, D52]
 
 **Files:**
@@ -2028,9 +2266,12 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import { spawn } from 'child_process';
 import { upsertLibraryEntry, readLibraryEntry } from '../../src/registry/library-entry.js';
 import { getLibrariesDir } from '../../src/registry/paths.js';
 
+// Requires a fresh `npm run build` — these spawn real node processes
+// against dist/.
 describe('registry concurrency (C2, P18, D52)', () => {
   let tmp: string, orig: string | undefined;
   beforeEach(() => {
@@ -2048,26 +2289,55 @@ describe('registry concurrency (C2, P18, D52)', () => {
     project_id: null, library_id: null, element_counts: { values: 1 },
   }) as any;
 
-  it('many interleaved writers leave exactly one valid entry', async () => {
-    await Promise.all(Array.from({ length: 50 }, () =>
-      Promise.resolve().then(() => upsertLibraryEntry('k', entry()))));
-    expect(fs.readdirSync(getLibrariesDir())).toEqual(['k.yml']);
-    expect(readLibraryEntry('k')).toEqual(entry());
-  });
+  // NOTE: in-process Promise.resolve().then(...) proves NOTHING here —
+  // each callback runs a synchronous fs sequence to completion, so there
+  // is no interleaving and the assertions pass trivially. Real
+  // concurrency requires real processes.
+  it('concurrent PROCESSES leave exactly one valid entry', () => {
+    const script = path.join(os.tmpdir(), `w-${process.pid}.mjs`);
+    fs.writeFileSync(script, `
+      import { upsertLibraryEntry } from '${path.resolve('dist/registry/library-entry.js')}';
+      for (let i = 0; i < 200; i++) {
+        upsertLibraryEntry('k', ${JSON.stringify(entry())});
+      }
+    `);
+    const procs = Array.from({ length: 8 }, () =>
+      spawn(process.execPath, [script], { env: { ...process.env, GVP_REGISTRY_ROOT: tmp } }));
+    return Promise.all(procs.map((p) => new Promise((res) => p.on('exit', res)))).then(() => {
+      fs.unlinkSync(script);
+      const files = fs.readdirSync(getLibrariesDir());
+      expect(files.filter((f) => f.endsWith('.tmp'))).toEqual([]);
+      expect(files).toEqual(['k.yml']);
+      // The decisive assertion: after 1600 interleaved writes across 8
+      // processes with no lock, the entry is still valid and complete.
+      expect(readLibraryEntry('k')).toEqual(entry());
+    });
+  }, 30_000);
 
-  it('a reader interleaved with writers never sees a partial file', async () => {
-    let bad = 0;
-    const writers = Array.from({ length: 40 }, () =>
-      Promise.resolve().then(() => upsertLibraryEntry('k', entry())));
-    const readers = Array.from({ length: 40 }, () =>
-      Promise.resolve().then(() => {
-        const e = readLibraryEntry('k');
-        if (e !== null && e.source !== '/abs') bad++;
-      }));
-    await Promise.all([...writers, ...readers]);
-    expect(bad).toBe(0);
-    expect(fs.readdirSync(getLibrariesDir()).filter((f) => f.endsWith('.tmp'))).toEqual([]);
-  });
+  it('a concurrent reader never observes a partial file', () => {
+    const script = path.join(os.tmpdir(), `w2-${process.pid}.mjs`);
+    fs.writeFileSync(script, `
+      import { upsertLibraryEntry } from '${path.resolve('dist/registry/library-entry.js')}';
+      for (let i = 0; i < 400; i++) upsertLibraryEntry('k', ${JSON.stringify(entry())});
+    `);
+    const procs = Array.from({ length: 4 }, () =>
+      spawn(process.execPath, [script], { env: { ...process.env, GVP_REGISTRY_ROOT: tmp } }));
+    let bad = 0, reads = 0;
+    const done = Promise.all(procs.map((p) => new Promise((res) => p.on('exit', res))));
+    const poll = setInterval(() => {
+      const e = readLibraryEntry('k');
+      reads++;
+      // readLibraryEntry returns null for a torn read; a NON-null entry
+      // with wrong content would mean atomicity failed.
+      if (e !== null && e.source !== '/abs') bad++;
+    }, 1);
+    return done.then(() => {
+      clearInterval(poll);
+      fs.unlinkSync(script);
+      expect(reads).toBeGreaterThan(0);
+      expect(bad).toBe(0);
+    });
+  }, 30_000);
 });
 ```
 
@@ -2087,6 +2357,17 @@ import * as path from 'path';
 
 const CLI = path.resolve('dist/cli/index.js');
 
+// `vitest run` alone would silently test a stale dist/. Fail loudly.
+function assertFreshBuild(): void {
+  if (!fs.existsSync(CLI)) throw new Error('dist/ missing — run `npm run build` first');
+  const built = fs.statSync(CLI).mtimeMs;
+  const newest = fs.readdirSync('src', { recursive: true, encoding: 'utf-8' })
+    .filter((f) => typeof f === 'string' && f.endsWith('.ts'))
+    .map((f) => fs.statSync(path.join('src', f)).mtimeMs)
+    .reduce((a, b) => Math.max(a, b), 0);
+  if (newest > built) throw new Error('dist/ is older than src/ — run `npm run build` first');
+}
+
 function run(args: string[], cwd: string, root: string): string {
   return execFileSync('node', [CLI, ...args], {
     cwd, encoding: 'utf-8', env: { ...process.env, GVP_REGISTRY_ROOT: root },
@@ -2096,6 +2377,7 @@ function run(args: string[], cwd: string, root: string): string {
 describe('libs end-to-end', () => {
   let proj: string, root: string;
   beforeEach(() => {
+    assertFreshBuild();
     root = fs.mkdtempSync(path.join(os.tmpdir(), 'e2e-reg-'));
     proj = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'e2e-p-')));
     const lib = path.join(proj, '.gvp', 'library');
@@ -2218,7 +2500,9 @@ guiding elements that already exist instead of re-deriving them.
     cairn libs show personal         # detail + which projects use it
 
 Recording is on by default. Opt out with `registry.enabled: false` in
-any config layer, or `--no-registry` for one invocation. Recording
+any config layer, `--no-registry` for one invocation, or by setting
+`GVP_NO_REGISTRY=1` in the environment (useful for CI images and test
+harnesses that cannot pass flags). Recording
 never changes a command's exit code or output; on failure it warns once
 to stderr and carries on.
 
