@@ -1,7 +1,7 @@
 import * as fs from 'fs';
-import * as os from 'os';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
+import { getProjectsDir } from '../registry/paths.js';
 
 /**
  * Global project registry (D22) — opt-in cross-project discovery
@@ -41,18 +41,9 @@ export interface RegistryEntry {
   locations: RegistryLocation[];
 }
 
-/**
- * The registry root directory. Respects the GVP_REGISTRY_ROOT
- * environment variable for test isolation and custom setups, and
- * otherwise defaults to ~/.gvp/registry/by-id/.
- */
+/** @deprecated Use getProjectsDir() from ../registry/paths.js. */
 export function getRegistryDir(): string {
-  const override = process.env.GVP_REGISTRY_ROOT;
-  if (override && override.length > 0) {
-    return path.join(override, 'by-id');
-  }
-  const home = process.env.HOME || process.env.USERPROFILE || '';
-  return path.join(home, '.gvp', 'registry', 'by-id');
+  return getProjectsDir();
 }
 
 /**
