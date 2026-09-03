@@ -424,13 +424,27 @@ Expected: PASS (3 tests)
 `mergeConfigs` (`src/config/loader.ts:132`) puts `registry` in the "closer scope wins" branch — it replaces the whole object per layer rather than merging into it, and `configSchema.parse` runs once *after* the merge. So a project config containing `registry: {}` discards a global `registry.enabled: false`, and the inner default re-enables recording. Pre-existing behavior, but D43 promises the opt-out works "in any config layer", so the flip makes it load-bearing for the first time.
 
 ```typescript
+import { mergeConfigs } from '../../src/config/loader.js';
+
 it('a global opt-out survives a project layer that mentions registry (D43)', () => {
   const merged = mergeConfigs({ registry: { enabled: false } }, { registry: {} });
   expect(configSchema.parse(merged).registry?.enabled).toBe(false);
 });
 ```
 
-If it fails, deep-merge `registry` in `mergeConfigs` rather than weakening the test.
+This test **will fail** as written — `registry` currently falls into `mergeConfigs`'s last-wins branch (`src/config/loader.ts:111-136`), so the project layer's `{}` replaces the global object wholesale. Deep-merge that one key rather than weakening the test:
+
+```typescript
+  // in mergeConfigs, alongside the existing per-key handling:
+  if (key === 'registry') {
+    const prev = (result[key] ?? {}) as Record<string, unknown>;
+    const next = (layer[key] ?? {}) as Record<string, unknown>;
+    result[key] = { ...prev, ...next };
+    continue;
+  }
+```
+
+Nested objects in general are out of scope; only `registry` is load-bearing for D43's "any config layer" promise.
 
 - [ ] **Step 7: Isolate the registry for the whole test suite**
 
@@ -745,7 +759,7 @@ export function isRemoteSource(source: string): boolean {
 
 /**
  * The remote source grammar lives in `src/inheritance/source-resolver.ts`
- * (Task 5), which owns it — `GitSourceResolver.resolve` already parses it.
+ * (Task 4), which owns it — `GitSourceResolver.resolve` already parses it.
  * Import it rather than defining a second copy.
  *
  * DIRECTION MATTERS: `inheritance/` is the lower layer and `registry/`
@@ -1720,7 +1734,13 @@ function resolveIfCached(source: string, baseDir: string): string | null {
 
 > `expandTilde` and `isRemoteSource` are exported from `src/registry/key.ts` in Task 5.
 >
-> Also delete `src/cli/helpers.ts`'s private `expandTilde` (`helpers.ts:429`) and import the exported one — otherwise there are two copies of the same logic, the P11 duplication this plan already avoided for `findYamlFiles`.
+> Also delete `src/cli/helpers.ts`'s private `expandTilde` (`helpers.ts:429`) and import the exported one — otherwise there are two copies of the same logic, the P11 duplication this plan already avoided for `findYamlFiles`:
+>
+> ```typescript
+> import { expandTilde } from '../registry/key.js';
+> ```
+>
+> `import * as os from 'os'` at `helpers.ts:10` becomes unused once that function is gone. `tsconfig.json` sets neither `noUnusedLocals` nor `noUnusedParameters` and there is no lint script, so the build still passes — remove it anyway. Same for `GitSourceResolver.findLibraryDir`'s now-unused `source` parameter in Task 4.
 
 - [ ] **Step 4: Run test to verify it passes**
 
@@ -2198,16 +2218,17 @@ export interface SearchHit {
 export function searchLibrariesWithSkips(
   query: string,
   opts: { fetch?: boolean } = {},
-): { results: SearchHit[]; skipped: string[]; missingLocal: string[] } {
+): { results: SearchHit[]; skipped: string[]; missingLocal: string[]; unreadable: string[] } {
   const needle = query.toLowerCase();
   const baseRegistry = CategoryRegistry.fromDefaults(loadDefaults());
   const results: SearchHit[] = [];
   const skipped: string[] = [];
   const missingLocal: string[] = [];
+  const unreadable: string[] = [];
 
   for (const lib of loadAllLibraries()) {
     // Cache-only by default. cachedPathFor NEVER performs network I/O
-    // (Task 5) -- calling the resolver here would clone.
+    // (Task 4) -- calling the resolver here would clone.
     let dir = cachedDir(lib);
     if (!dir && lib.kind === 'local') {
       // A local library whose directory is gone is NOT an uncached remote
@@ -2230,9 +2251,15 @@ export function searchLibrariesWithSkips(
     let data: Record<string, unknown>;
     try {
       const raw = yaml.load(fs.readFileSync(file, 'utf-8'));
-      if (!raw || typeof raw !== 'object') continue;
+      if (!raw || typeof raw !== 'object') { unreadable.push(file); continue; }
       data = raw as Record<string, unknown>;
-    } catch { continue; }
+    } catch {
+      // A library directory that exists but whose document is gone or
+      // unparseable would otherwise be a SILENT miss -- D54's point is
+      // that every skip is named.
+      unreadable.push(file);
+      continue;
+    }
 
     // Merge the document's own category definitions, as buildCatalog's
     // pass 1 does. Without this, elements in a user-defined category are
@@ -2275,7 +2302,7 @@ export function searchLibrariesWithSkips(
       }
     }
   }
-  return { results, skipped, missingLocal };
+  return { results, skipped, missingLocal, unreadable };
 }
 
 export function searchLibraries(query: string, opts: { fetch?: boolean } = {}): SearchHit[] {
@@ -2286,7 +2313,7 @@ export function searchLibraries(query: string, opts: { fetch?: boolean } = {}): 
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run tests/registry/search.test.ts`
-Expected: PASS (5 tests)
+Expected: PASS (4 tests)
 
 - [ ] **Step 5: Commit**
 
@@ -2412,8 +2439,8 @@ export function libsCommand(): Command {
     .option('--fetch', 'Fetch uncached remote libraries (performs network I/O)')
     .option('--json', 'Machine-readable output')
     .action((query: string, opts) => {
-      const { results, skipped, missingLocal } = searchLibrariesWithSkips(query, { fetch: Boolean(opts.fetch) });
-      if (opts.json) { console.log(JSON.stringify({ results, skipped, missingLocal }, null, 2)); return; }
+      const { results, skipped, missingLocal, unreadable } = searchLibrariesWithSkips(query, { fetch: Boolean(opts.fetch) });
+      if (opts.json) { console.log(JSON.stringify({ results, skipped, missingLocal, unreadable }, null, 2)); return; }
       for (const r of results) {
         console.log(`${r.library ?? '(unnamed)'}:${r.id}  [${r.category}/${r.field}]  ${r.name}`);
         console.log(`    ${r.excerpt}`);
@@ -2427,6 +2454,9 @@ export function libsCommand(): Command {
       }
       for (const s of missingLocal) {
         console.error(`cairn: local library no longer on disk, skipped: ${s}`);
+      }
+      for (const s of unreadable) {
+        console.error(`cairn: could not read document, skipped: ${s}`);
       }
     });
 
@@ -2604,8 +2634,8 @@ describe('registry concurrency (C2, P18, D52)', () => {
   it('a concurrent PRUNE never deletes a live entry (the D52 data-loss path)', () => {
     assertBuilt();
     // D52's actual argument: a torn read makes pruneLibraryEntries unlink
-    // a LIVE entry, because it deletes anything it cannot parse. Nothing
-    // else in this suite exercises that path.
+    // a LIVE entry, because it deletes anything it cannot parse. The reader
+    // test below detects the torn read; this one detects the deletion.
     const w = path.join(os.tmpdir(), `wp-${process.pid}.mjs`);
     const pr = path.join(os.tmpdir(), `pp-${process.pid}.mjs`);
     fs.writeFileSync(w, `
@@ -2621,11 +2651,25 @@ describe('registry concurrency (C2, P18, D52)', () => {
       ...Array.from({ length: 3 }, () => spawn(process.execPath, [w], { env: { ...process.env, GVP_REGISTRY_ROOT: tmp } })),
       spawn(process.execPath, [pr], { env: { ...process.env, GVP_REGISTRY_ROOT: tmp } }),
     ];
+    // Poll for DISAPPEARANCE-after-appearance. Asserting on final state is
+    // vacuous: prune deletes the live entry mid-run but a writer
+    // immediately recreates it, so the end state looks fine either way.
+    // Measured over 5 runs each: bare writeFileSync -> vanished 4,3,1,4,3;
+    // temp+rename -> 0,0,0,0,0.
+    const target = path.join(getLibrariesDir(), 'k.yml');
+    let appeared = false, vanished = 0;
+    const watch = setInterval(() => {
+      if (fs.existsSync(target)) appeared = true;
+      else if (appeared) vanished++;
+    }, 1);
     return Promise.all(procs.map((p) => new Promise((res) => p.on('exit', res)))).then(() => {
+      clearInterval(watch);
       fs.unlinkSync(w); fs.unlinkSync(pr);
-      // The entry's source is /abs, which does not exist, so a
-      // LOCAL-kind prune would legitimately remove it -- use a remote
-      // source here so only a TORN READ could cause deletion.
+      expect(appeared).toBe(true);
+      // A remote entry is never pruned under normal operation (D55), so a
+      // disappearance can only come from a torn read making prune unlink a
+      // live entry -- the D52 data-loss path.
+      expect(vanished).toBe(0);
       expect(readLibraryEntry('k')).not.toBeNull();
     });
   }, 30_000);
@@ -2914,6 +2958,10 @@ Recording is on by default. Opt out with `registry.enabled: false` in
 any config layer, or `--no-registry` for one invocation. Recording
 never changes a command's exit code or output; on failure it warns once
 to stderr and carries on.
+
+Recording happens when a command builds the catalog, so `cairn init` — which
+creates a library rather than loading one — does not itself register the
+project. The first `validate`, `query`, or `export` does.
 
 **Deleting the registry is safe — but rebuilding it is lossy.** Nothing
 breaks if you `rm -rf ~/.gvp/registry`, and cairn will not complain.
