@@ -2053,6 +2053,7 @@ decisions:
       P7 ("Respect the user's environment") is honored by the escape hatch and a trivially clearable location rather than by a default-off flag, per P8 ("Opinionated defaults with escape hatches"). The opt-out has two named surfaces, both gating WRITES only -- the libs commands always read: registry.enabled false in any config layer, and --no-registry for a single invocation, which CI and sandboxes need because they cannot always edit a config file.
       Flipping the default is not a one-word change. The config schema declares the registry object itself as optional, so omitting the registry key yields undefined and the enabled lookup stays falsy regardless of the inner default. The object needs a default of its own, and the schema comment stating the feature is off by default must be rewritten.
       The substantive cost is acknowledged: read-only commands now write to the home directory by default. D22 raised three objections -- CI sandboxes, multi-user environments, and auditability. D57's resilience answers the sandbox half; the other two are accepted costs of the flip, recorded here so the trade is explicit rather than overlooked.
+            **Required mechanism: `mergeConfigs` must deep-merge the `registry` key.** The "in any config layer" clause above is not free -- config layering is otherwise last-wins per key, so a global `registry.enabled: false` plus a project config that merely mentions `registry:` for any reason would yield `{}`, the object default would fill in `enabled: true`, and recording would silently resume against an explicit opt-out. That is the worst available failure for this decision: it re-enables a write side effect precisely for the user who took the trouble to disable it. `registry` is therefore deep-merged while every other nested key stays last-wins.
     tags:
       - framework
       - usability
@@ -2078,9 +2079,38 @@ decisions:
           - gvp:V7
         conflicts_with:
           - gvp:P14
+      deep_merge_all_nested_config_objects:
+        rationale: |
+          Deep-merging every nested config object, rather than special-casing registry, would give one predictable layering rule instead of a key-dependent one -- mergeConfigs now behaves three different ways (validation_rules concatenates, strict OR-merges, registry deep-merges) with no declared rule for which bucket a new nested key falls into. Rejected for blast radius: changing layering semantics for every existing key is a far larger change than this decision needs, and would alter behavior for configs unrelated to the registry. The cost is that the choice of bucket stays implicit; if a third nested key ever needs merging, prefer establishing the general rule over adding a fourth special case.
+        would_have_served:
+          - gvp:V4
+          - gvp:V6
     origin:
       - date: '2026-09-03'
         note: 'Human decision, issue #15. The opt-in default was tested against five months of real use and produced zero entries.'
+    updated_by:
+      - id: 0d055cab-0015-49f7-8176-5a2cf582b643
+        date: '2026-09-04T11:02:45.542Z'
+        rationale: 'Record the mergeConfigs deep-merge as a mechanism D43 depends on: without it a project layer that merely mentions registry silently re-enables recording against a global opt-out.'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+      - id: 72d1b104-aa6c-49f9-90cf-d037ed1f9e3c
+        date: '2026-09-04T11:02:46.624Z'
+        rationale: Record the rejected alternative (deep-merge all nested objects) so the narrowness of the registry special-case is a visible choice rather than implicit knowledge in a code comment.
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+    reviewed_by:
+      - id: e1f91863-d2fb-4b88-ad70-c0ebddcb864b
+        date: '2026-09-04T11:03:56.643Z'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+        updates_reviewed:
+          - 0d055cab-0015-49f7-8176-5a2cf582b643
+          - 72d1b104-aa6c-49f9-90cf-d037ed1f9e3c
+        note: Mechanism clause and considered alternative recorded during Task 3 review. Both are factual (the mergeConfigs dependency is verifiable in code; the rejected alternative was actually weighed) rather than inferred rationale. Per P15, human review is scoped to guiding elements; D43 is a decision.
   - id: D44
     name: One registry flag governs both project and library recording
     rationale: |

@@ -17,12 +17,14 @@ import { writeFileAtomic } from '../registry/atomic.js';
  * `registry.enabled: false` in any config layer, or `--no-registry`.
  *
  * Rationale captured in D22 of the cairn library:
- * - Write side effects on read commands are tolerated here (unlike
- *   elsewhere) because the data is cheap, local, and self-pruning.
- *   D22 originally justified them by the explicit opt-in; D43
- *   falsified that default (the flag was set nowhere and the
- *   registry did not exist ~5 months later), so the tolerance now
- *   rests on the write being harmless rather than on consent.
+ * - Write side effects on read commands: D22 originally justified
+ *   these by the explicit opt-in. D43 falsified that default (the
+ *   flag was set nowhere and the registry did not exist ~5 months
+ *   later) and flipped it. D43 records the trade explicitly rather
+ *   than dissolving it: of D22's three objections, the CI-sandbox
+ *   half is answered by D57's resilience, while multi-user
+ *   environments and auditability are ACCEPTED COSTS of the flip —
+ *   not harms that were argued away.
  * - "Registry" naming, not "cache" — the data is persistent state,
  *   not regenerable.
  * - ~/.gvp/registry/ chosen over XDG for simplicity and to match
