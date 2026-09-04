@@ -12,6 +12,10 @@ import * as path from 'path';
 export default function setup() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'cairn-test-registry-'));
   process.env.GVP_REGISTRY_ROOT = root;
+  // Same floor for the source cache: cachedPathFor/GitSourceResolver would
+  // otherwise read (and --fetch would write) the developer's real
+  // ~/.cache/cairn/sources, making record/query tests machine-dependent.
+  process.env.CAIRN_CACHE_DIR = path.join(root, 'source-cache');
   return () => {
     try {
       // maxRetries: the root is written concurrently by workers still
