@@ -34,7 +34,7 @@ function factsFor(
   file: string,
   libDir: string,
   source: string,
-  baseRegistry: CategoryRegistry,
+  registry: CategoryRegistry,
 ): LibraryEntry | null {
   let data: Record<string, unknown>;
   try {
@@ -46,15 +46,14 @@ function factsFor(
   }
   const meta = (data.meta ?? {}) as Record<string, unknown>;
 
-  // Merge this document's own category definitions, mirroring
-  // buildCatalog's pass 1. Without it a user-defined category is not
-  // recognized, so its elements are excluded from element_counts and are
-  // unsearchable -- the silent-miss failure #15 was filed about, and the
-  // spec requires counts "including user-defined categories".
-  const docCats = (meta.definitions as Record<string, unknown> | undefined)?.categories;
-  const registry = docCats && typeof docCats === 'object'
-    ? baseRegistry.merge(docCats as Record<string, CategoryDefinition>)
-    : baseRegistry;
+  // `registry` is already merged LIBRARY-WIDE by the caller (see
+  // collectLibraryCategories). Merging only this document's own
+  // definitions was the original implementation and was WRONG: the
+  // natural GVP shape is a base document declaring a category and
+  // children populating it, so per-document merging left every such
+  // element uncounted and unsearchable -- silently, with empty skip
+  // buckets, while name search kept working so the feature looked alive.
+  // That is the exact silent-miss failure #15 was filed about.
 
   // project_id is a fact about where the library LIVES (D48), not about
   // who read it. Derive it from the library's own .gvp/config.yaml by
@@ -130,6 +129,35 @@ function projectIdForLibrary(libDir: string): string | null {
 }
 
 /**
+ * Collect category definitions across EVERY document in a library, exactly
+ * as buildCatalog's pass 1 does before parsing any document.
+ *
+ * This must be library-wide, not per-document: a base document commonly
+ * declares a category that sibling documents populate, and a per-document
+ * merge leaves those elements invisible to element_counts and to search.
+ */
+export function collectLibraryCategories(
+  base: CategoryRegistry,
+  files: string[],
+): CategoryRegistry {
+  const collected: Record<string, CategoryDefinition> = {};
+  for (const file of files) {
+    try {
+      const raw = yaml.load(fs.readFileSync(file, 'utf-8'));
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) continue;
+      const meta = ((raw as Record<string, unknown>).meta ?? {}) as Record<string, unknown>;
+      const cats = (meta.definitions as Record<string, unknown> | undefined)?.categories;
+      if (cats && typeof cats === 'object' && !Array.isArray(cats)) {
+        Object.assign(collected, cats as Record<string, CategoryDefinition>);
+      }
+    } catch {
+      // Unparseable document — pass 2 reports it; it defines no categories.
+    }
+  }
+  return Object.keys(collected).length > 0 ? base.merge(collected) : base;
+}
+
+/**
  * Record every library resolved by this invocation (D40).
  *
  * Records EVERY document in each resolved library directory, not only
@@ -166,13 +194,17 @@ export function recordLibraries(args: RecordArgs): string | undefined {
       failed = true;
       return;
     }
+    // One merged registry per LIBRARY, not per document (see
+    // collectLibraryCategories). Built here so a base document's category
+    // is recognized in the siblings that populate it.
+    const registry = collectLibraryCategories(baseRegistry, files);
     for (const file of files) {
       // The WHOLE body is guarded, not just the write: factsFor can throw
       // (e.g. baseRegistry.merge on a malformed definitions block), and one
       // broken document must not abort the remaining documents or the
       // external sources not yet recorded.
       try {
-        const facts = factsFor(file, dir, source, baseRegistry);
+        const facts = factsFor(file, dir, source, registry);
         if (!facts) continue;
         const key = entryKey(source, facts.document_path);
         upsertLibraryEntry(key, facts);

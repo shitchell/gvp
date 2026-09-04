@@ -268,4 +268,26 @@ describe('libs search (D54, R6)', () => {
     const { missingLocal } = searchLibrariesWithSkips('anything');
     expect(missingLocal.filter((x) => x === multi)).toHaveLength(1);
   });
+
+  it('searches a category declared in a SIBLING document', () => {
+    // The silent-miss the final sweep caught: base declares, child
+    // populates. Name search kept working, so the feature looked alive
+    // while the primary field was invisible and nothing was reported as
+    // skipped.
+    const sib = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'sib-')));
+    fs.writeFileSync(path.join(sib, 'base.yaml'),
+      'meta:\n  name: sibbase\n  definitions:\n    categories:\n      lesson:\n' +
+      '        yaml_key: lessons\n        id_prefix: L\n        primary_field: statement\n' +
+      '        is_root: true\ngoals:\n  - id: G1\n    name: A goal\n    statement: g\n');
+    fs.writeFileSync(path.join(sib, 'uses.yaml'),
+      'meta:\n  name: sibuses\nlessons:\n  - id: L1\n    name: A lesson\n' +
+      '    statement: contains zqcustomword here\n');
+    upsertLibraryEntry('sib-uses', {
+      name: 'sibuses', source: sib, document_path: 'uses', file: 'uses.yaml',
+      scope: null, project_id: null, library_id: null, element_counts: { lessons: 1 },
+    } as any);
+    const hits = searchLibraries('zqcustomword');
+    expect(hits.map((h) => `${h.id}/${h.field}`)).toContain('L1/statement');
+    fs.rmSync(sib, { recursive: true, force: true });
+  });
 });

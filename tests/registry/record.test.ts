@@ -116,9 +116,15 @@ describe('recordLibraries (D40, D41, D57, D58)', () => {
     expect(e.element_counts).toEqual({ bets: 1 });
   });
 
-  it('does not leak one document\'s category definitions into another', () => {
-    // The merged registry must be per-document. A shared/mutated registry
-    // would make `bets` countable in a document that never declared it.
+  it('recognizes a category declared in a SIBLING document (library-wide, like buildCatalog)', () => {
+    // This test previously asserted the OPPOSITE -- that a borrowing
+    // document counts {} -- on the reasoning that the registry should be
+    // per-document. That was wrong, and it enshrined the bug: buildCatalog's
+    // pass 1 collects category definitions across every file in the library
+    // BEFORE parsing any of them, and the natural GVP shape is a base
+    // document declaring a category that children populate. Per-document
+    // merging left every such element uncounted and unsearchable, silently,
+    // with empty skip buckets -- the exact silent-miss failure #15 is about.
     fs.writeFileSync(path.join(lib, 'a-definer.yaml'), [
       'meta:',
       '  name: definer',
@@ -138,7 +144,7 @@ describe('recordLibraries (D40, D41, D57, D58)', () => {
       'meta:\n  name: borrower\nbets:\n  - id: B9\n    name: Nope\n    statement: s\n');
     recordLibraries({ libraryDir: lib, ...NO_PROJECT });
     expect(entries().find((x) => x.name === 'definer')!.element_counts).toEqual({ bets: 1 });
-    expect(entries().find((x) => x.name === 'borrower')!.element_counts).toEqual({});
+    expect(entries().find((x) => x.name === 'borrower')!.element_counts).toEqual({ bets: 1 });
   });
 
   it('records library facts with no project context, skipping the edge (D58)', () => {

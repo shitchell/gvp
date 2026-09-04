@@ -6,6 +6,8 @@ import { listLibraryKeys, readLibraryEntry, type LibraryEntry } from './library-
 import { parseSource, isRemoteSource } from './key.js';
 import { cachedPathFor, createSourceResolver } from '../inheritance/source-resolver.js';
 import { CategoryRegistry } from '../model/category-registry.js';
+import { collectLibraryCategories } from './record.js';
+import { findYamlFiles } from '../utils/yaml-files.js';
 import { loadDefaults } from '../schema/defaults-loader.js';
 import type { CategoryDefinition } from '../schema/category-definition.js';
 
@@ -122,12 +124,31 @@ export interface SearchHit {
  * never fetched: resolving one would trigger network I/O inside a read
  * command. `--fetch` opts in at the CLI layer.
  */
+/**
+ * Library-wide category registry, memoized per directory for one call.
+ * Mirrors buildCatalog's pass 1: collect every document's category
+ * definitions BEFORE interpreting any document's elements.
+ */
+function makeRegistryFor(base: CategoryRegistry) {
+  const memo = new Map<string, CategoryRegistry>();
+  return (dir: string): CategoryRegistry => {
+    const hit = memo.get(dir);
+    if (hit) return hit;
+    let files: string[] = [];
+    try { files = findYamlFiles(dir); } catch { /* unreadable */ }
+    const reg = collectLibraryCategories(base, files);
+    memo.set(dir, reg);
+    return reg;
+  };
+}
+
 export function searchLibrariesWithSkips(
   query: string,
   opts: { fetch?: boolean } = {},
 ): { results: SearchHit[]; skipped: string[]; missingLocal: string[]; unreadable: string[] } {
   const needle = query.toLowerCase();
   const baseRegistry = CategoryRegistry.fromDefaults(loadDefaults());
+  const registryFor = makeRegistryFor(baseRegistry);
   const results: SearchHit[] = [];
   const skipped: string[] = [];
   const missingLocal: string[] = [];
@@ -168,14 +189,13 @@ export function searchLibrariesWithSkips(
       continue;
     }
 
-    // Merge the document's own category definitions, as buildCatalog's
-    // pass 1 does. Without this, elements in a user-defined category are
-    // unsearchable -- the silent-miss failure #15 was filed about.
-    const docCats = ((data.meta as Record<string, unknown> | undefined)?.definitions as
-      Record<string, unknown> | undefined)?.categories;
-    const registry = docCats && typeof docCats === 'object'
-      ? baseRegistry.merge(docCats as Record<string, CategoryDefinition>)
-      : baseRegistry;
+    // Categories are merged LIBRARY-WIDE (below, once per directory), not
+    // per document. A base document commonly declares a category that
+    // sibling documents populate; merging only the current document's own
+    // definitions left those elements unsearchable AND unreported -- the
+    // skip buckets stayed empty while name search kept working, so the
+    // search looked alive and returned confidently incomplete answers.
+    const registry = registryFor(path.dirname(file));
 
     for (const [yamlKey, list] of Object.entries(data)) {
       if (yamlKey === 'meta' || !Array.isArray(list)) continue;
