@@ -83,7 +83,21 @@ export function readLibraryEntry(key: string): LibraryEntry | null {
     if (typeof e.scope !== 'string') e.scope = null;
     if (typeof e.project_id !== 'string') e.project_id = null;
     if (typeof e.library_id !== 'string') e.library_id = null;
-    return e as LibraryEntry;
+    // Project onto exactly the declared fields. Without this, an on-disk
+    // entry carrying a stray per-writer field (say `last_seen` from a
+    // future build) would round-trip through a read-modify-write and be
+    // re-dumped -- silently breaking the byte-identical property P18/D51
+    // depend on, in a way no existing test would catch.
+    return {
+      name: e.name ?? null,
+      source: e.source,
+      document_path: e.document_path,
+      file: e.file,
+      scope: e.scope ?? null,
+      project_id: e.project_id ?? null,
+      library_id: e.library_id ?? null,
+      element_counts: e.element_counts,
+    } as LibraryEntry;
   } catch {
     return null;
   }
@@ -117,10 +131,13 @@ export function pruneLibraryEntries(): void {
   for (const key of listLibraryKeys()) {
     const e = readLibraryEntry(key);
     if (!e) {
-      // Unparseable — but only remove it if we can also confirm it is
-      // not a torn read in progress. Atomic writes (D52) mean a
-      // well-formed writer never produces one, so this is safe.
-      try { fs.unlinkSync(entryPath(key)); } catch { /* gone */ }
+      // Unparseable, so it cannot be judged -- remove it. Safe because D52
+      // makes writes atomic: a reader never observes a torn file, so
+      // "unparseable" means genuinely corrupt rather than mid-write. Note
+      // readLibraryEntry also returns null for a PARSEABLE entry missing a
+      // required field, so this branch is what clears half-written entries
+      // left by an older build.
+      try { fs.unlinkSync(path.join(getLibrariesDir(), `${key}.yml`)); } catch { /* gone */ }
       continue;
     }
     if (isRemoteSource(e.source)) continue;

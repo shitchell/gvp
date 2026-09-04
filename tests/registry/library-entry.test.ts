@@ -175,4 +175,20 @@ describe('library entry (D51)', () => {
     writeRaw('listcounts', { ...base(), element_counts: [1, 2, 3] });
     expect(readLibraryEntry('listcounts')!.element_counts).toEqual({});
   });
+
+  it('strips an unknown per-writer field rather than round-tripping it', () => {
+    // A stray field re-dumped through read-modify-write would silently void
+    // the byte-identical property P18/D51 rest on.
+    fs.mkdirSync(getLibrariesDir(), { recursive: true });
+    fs.writeFileSync(
+      path.join(getLibrariesDir(), 'rt.yml'),
+      yaml.dump({ ...base(), last_seen: '2026-01-01T00:00:00Z', writer_pid: 42 }),
+    );
+    const read = readLibraryEntry('rt');
+    expect(read).not.toBeNull();
+    expect(Object.keys(read as object).sort()).toEqual(Object.keys(base()).sort());
+    upsertLibraryEntry('rt', read!);
+    const raw = fs.readFileSync(path.join(getLibrariesDir(), 'rt.yml'), 'utf-8');
+    expect(raw).not.toMatch(/last_seen|writer_pid/);
+  });
 });
