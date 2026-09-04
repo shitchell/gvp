@@ -1764,15 +1764,16 @@ Expected: PASS (5 tests)
 
 - [ ] **Step 5: Confirm the suite isolation is now actually doing work**
 
-Task 3 added `globalSetup` isolation on the premise that ~80 `buildCatalog` calls would otherwise write into the developer's real `~/.gvp/registry/`. As of Task 3 that guard is **preventive, not curative**: `runRegistryPreflight`'s only caller is `parseConfigOptions`, and no test calls `parseConfigOptions` — so the run-scoped registry root was verified EMPTY after a full suite run. The writes arrive here, with `recordLibraries`.
+**CORRECTION.** An earlier revision of this step claimed the run-scoped registry root was EMPTY as of Task 3, because "no test calls `parseConfigOptions`". That was wrong, and a reviewer disproved it by instrumenting a run: **48 distinct project paths** land in the root, written by `tests/cli/{add,edit,import,mv,store-flag}.test.ts`, which `spawnSync` the built CLI without an `env:` override — so the subprocess inherits `GVP_REGISTRY_ROOT`, goes through `parseConfigOptions` → `runRegistryPreflight`, and writes. Worse, all parallel workers shared one root and their prunes deleted each other's entries (entry count oscillating 1→2→1→2).
 
-This is the point where the guard starts mattering, so verify it rather than assume it:
+Task 3 has since given each CLI suite its own root via `env: { ...process.env, GVP_REGISTRY_ROOT: path.join(tmpDir, '.registry') }`. `globalSetup` remains the floor — nothing reaches the real `~/.gvp/registry` — not the isolation boundary.
 
-1. Temporarily log the contents of `process.env.GVP_REGISTRY_ROOT` in `tests/setup.ts`'s teardown.
-2. Run the full suite. The root must now be **non-empty** — if it is still empty, recording is not wired into the tests' code path and the coverage you think you have does not exist.
-3. Confirm `~/.gvp/registry` still does not exist. Remove the logging.
+So do **not** verify by "is the root non-empty". It is non-empty already, and that check would pass while telling you nothing. Verify instead that recording reaches the LIBRARY keyspace, which only exists once `recordLibraries` is wired:
 
-A silent regression in that guard is invisible today and expensive later: it would mean every contributor's real registry accumulates fixture libraries.
+1. Run the full suite.
+2. Assert `<per-suite root>/libraries/` gains entries — not merely that the root is non-empty.
+3. Confirm `~/.gvp/registry` still does not exist afterward.
+4. Run the suite 3× and confirm zero `/tmp/cairn-test-registry-*` survive (the teardown raced and leaked ~50% of runs before `maxRetries` was added).
 
 - [ ] **Step 6: Commit**
 
@@ -3048,4 +3049,5 @@ git commit -m "docs: registry location, commands, and delete-vs-rebuild semantic
 - **#16 portable library UUID** — `R9` is recorded but not enforceable; `library_id` is read-if-present only.
 - **Organization-scoped libraries** — no cairn concept exists (see #15 comment above).
 - **Caching remote library content** for offline enumeration — #15 ranks it below the index.
+- **`--no-config` defeats the opt-out.** With a global `registry.enabled: false`, `cairn --no-config validate` re-enables recording — verified, along with `--config <other.yaml>` and `GVP_CONFIG_GLOBAL=''`. This is arguably what `--no-config` means, but combined with a default of ON it means the flag that makes the tool *quieter* makes it *write*. It matters most before `--no-registry` lands, since a config file is then the only opt-out. Task 10 must add a test that `--no-registry` survives `--no-config`; if it cannot, the named opt-out needs a surface that no config flag can bypass, and that is a spec change (D43 names exactly two surfaces).
 - **Throttling the prune.** Both prunes read and yaml-parse every entry on every invocation, and D55's unbounded remote retention makes that cost grow. A stamp-file gate was drafted and dropped: D22 records "auto-prune on access" and D52's rationale depends on it running every time, so changing the cadence needs a decision amendment rather than a quiet optimization. Revisit once real registries are large enough to measure.

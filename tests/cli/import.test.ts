@@ -62,6 +62,12 @@ user:
     const cliPath = path.resolve(__dirname, '../../dist/cli/index.js');
     const result = spawnSync('node', [cliPath, ...args], {
       cwd: tmpDir,
+      // Per-suite registry root. Without this the subprocess inherits
+      // GVP_REGISTRY_ROOT from globalSetup, so every CLI test in every
+      // parallel worker writes into ONE shared root and their prunes
+      // delete each other's entries. globalSetup is the floor (nothing
+      // reaches the real ~/.gvp/registry), not the isolation boundary.
+      env: { ...process.env, GVP_REGISTRY_ROOT: path.join(tmpDir, '.registry') },
       encoding: 'utf-8',
       timeout: 15000,
     });

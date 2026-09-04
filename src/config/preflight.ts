@@ -151,7 +151,8 @@ export function runProjectPreflight(cwd: string = process.cwd()): PreflightResul
  * with the current path and timestamp, then prunes any stale entries
  * whose locations have all disappeared from disk. It is a no-op only
  * when the user opts out with `registry.enabled: false` in any config
- * layer, or `--no-registry` (D44).
+ * layer, or `--no-registry` (D44) — the flag is registered in a later
+ * task on this branch and is NOT yet available.
  *
  * Requires a PreflightResult from runProjectPreflight: if there's no
  * project context (no .gvp/ dir) or no project_id, the function is

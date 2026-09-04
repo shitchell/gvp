@@ -14,9 +14,13 @@ export default function setup() {
   process.env.GVP_REGISTRY_ROOT = root;
   return () => {
     try {
-      fs.rmSync(root, { recursive: true, force: true });
-    } catch {
-      /* best effort */
+      // maxRetries: the root is written concurrently by workers still
+      // draining, so a bare rmSync races and leaked ~50% of runs.
+      fs.rmSync(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
+    } catch (e) {
+      // Never swallow silently: a leaking teardown is precisely the
+      // failure you want to see, and it leaves real registry data in /tmp.
+      process.stderr.write(`test teardown: failed to remove ${root}: ${(e as Error).message}\n`);
     }
   };
 }
