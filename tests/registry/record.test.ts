@@ -413,4 +413,20 @@ describe('recordLibraries (D40, D41, D57, D58)', () => {
       expect(e.element_counts).toEqual({ goals: 1 });
     });
   });
+
+  it('does not serve a stale null project_id after one is backfilled', () => {
+    // Task 10 runs the D21 preflight (which backfills project_id) before
+    // recordLibraries. A process-lifetime memo would pin the pre-backfill
+    // null for the rest of the run.
+    const args = { libraryDir: lib, externalSources: [], projectId: null, projectName: null, projectPath: null };
+    recordLibraries(args);
+    expect(listLibraryKeys().map((k) => readLibraryEntry(k)!.project_id)).toEqual(
+      listLibraryKeys().map(() => null),
+    );
+    fs.mkdirSync(path.join(lib, '.gvp'), { recursive: true });
+    fs.writeFileSync(path.join(lib, '.gvp', 'config.yaml'), 'project_id: 11111111-2222-3333-4444-555555555555\n');
+    recordLibraries(args);
+    const ids = listLibraryKeys().map((k) => readLibraryEntry(k)!.project_id);
+    expect(ids.every((id) => id === '11111111-2222-3333-4444-555555555555')).toBe(true);
+  });
 });

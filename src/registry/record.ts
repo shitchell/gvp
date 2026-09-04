@@ -98,6 +98,13 @@ function factsFor(
  * `.gvp/config.yaml`. Cached per directory — this runs once per document
  * and the answer is identical for every document in a library.
  */
+// Memoization is PER-INVOCATION, not process-lifetime. Task 10 wires
+// recordLibraries in after the D21 preflight, which BACKFILLS a project_id
+// into .gvp/config.yaml -- so a cache that outlived one call could serve a
+// stale `null` for a library whose id was created moments earlier. Not
+// reachable through a single CLI invocation, but tests call recordLibraries
+// repeatedly in one process against freshly-created fixtures, which is
+// exactly that shape. Cleared at the top of recordLibraries.
 const projectIdCache = new Map<string, string | null>();
 function projectIdForLibrary(libDir: string): string | null {
   const cached = projectIdCache.get(libDir);
@@ -135,6 +142,7 @@ function projectIdForLibrary(libDir: string): string | null {
  * emit once.
  */
 export function recordLibraries(args: RecordArgs): string | undefined {
+  projectIdCache.clear();
   const hashes: string[] = [];
   let failed = false;
 
