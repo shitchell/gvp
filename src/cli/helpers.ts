@@ -14,6 +14,8 @@ import type { Element } from '../model/element.js';
 import type { CategoryDefinition } from '../schema/category-definition.js';
 import type { FieldSchemaEntry } from '../schema/field-schema.js';
 import { setVerbosity, logv } from '../utils/logger.js';
+// One definition of the YAML walker, shared with the registry recorder (P11).
+import { findYamlFiles } from '../utils/yaml-files.js';
 import type { Command } from 'commander';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -425,16 +427,4 @@ export function filterElementsByDocument(
 function loadDocumentFile(filePath: string, docPath: string, source: string, registry: CategoryRegistry) {
   const content = fs.readFileSync(filePath, 'utf-8');
   return parseDocument(content, filePath, docPath, source, registry);
-}
-
-function findYamlFiles(dir: string): string[] {
-  const files: string[] = [];
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (entry.isFile() && /\.ya?ml$/.test(entry.name)) {
-      files.push(path.join(dir, entry.name));
-    } else if (entry.isDirectory()) {
-      files.push(...findYamlFiles(path.join(dir, entry.name)));
-    }
-  }
-  return files.sort();
 }
