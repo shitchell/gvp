@@ -83,8 +83,9 @@ export function parseConfigOptions(cmd: Command): { config: GVPConfig; configOpt
   }
 
   // Phase 2 of preflight: registry upsert. Runs AFTER loadConfig so
-  // we can check the merged `registry.enabled` flag. Opt-in: no-op
-  // unless the user explicitly enables the registry in their config.
+  // we can check the merged `registry.enabled` flag. On by default
+  // (D43): a no-op only when the user opts out via config or
+  // --no-registry (D44).
   runRegistryPreflight(preflight, config);
 
   return { config, configOptions };

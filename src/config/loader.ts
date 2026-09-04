@@ -120,6 +120,18 @@ export function mergeConfigs(...layers: Record<string, unknown>[]): Record<strin
         // Concatenate for validation_rules
         const existing = result[key] as unknown[] | undefined;
         result[key] = [...(existing || []), ...value];
+      } else if (key === 'registry' && typeof value === 'object' && value !== null && !Array.isArray(value)) {
+        // Deep-merge this one key. D43 promises the opt-out works "in any
+        // config layer", so a project layer that merely mentions `registry:`
+        // must not discard a global `registry.enabled: false` — a wholesale
+        // replace would leave the closer layer's `{}` to pick the schema's
+        // now-true default and silently re-enable recording. Nested objects
+        // in general remain last-wins; only `registry` is load-bearing here.
+        // A non-object `registry:` falls through to last-wins so the schema
+        // still sees (and rejects) the malformed value.
+        const prev = (result[key] ?? {}) as Record<string, unknown>;
+        const next = value as Record<string, unknown>;
+        result[key] = { ...prev, ...next };
       } else if (key === 'strict') {
         // OR merge for strict (any source enabling wins — once true, stays true)
         if (value === true || result[key] === true) {

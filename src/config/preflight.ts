@@ -146,11 +146,12 @@ export function runProjectPreflight(cwd: string = process.cwd()): PreflightResul
  * loadConfig has merged all config layers, so we can check
  * `registry.enabled` and act on it without double-loading config.
  *
- * Opt-in: this function is a no-op unless `config.registry?.enabled`
- * is explicitly true. When enabled, it upserts the current project's
- * entry at ~/.gvp/registry/by-id/<project_id>.yml with the current
- * path and timestamp, then prunes any stale entries whose locations
- * have all disappeared from disk.
+ * On by default (D43, amending D22): this function upserts the
+ * current project's entry at ~/.gvp/registry/by-id/<project_id>.yml
+ * with the current path and timestamp, then prunes any stale entries
+ * whose locations have all disappeared from disk. It is a no-op only
+ * when the user opts out with `registry.enabled: false` in any config
+ * layer, or `--no-registry` (D44).
  *
  * Requires a PreflightResult from runProjectPreflight: if there's no
  * project context (no .gvp/ dir) or no project_id, the function is
@@ -160,7 +161,7 @@ export function runRegistryPreflight(
   preflightResult: PreflightResult,
   config: GVPConfig,
 ): void {
-  // Opt-in gate: registry disabled by default
+  // Opt-out gate (D43): enabled unless the user turned it off.
   if (!config.registry?.enabled) return;
 
   // Must have project context to register anything

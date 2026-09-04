@@ -8,5 +8,6 @@ export default defineConfig({
     // (source-resolver); 5s is too tight on slower machines and flakes under
     // parallel load. Give them headroom so the suite is reliably green.
     testTimeout: 20000,
+    globalSetup: ['./tests/setup.ts'],
   },
 });

@@ -5,19 +5,24 @@ import { getProjectsDir } from '../registry/paths.js';
 import { writeFileAtomic } from '../registry/atomic.js';
 
 /**
- * Global project registry (D22) — opt-in cross-project discovery
- * via per-UUID metadata files at `~/.gvp/registry/by-id/<uuid>.yml`.
+ * Global project registry (D22, amended by D43/D44) — cross-project
+ * discovery via per-UUID metadata files at
+ * `~/.gvp/registry/by-id/<uuid>.yml`.
  *
- * When the `registry.enabled: true` config flag is set, the preflight
- * upserts the current project's entry with its current path and
- * a fresh timestamp on every cairn invocation. Consumers can then
- * walk the registry directory to discover what projects exist,
- * correlate by UUID, and check last-seen timestamps for staleness.
+ * Recording is ON by default. The preflight upserts the current
+ * project's entry with its current path and a fresh timestamp on
+ * every cairn invocation. Consumers can then walk the registry
+ * directory to discover what projects exist, correlate by UUID, and
+ * check last-seen timestamps for staleness. Opt out with
+ * `registry.enabled: false` in any config layer, or `--no-registry`.
  *
  * Rationale captured in D22 of the cairn library:
  * - Write side effects on read commands are tolerated here (unlike
- *   elsewhere) because they're explicitly opted into via config,
- *   not silent defaults.
+ *   elsewhere) because the data is cheap, local, and self-pruning.
+ *   D22 originally justified them by the explicit opt-in; D43
+ *   falsified that default (the flag was set nowhere and the
+ *   registry did not exist ~5 months later), so the tolerance now
+ *   rests on the write being harmless rather than on consent.
  * - "Registry" naming, not "cache" — the data is persistent state,
  *   not regenerable.
  * - ~/.gvp/registry/ chosen over XDG for simplicity and to match

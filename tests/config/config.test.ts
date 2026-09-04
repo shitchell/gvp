@@ -102,6 +102,11 @@ describe('mergeConfigs', () => {
     );
     expect(result.validation_rules).toEqual([{ rule: 'a' }, { rule: 'b' }]);
   });
+
+  it('a global opt-out survives a project layer that mentions registry (D43)', () => {
+    const merged = mergeConfigs({ registry: { enabled: false } }, { registry: {} });
+    expect(configSchema.parse(merged).registry?.enabled).toBe(false);
+  });
 });
 
 describe('applyInlineOverrides', () => {

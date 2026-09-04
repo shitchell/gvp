@@ -16,9 +16,9 @@ import {
 import { configSchema } from '../../src/config/schema.js';
 
 /**
- * Tests for the global project registry (D22):
- * opt-in cross-project discovery via ~/.gvp/registry/by-id/<uuid>.yml
- * entries. All tests use the GVP_REGISTRY_ROOT env var to redirect
+ * Tests for the global project registry (D22, amended by D43):
+ * cross-project discovery via ~/.gvp/registry/by-id/<uuid>.yml
+ * entries, recorded by default. All tests use the GVP_REGISTRY_ROOT env var to redirect
  * the registry into a tmpdir, so real user state is never touched.
  *
  * Contract:
@@ -29,7 +29,9 @@ import { configSchema } from '../../src/config/schema.js';
  *   - pruneStaleRegistryEntries removes entries whose paths are gone
  *   - pruneStaleRegistryEntries keeps entries with at least one
  *     still-valid location and trims the gone ones
- *   - runRegistryPreflight is a no-op when registry.enabled is false
+ *   - runRegistryPreflight upserts with a default config (D43)
+ *   - runRegistryPreflight is a no-op when registry.enabled is
+ *     explicitly false
  *   - runRegistryPreflight is a no-op when there's no project_id
  *   - runRegistryPreflight upserts when enabled AND project has id
  *   - Corrupt entries are replaced, not propagated
@@ -225,19 +227,26 @@ describe('Registry (D22)', () => {
   });
 
   describe('runRegistryPreflight integration', () => {
-    it('is a no-op when registry.enabled is false (the default)', () => {
-      // Create a fake project
-      const projectPath = path.join(tmpDir, 'proj');
+    it('upserts by default now that registry.enabled defaults to true (D43)', () => {
+      // Mirror the existing tests in this file: a real project dir with a
+      // .gvp/, or runProjectPreflight returns no projectId and
+      // runRegistryPreflight no-ops for the WRONG reason.
+      const projectPath = path.join(tmpDir, 'proj-default-on');
       fs.mkdirSync(path.join(projectPath, '.gvp'), { recursive: true });
-
-      // Run phase 1 (project_id backfill)
+      const config = configSchema.parse({});
       const preflight = runProjectPreflight(projectPath);
       expect(preflight.projectId).toBeDefined();
-
-      // Phase 2 with registry disabled: should not create the registry
-      const config = configSchema.parse({}); // registry omitted → disabled
       runRegistryPreflight(preflight, config);
+      expect(fs.existsSync(getRegistryDir())).toBe(true);
+    });
 
+    it('is a no-op when registry.enabled is explicitly false', () => {
+      const projectPath = path.join(tmpDir, 'proj-opt-out');
+      fs.mkdirSync(path.join(projectPath, '.gvp'), { recursive: true });
+      const config = configSchema.parse({ registry: { enabled: false } });
+      const preflight = runProjectPreflight(projectPath);
+      expect(preflight.projectId).toBeDefined();
+      runRegistryPreflight(preflight, config);
       expect(fs.existsSync(getRegistryDir())).toBe(false);
     });
 
