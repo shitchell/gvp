@@ -7,7 +7,8 @@ import { parseDocument } from '../model/document-parser.js';
 import { documentMetaSchema } from '../model/document-meta.js';
 import { resolveInheritance, type DocumentLoader, type SourceLoader, type ResolvedInheritance } from '../inheritance/inheritance-resolver.js';
 import { createSourceResolver } from '../inheritance/source-resolver.js';
-import * as os from 'os';
+// One definition of the tilde expansion, shared with the registry (P11).
+import { expandTilde } from '../registry/key.js';
 import { Catalog } from '../catalog/catalog.js';
 import type { Element } from '../model/element.js';
 import type { CategoryDefinition } from '../schema/category-definition.js';
@@ -419,18 +420,6 @@ export function filterElementsByDocument(
   allowedDocPaths: Set<string>,
 ): Element[] {
   return elements.filter((e) => allowedDocPaths.has(e.documentPath));
-}
-
-/**
- * Expand a leading `~` or `~/` to the user's home directory. Other forms
- * (`~user`) are left untouched — cairn sources are the current user's own
- * paths. LocalSourceResolver does not expand tildes, so the CLI does it
- * before handing the source string off.
- */
-function expandTilde(p: string): string {
-  if (p === '~') return os.homedir();
-  if (p.startsWith('~/')) return path.join(os.homedir(), p.slice(2));
-  return p;
 }
 
 function loadDocumentFile(filePath: string, docPath: string, source: string, registry: CategoryRegistry) {
