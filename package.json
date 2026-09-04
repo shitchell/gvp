@@ -15,7 +15,7 @@
   ],
   "scripts": {
     "build": "tsc && node scripts/copy-data.mjs",
-    "test": "vitest run",
+    "test": "npm run build && vitest run",
     "test:watch": "vitest",
     "prepublishOnly": "npm run build",
     "postpublish": "npm dist-tag add @principled/cairn@$npm_package_version latest"

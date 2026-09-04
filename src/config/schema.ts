@@ -78,7 +78,9 @@ export const configSchema = z.object({
   // cross-library discovery via ~/.gvp/registry/. ON by default —
   // the opt-in default was falsified by evidence (the flag was set
   // nowhere and the registry did not exist ~5 months after D22).
-  // Opt out with `registry.enabled: false` or `--no-registry` (registered in a later task on this branch; it is NOT yet a working flag).
+  // Opt out with `registry.enabled: false` or `--no-registry` (D44 — the
+  // flag is registered on the root command and applied in
+  // parseConfigOptions AFTER loadConfig, so it survives --no-config).
   // NOTE: the OBJECT-level default is load-bearing, and it must carry
   // `enabled` explicitly. Without an object default, omitting
   // `registry:` yields undefined and the inner default never applies.

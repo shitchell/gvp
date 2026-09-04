@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as path from 'path';
 import { getRegistryRoot, getProjectsDir, getLibrariesDir } from '../../src/registry/paths.js';
-import { getRegistryDir } from '../../src/config/registry.js';
 
 describe('registry paths', () => {
   let original: string | undefined;
@@ -52,13 +51,8 @@ describe('registry paths', () => {
     expect(path.dirname(getProjectsDir())).toBe(getRegistryRoot());
   });
 
-  it('keeps getRegistryDir() equal to getProjectsDir() — the contract of this split', () => {
-    // The one guarantee this task exists to provide. The existing registry
-    // tests round-trip through the same accessor, so they would keep
-    // passing even if the split silently relocated by-id/.
-    process.env.GVP_REGISTRY_ROOT = '/tmp/reg';
-    expect(getRegistryDir()).toBe(getProjectsDir());
-    delete process.env.GVP_REGISTRY_ROOT;
-    expect(getRegistryDir()).toBe(getProjectsDir());
-  });
+  // An assertion used to sit here pinning the deprecated src/config/registry
+  // alias equal to getProjectsDir() through the mid-plan migration. Task 14
+  // deleted that alias and moved every caller onto getProjectsDir(), so the
+  // assertion had nothing left to guard.
 });

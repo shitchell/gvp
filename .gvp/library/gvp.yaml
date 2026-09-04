@@ -383,6 +383,20 @@ principles:
     origin:
       - date: '2026-03-26'
         note: Added during post-v1 heuristic mining -- driven by DEC-2.15 (drop libraries config), DEC-5.5 (suppress over conditional), DEC-9.3 (tags over custom categories)
+    refs:
+      - file: src/inheritance/source-resolver.ts
+        identifier: findLibrarySubdir
+        role: implements
+      - file: src/utils/yaml-files.ts
+        identifier: findYamlFiles
+        role: implements
+    updated_by:
+      - id: 1cd774ae-69b5-4e77-a0ad-99c3ab8d7bf9
+        date: '2026-09-04T21:44:27.958Z'
+        rationale: 'Task 14: P11 had no refs. This branch produced its two clearest artifacts -- findLibrarySubdir collapsed the duplicated gvp/ vs .gvp/library dual-lookup into one definition with caller-supplied fallbacks (the ''same purpose, eliminate the weaker one'' case), and findYamlFiles collapsed two byte-identical YAML walkers into one.'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
   - id: P12
     name: Surface tension, don't resolve it
     statement: |
@@ -2030,6 +2044,23 @@ decisions:
     origin:
       - date: '2026-09-03'
         note: Requested in issue
+    refs:
+      - file: src/registry/record.ts
+        identifier: recordLibraries
+        role: implements
+      - file: src/cli/helpers.ts
+        identifier: buildCatalog
+        role: uses
+      - file: src/registry/paths.ts
+        identifier: getLibrariesDir
+        role: defines
+    updated_by:
+      - id: a456c31f-949c-4c50-aba5-1d5b134e724a
+        date: '2026-09-04T21:44:19.212Z'
+        rationale: 'Task 14: D40 is realized by recordLibraries (the machine-global index write) called from buildCatalog, over the keyspace getLibrariesDir defines. paths.ts is attributed here and to D51 rather than to D52: splitting the keyspace is not atomicity.'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
   - id: D41
     name: Record every document in the resolved library directory, not only inherited ones
     rationale: |
@@ -2046,6 +2077,20 @@ decisions:
     origin:
       - date: '2026-09-03'
         note: Added after a library-only fidelity check found the recording scope undefined, and that the most literal reading would have excluded the very document the motivating incident was about.
+    refs:
+      - file: src/registry/record.ts
+        identifier: recordLibraries
+        role: implements
+      - file: src/utils/yaml-files.ts
+        identifier: findYamlFiles
+        role: uses
+    updated_by:
+      - id: 87d47a9f-b4aa-42ae-a01f-126e9d2039b9
+        date: '2026-09-04T21:44:19.646Z'
+        rationale: 'Task 14: ''every document, not only inherited ones'' IS the findYamlFiles walk of the resolved directory inside recordLibraries''s record() closure.'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
   - id: D42
     name: Hook recording at catalog construction, not per-command
     rationale: |
@@ -2061,6 +2106,17 @@ decisions:
     origin:
       - date: '2026-09-03'
         note: The project-identity caveat was added after adversarial review found the claim that buildCatalog "already holds" everything required was overstated in the one dimension the usage edge depends on.
+    refs:
+      - file: src/cli/helpers.ts
+        identifier: buildCatalog
+        role: implements
+    updated_by:
+      - id: 954b84b2-d695-4207-9e7f-4674094096b2
+        date: '2026-09-04T21:44:20.090Z'
+        rationale: 'Task 14: the single hook site. buildCatalog is the choke point D42 names, and the recording call lives in its tail.'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
   - id: D43
     name: Library recording defaults on, with a named opt-out
     rationale: |
@@ -2117,6 +2173,12 @@ decisions:
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
+      - id: 51a7f3bb-fbe2-44da-98f7-1cd3d9c37013
+        date: '2026-09-04T21:44:20.532Z'
+        rationale: 'Task 14: the default-on half is configSchema''s registry.enabled default(true); the named-opt-out half is parseConfigOptions applying --no-registry after loadConfig so no config flag can bypass it.'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
     reviewed_by:
       - id: e1f91863-d2fb-4b88-ad70-c0ebddcb864b
         date: '2026-09-04T11:03:56.643Z'
@@ -2127,6 +2189,13 @@ decisions:
           - 0d055cab-0015-49f7-8176-5a2cf582b643
           - 72d1b104-aa6c-49f9-90cf-d037ed1f9e3c
         note: Mechanism clause and considered alternative recorded during Task 3 review. Both are factual (the mergeConfigs dependency is verifiable in code; the rejected alternative was actually weighed) rather than inferred rationale. Per P15, human review is scoped to guiding elements; D43 is a decision.
+    refs:
+      - file: src/config/schema.ts
+        identifier: configSchema
+        role: defines
+      - file: src/cli/helpers.ts
+        identifier: parseConfigOptions
+        role: implements
   - id: D44
     name: One registry flag governs both project and library recording
     rationale: |
@@ -2151,6 +2220,23 @@ decisions:
     origin:
       - date: '2026-09-03'
         note: Human decision after the coupling between the usage edge and D22's opt-in default was surfaced.
+    refs:
+      - file: src/cli/helpers.ts
+        identifier: parseConfigOptions
+        role: implements
+      - file: src/cli/index.ts
+        identifier: program
+        role: defines
+      - file: src/config/schema.ts
+        identifier: configSchema
+        role: defines
+    updated_by:
+      - id: 6cc4f991-e590-49f7-9397-784c2b93b7a8
+        date: '2026-09-04T21:44:20.997Z'
+        rationale: 'Task 14: one flag, one schema key. The --no-registry option is registered on program and routed through the same config key that governs D22''s project entries.'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
   - id: D45
     name: Index unit is the document, not the library directory
     rationale: |
@@ -2174,6 +2260,20 @@ decisions:
     origin:
       - date: '2026-09-03'
         note: Human decision;
+    refs:
+      - file: src/registry/library-entry.ts
+        identifier: LibraryEntry
+        role: defines
+      - file: src/registry/record.ts
+        identifier: factsFor
+        role: implements
+    updated_by:
+      - id: c0038a4f-6d8a-4206-a5e4-42bdb61e43d6
+        date: '2026-09-04T21:44:21.425Z'
+        rationale: 'Task 14: LibraryEntry is the per-DOCUMENT record shape and factsFor produces exactly one per YAML document, which is what makes the unit the document rather than the directory.'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
   - id: D46
     name: Entries are keyed by source identity, not by name or UUID
     rationale: |
@@ -2212,6 +2312,17 @@ decisions:
     origin:
       - date: '2026-09-03'
         note: Refined twice -- first from name-keying to path-keying, then from path-keying to source identity after review found resolved paths unstable for remotes.
+    refs:
+      - file: src/registry/key.ts
+        identifier: entryKey
+        role: implements
+    updated_by:
+      - id: df2149b9-87dd-4d1a-a50f-91073a199006
+        date: '2026-09-04T21:44:21.913Z'
+        rationale: 'Task 14: entryKey is the keying rule verbatim -- canonical source, NUL, document path -- with no name or UUID input.'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
   - id: D47
     name: Local libraries are keyed by resolved filesystem path, not by the source string
     rationale: |
@@ -2234,6 +2345,20 @@ decisions:
     origin:
       - date: '2026-09-03'
         note: Every one of the four failures was found by adversarial review of the first draft, which specified only "normalize to absolute" and would have shipped duplicate and colliding keys.
+    refs:
+      - file: src/registry/key.ts
+        identifier: canonicalizeSource
+        role: implements
+      - file: src/registry/key.ts
+        identifier: expandTilde
+        role: uses
+    updated_by:
+      - id: aadc364b-5e21-4c77-b3a9-81a16b7d2a0f
+        date: '2026-09-04T21:44:22.340Z'
+        rationale: 'Task 14: canonicalizeSource is the local-realpath / remote-verbatim split D47 decides; expandTilde is the tilde case it enumerates.'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
   - id: D48
     name: Name, project_id, and library_id are correlation fields, not keys
     rationale: |
@@ -2251,6 +2376,20 @@ decisions:
     origin:
       - date: '2026-09-03'
         note: 'Filed the upstream half as issue #16 during this design, after confirming the remote cache (a bare library repo with no .gvp/) carries no project_id and cannot be given one locally.'
+    refs:
+      - file: src/registry/record.ts
+        identifier: projectIdForLibrary
+        role: implements
+      - file: src/registry/library-entry.ts
+        identifier: LibraryEntry
+        role: defines
+    updated_by:
+      - id: 97b7e333-0c62-49b4-946e-effb1c701de2
+        date: '2026-09-04T21:44:22.843Z'
+        rationale: 'Task 14: the correlation fields are declared on LibraryEntry and populated by factsFor; projectIdForLibrary is the one that carries the load, deriving project_id from where the library LIVES rather than from who read it.'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
   - id: D49
     name: Location is expressed as a source string reusing inherits grammar
     rationale: |
@@ -2268,6 +2407,20 @@ decisions:
     origin:
       - date: '2026-09-03'
         note: Human suggestion -- reuse the key the import mechanism already uses for both filepaths and remotes rather than introducing a separate location field.
+    refs:
+      - file: src/inheritance/source-resolver.ts
+        identifier: REMOTE_SOURCE_RE
+        role: defines
+      - file: src/registry/key.ts
+        identifier: isRemoteSource
+        role: uses
+    updated_by:
+      - id: b5cd8fd3-c4e3-488d-885c-8edd42ef44ea
+        date: '2026-09-04T21:44:23.267Z'
+        rationale: 'Task 14: the registry reuses the inherits grammar rather than inventing a location vocabulary -- REMOTE_SOURCE_RE is that one grammar and registry/key.ts imports it instead of redeclaring it.'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
   - id: D50
     name: The resolved cache path is derived, never stored
     rationale: |
@@ -2283,6 +2436,23 @@ decisions:
     origin:
       - date: '2026-09-03'
         note: Extended during self-review, which found the draft storing kind and ref while simultaneously declaring derived values must not be stored.
+    refs:
+      - file: src/registry/key.ts
+        identifier: parseSource
+        role: implements
+      - file: src/inheritance/source-resolver.ts
+        identifier: cachedPathFor
+        role: implements
+      - file: src/registry/query.ts
+        identifier: LibraryView
+        role: defines
+    updated_by:
+      - id: 6b0afa8a-cfa6-43c4-a6fa-ce09a65c6d81
+        date: '2026-09-04T21:44:23.730Z'
+        rationale: 'Task 14: kind and ref are recomputed by parseSource and the cache path by cachedPathFor, on read. LibraryView is where they surface as derived fields -- none of the three appears in LibraryEntry, which is the decision.'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
   - id: D51
     name: Split registry writes by write-shape
     rationale: |
@@ -2324,6 +2494,26 @@ decisions:
     origin:
       - date: '2026-09-03'
         note: Chosen after recognizing that a library index breaks D22's per-project no-collision property, then corrected on review when the first draft was found to have violated its own idempotence premise.
+    refs:
+      - file: src/registry/library-entry.ts
+        identifier: upsertLibraryEntry
+        role: implements
+      - file: src/registry/usage-edge.ts
+        identifier: mergeUsageEdges
+        role: implements
+      - file: src/registry/paths.ts
+        identifier: getLibrariesDir
+        role: defines
+      - file: src/registry/paths.ts
+        identifier: getProjectsDir
+        role: defines
+    updated_by:
+      - id: c9ce1292-0c75-43ec-a49c-4cccbe8c07da
+        date: '2026-09-04T21:44:24.168Z'
+        rationale: 'Task 14: the split by write-shape is two keyspaces (getLibrariesDir / getProjectsDir) and two write disciplines -- byte-identical last-write-wins in upsertLibraryEntry for derived facts, merge-never-rewrite in mergeUsageEdges for per-writer facts.'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
   - id: D52
     name: Registry writes are atomic
     rationale: |
@@ -2351,6 +2541,12 @@ decisions:
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
+      - id: ed452024-f456-4b24-9f9b-d54014b34412
+        date: '2026-09-04T21:44:24.652Z'
+        rationale: 'Task 14: atomic.ts IS the D52 implementation -- temp-in-same-directory plus rename, with the non-.yml suffix that keeps a concurrent prune from unlinking an in-flight write. Proven discriminating in Task 14: swapping writeFileAtomic for a bare writeFileSync makes the concurrency tests fail 5 runs out of 5.'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
     reviewed_by:
       - id: 115d2ee4-f0e7-40bd-be8c-23b2486e400e
         date: '2026-09-04T10:46:43.119Z'
@@ -2360,6 +2556,13 @@ decisions:
         updates_reviewed:
           - 0d0f76da-a0be-4444-a67c-e956e097bf5d
         note: Maintainer approved the atomicity/durability scope clause as written.
+    refs:
+      - file: src/registry/atomic.ts
+        identifier: writeFileAtomic
+        role: implements
+      - file: src/registry/atomic.ts
+        identifier: tempPathFor
+        role: implements
   - id: D53
     name: The usage edge is stored project-side and derived by inversion
     rationale: |
@@ -2378,6 +2581,23 @@ decisions:
     origin:
       - date: '2026-09-03'
         note: 'The seen_from field requested in #15 is derived rather than stored. The merge semantics and the double-write fix were added after review found the cited zero-contention property was never claimed by D22 and is false.'
+    refs:
+      - file: src/registry/usage-edge.ts
+        identifier: mergeUsageEdges
+        role: implements
+      - file: src/registry/usage-edge.ts
+        identifier: UsageEdge
+        role: defines
+      - file: src/registry/query.ts
+        identifier: invertUsage
+        role: implements
+    updated_by:
+      - id: 4036b33a-92ca-43f1-8658-56d83f091f85
+        date: '2026-09-04T21:44:25.110Z'
+        rationale: 'Task 14: stored project-side as UsageEdge merged by mergeUsageEdges into the project''s own file; read back by invertUsage, which is the transpose D53 describes.'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
   - id: D54
     name: Ship cairn libs list, show, and search
     rationale: |
@@ -2403,6 +2623,23 @@ decisions:
     origin:
       - date: '2026-09-03'
         note: Supersedes D22's out-of-scope note. The four clarifications were added after a library-only fidelity check found that a literal implementation of the first draft could never match a decision -- the one thing the feature exists to find.
+    refs:
+      - file: src/cli/commands/libs.ts
+        identifier: libsCommand
+        role: implements
+      - file: src/registry/query.ts
+        identifier: searchLibrariesWithSkips
+        role: implements
+      - file: src/registry/query.ts
+        identifier: loadAllLibraries
+        role: implements
+    updated_by:
+      - id: df4bd1e3-23d1-4962-8256-4cb19612fd88
+        date: '2026-09-04T21:44:25.605Z'
+        rationale: 'Task 14: libsCommand ships list/show/search; searchLibrariesWithSkips is the schema-dispatched primary-field search that makes decision rationale findable, and names every skip rather than dropping it.'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
   - id: D55
     name: Prune local entries by document; retain remote entries; provide explicit forget
     rationale: |
@@ -2421,6 +2658,20 @@ decisions:
     origin:
       - date: '2026-09-03'
         note: Divergence from D22's uniform prune. Document-level granularity, the re-fetchability qualifier, and the eviction commands were all added after review found the first draft leaked entries in both directions.
+    refs:
+      - file: src/registry/library-entry.ts
+        identifier: pruneLibraryEntries
+        role: implements
+      - file: src/cli/commands/libs.ts
+        identifier: libsCommand
+        role: implements
+    updated_by:
+      - id: 52b6b09c-90ce-409c-b708-47658c76b8ab
+        date: '2026-09-04T21:44:26.023Z'
+        rationale: 'Task 14: pruneLibraryEntries is the by-document local prune with remote retention; libsCommand carries the explicit `forget` and `prune --remote` opt-ins that retention makes necessary.'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
   - id: D56
     name: Registry deletion is safe; rebuild is lossy and incremental
     rationale: |
@@ -2438,6 +2689,20 @@ decisions:
     origin:
       - date: '2026-09-03'
         note: 'Resolves a direct conflict between D22''s stated naming rationale and #15''s stated scope note.'
+    refs:
+      - file: src/registry/record.ts
+        identifier: recordLibraries
+        role: implements
+      - file: src/registry/library-entry.ts
+        identifier: listLibraryKeys
+        role: uses
+    updated_by:
+      - id: 712e7268-8a39-4584-808c-ab9e26e796a3
+        date: '2026-09-04T21:44:26.551Z'
+        rationale: 'Task 14: both halves are mechanical facts about recordLibraries -- nothing reads the registry for correctness, so deleting it is safe; and an entry only reappears when recordLibraries next resolves that library, which is precisely why the rebuild is lossy and incremental. The README statement of it is Task 15.'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
   - id: D57
     name: Recording failure never fails the command
     rationale: |
@@ -2454,6 +2719,23 @@ decisions:
     origin:
       - date: '2026-09-03'
         note: Amends D22's silent-failure behavior to warn once, per
+    refs:
+      - file: src/registry/record.ts
+        identifier: recordLibraries
+        role: implements
+      - file: src/cli/helpers.ts
+        identifier: buildCatalog
+        role: implements
+      - file: src/config/registry.ts
+        identifier: upsertRegistryEntry
+        role: uses
+    updated_by:
+      - id: ceda9386-ae5a-4575-9ceb-1a52d386952a
+        date: '2026-09-04T21:44:26.995Z'
+        rationale: 'Task 14: recordLibraries never throws and returns at most one warning; buildCatalog prints it to stderr and carries on, leaving exit code and stdout untouched. upsertRegistryEntry is the counterpart that THROWS with a preserved cause so the warning can distinguish EROFS from ENOSPC.'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
   - id: D58
     name: Library facts are recorded without project context; the usage edge is skipped
     rationale: |
@@ -2468,6 +2750,20 @@ decisions:
     origin:
       - date: '2026-09-03'
         note: Divergence from D22's preflight, which no-ops entirely when no project directory is found walking back from cwd.
+    refs:
+      - file: src/registry/record.ts
+        identifier: recordLibraries
+        role: implements
+      - file: src/registry/record.ts
+        identifier: RecordArgs
+        role: defines
+    updated_by:
+      - id: a3da9f3b-36e7-40b1-bea4-13ddbf57bbe7
+        date: '2026-09-04T21:44:27.509Z'
+        rationale: 'Task 14: RecordArgs makes projectId/projectName/projectPath nullable, and recordLibraries records library facts unconditionally while gating only the usage-edge upsert on all three being present.'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
 constraints:
   - id: C1
     name: Agents optimize for minimal effort

@@ -15,7 +15,7 @@ import { mergeUsageEdges, type UsageEdge } from '../registry/usage-edge.js';
  * every cairn invocation. Consumers can then walk the registry
  * directory to discover what projects exist, correlate by UUID, and
  * check last-seen timestamps for staleness. Opt out with
- * `registry.enabled: false` in any config layer, or `--no-registry` (registered in a later task on this branch; it is NOT yet a working flag).
+ * `registry.enabled: false` in any config layer, or `--no-registry` (D44).
  *
  * Rationale captured in D22 of the cairn library:
  * - Write side effects on read commands: D22 originally justified
@@ -50,11 +50,6 @@ export interface RegistryEntry {
   locations: RegistryLocation[];
   /** Usage edge (D53) — which library entries this project resolved. */
   libraries?: UsageEdge[];
-}
-
-/** @deprecated Use getProjectsDir() from ../registry/paths.js. */
-export function getRegistryDir(): string {
-  return getProjectsDir();
 }
 
 /**

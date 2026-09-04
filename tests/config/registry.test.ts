@@ -6,9 +6,9 @@ import * as yaml from 'js-yaml';
 import {
   upsertRegistryEntry,
   pruneStaleRegistryEntries,
-  getRegistryDir,
   type RegistryEntry,
 } from '../../src/config/registry.js';
+import { getProjectsDir } from '../../src/registry/paths.js';
 
 /**
  * Tests for the global project registry (D22, amended by D43):
@@ -54,7 +54,7 @@ describe('Registry (D22)', () => {
   });
 
   function readEntry(projectId: string): RegistryEntry {
-    const entryPath = path.join(getRegistryDir(), `${projectId}.yml`);
+    const entryPath = path.join(getProjectsDir(), `${projectId}.yml`);
     return yaml.load(fs.readFileSync(entryPath, 'utf-8')) as RegistryEntry;
   }
 
@@ -136,8 +136,8 @@ describe('Registry (D22)', () => {
       fs.mkdirSync(projectPath, { recursive: true });
 
       // Write garbage YAML directly
-      fs.mkdirSync(getRegistryDir(), { recursive: true });
-      const entryPath = path.join(getRegistryDir(), `${uuid}.yml`);
+      fs.mkdirSync(getProjectsDir(), { recursive: true });
+      const entryPath = path.join(getProjectsDir(), `${uuid}.yml`);
       fs.writeFileSync(entryPath, '::: not valid yaml [ ]]]');
 
       // Upsert should succeed anyway
@@ -162,7 +162,7 @@ describe('Registry (D22)', () => {
 
       upsertRegistryEntry(uuid, 'gone-project', goneProject);
       expect(
-        fs.existsSync(path.join(getRegistryDir(), `${uuid}.yml`)),
+        fs.existsSync(path.join(getProjectsDir(), `${uuid}.yml`)),
       ).toBe(true);
 
       // Delete the project, then prune
@@ -170,7 +170,7 @@ describe('Registry (D22)', () => {
       pruneStaleRegistryEntries();
 
       expect(
-        fs.existsSync(path.join(getRegistryDir(), `${uuid}.yml`)),
+        fs.existsSync(path.join(getProjectsDir(), `${uuid}.yml`)),
       ).toBe(false);
     });
 
@@ -193,9 +193,9 @@ describe('Registry (D22)', () => {
     });
 
     it('removes corrupt entries', () => {
-      fs.mkdirSync(getRegistryDir(), { recursive: true });
+      fs.mkdirSync(getProjectsDir(), { recursive: true });
       const entryPath = path.join(
-        getRegistryDir(),
+        getProjectsDir(),
         '82345678-1234-1234-1234-123456789abc.yml',
       );
       fs.writeFileSync(entryPath, '::: garbage :: [');
@@ -211,7 +211,7 @@ describe('Registry (D22)', () => {
       fs.mkdirSync(projectPath, { recursive: true });
 
       upsertRegistryEntry(uuid, 'live-project', projectPath);
-      const entryPath = path.join(getRegistryDir(), `${uuid}.yml`);
+      const entryPath = path.join(getProjectsDir(), `${uuid}.yml`);
       const beforeMtime = fs.statSync(entryPath).mtimeMs;
 
       pruneStaleRegistryEntries();
@@ -229,7 +229,7 @@ describe('Registry (D22)', () => {
       // Cross-module coupling with no test until now: temps end .tmp, prune
       // filters .yml. Renaming the temp suffix or loosening the filter would
       // silently reopen the exact deletion path D52 exists to close.
-      const dir = getRegistryDir();
+      const dir = getProjectsDir();
       fs.mkdirSync(dir, { recursive: true });
       const tmp = path.join(dir, '.abc.yml.99999.0.deadbeef.tmp');
       fs.writeFileSync(tmp, 'half-written');
@@ -238,7 +238,7 @@ describe('Registry (D22)', () => {
     });
 
     it('sweeps an ORPHANED temp file older than an hour', () => {
-      const dir = getRegistryDir();
+      const dir = getProjectsDir();
       fs.mkdirSync(dir, { recursive: true });
       const tmp = path.join(dir, '.old.yml.1.0.cafebabe.tmp');
       fs.writeFileSync(tmp, 'crashed mid-write');
@@ -255,7 +255,7 @@ describe('Registry (D22)', () => {
       // A transient read error must not be mistaken for corruption. The
       // catch used to delete on ANY throw, which is D52's data-loss shape
       // with an fs error as the tearer instead of a concurrent writer.
-      const dir = getRegistryDir();
+      const dir = getProjectsDir();
       fs.mkdirSync(dir, { recursive: true });
       const entry = path.join(dir, 'unreadable.yml');
       fs.writeFileSync(entry, yaml.dump({ project_id: 'x', project_name: 'y', locations: [] }));

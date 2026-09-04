@@ -3,8 +3,9 @@ import * as path from 'path';
 
 /**
  * Registry root. Honors GVP_REGISTRY_ROOT (D22), which addresses the
- * ROOT rather than the by-id keyspace — the original getRegistryDir()
- * conflated the two, which blocked adding a sibling keyspace.
+ * ROOT rather than the by-id keyspace — the original single accessor in
+ * src/config/registry.ts conflated the two (it returned the by-id dir
+ * under a root-sounding name), which blocked adding a sibling keyspace.
  *
  * The override is resolved to an absolute path so that
  * `getRegistryRoot()` and `path.dirname(getProjectsDir())` agree for
