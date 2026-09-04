@@ -828,7 +828,9 @@ export function canonicalizeSource(source: string, baseDir: string): string {
 
 /**
  * Entry key: first 16 hex of SHA-256 over source + NUL + documentPath.
- * The NUL separator prevents ('/a/b', 'c') colliding with ('/a', 'b/c').
+ * The separator prevents the boundary between the two inputs from being
+ * ambiguous: without it `('/a','bc')` and `('/ab','c')` both hash "/abc"
+ * and collide. NUL specifically, because a POSIX path cannot contain one.
  */
 export function entryKey(canonicalSource: string, documentPath: string): string {
   return createHash('sha256')
@@ -1749,7 +1751,7 @@ function resolveIfCached(source: string, baseDir: string): string | null {
 
 > `expandTilde` and `isRemoteSource` are exported from `src/registry/key.ts` in Task 5.
 >
-> **Already done in Task 5.** (Historical note: this instruction lived here, but Task 5's verify step required a single `expandTilde` definition, so it landed there.) Delete `src/cli/helpers.ts`'s private `expandTilde` (`helpers.ts:429`) and import the exported one — otherwise there are two copies of the same logic, the P11 duplication this plan already avoided for `findYamlFiles`:
+> **Already done in Task 5.** (Historical note: this instruction was written for Task 9, but the Task 5 dispatch prompt required a single `expandTilde` definition, so it landed there instead. The plan's Task 5 never asked for it — the requirement came from the dispatch, not from this document.) Delete `src/cli/helpers.ts`'s private `expandTilde` (`helpers.ts:429`) and import the exported one — otherwise there are two copies of the same logic, the P11 duplication this plan already avoided for `findYamlFiles`:
 >
 > ```typescript
 > import { expandTilde } from '../registry/key.js';

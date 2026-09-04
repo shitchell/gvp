@@ -75,7 +75,15 @@ export function canonicalizeSource(source: string, baseDir: string): string {
 
 /**
  * Entry key: first 16 hex of SHA-256 over source + NUL + documentPath.
- * The NUL separator prevents ('/a/b', 'c') colliding with ('/a', 'b/c').
+ *
+ * The separator prevents the boundary between the two inputs from being
+ * ambiguous. Concretely, without it `('/a','bc')` and `('/ab','c')` both
+ * hash "/abc" and collide -- verified. (An earlier version of this comment
+ * offered `('/a/b','c')` vs `('/a','b/c')` as the example; those produce
+ * "/a/bc" and "/ab/c" and never collided.)
+ *
+ * NUL specifically, because a POSIX path cannot contain one -- that is what
+ * makes the boundary unambiguous rather than merely unlikely.
  */
 export function entryKey(canonicalSource: string, documentPath: string): string {
   return createHash('sha256')

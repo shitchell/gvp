@@ -45,13 +45,22 @@ describe('registry key (D46, D47)', () => {
     // The directory MUST be under $HOME — os.tmpdir() is not on Linux or
     // macOS, so guarding on `path.relative` would silently skip the
     // assertion and the test would pass green with zero coverage.
-    const underHome = fs.realpathSync(
-      fs.mkdtempSync(path.join(os.homedir(), '.cairn-key-test-')));
+    // Override HOME rather than writing into the user's real home dir: a
+    // SIGKILL would leak a directory there, and read-only-HOME CI would fail.
+    // os.homedir() honors $HOME on POSIX, so coverage is identical.
+    const fakeHome = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'fakehome-')));
+    const prevHome = process.env.HOME;
+    const prevProfile = process.env.USERPROFILE;
+    process.env.HOME = fakeHome;
+    process.env.USERPROFILE = fakeHome;
     try {
-      const rel = path.relative(os.homedir(), underHome);
+      const underHome = fs.realpathSync(fs.mkdtempSync(path.join(fakeHome, 'lib-')));
+      const rel = path.relative(fakeHome, underHome);
       expect(canonicalizeSource(`~/${rel}`, '/nonexistent')).toBe(underHome);
     } finally {
-      fs.rmSync(underHome, { recursive: true, force: true });
+      if (prevHome === undefined) delete process.env.HOME; else process.env.HOME = prevHome;
+      if (prevProfile === undefined) delete process.env.USERPROFILE; else process.env.USERPROFILE = prevProfile;
+      fs.rmSync(fakeHome, { recursive: true, force: true });
     }
   });
 
@@ -93,6 +102,30 @@ describe('registry key (D46, D47)', () => {
     expect(k).toMatch(/^[0-9a-f]{16}$/);
     expect(entryKey('/abs/lib', 'code/common')).toBe(k);
     expect(entryKey('/abs/lib', 'code/other')).not.toBe(k);
+  });
+
+  it('separator makes the source/document boundary unambiguous', () => {
+    // Mutation-verified: deleting the NUL separator from entryKey survived
+    // all ten of the original tests. These are pairs that genuinely collide
+    // without it -- concatenation makes both "/abc" and "/p/libfoo/x".
+    expect(entryKey('/a', 'bc')).not.toBe(entryKey('/ab', 'c'));
+    expect(entryKey('/p/lib', 'foo/x')).not.toBe(entryKey('/p/libfoo', '/x'));
+  });
+
+  it('canonicalizeSource is idempotent, including for an evicted target', () => {
+    // Task 11's prune re-derives keys from stored sources; if canonicalizing
+    // an already-canonical source moved it, prune would delete live entries
+    // on every run.
+    const real = path.join(dir, 'lib');
+    fs.mkdirSync(real);
+    const link = path.join(dir, 'link');
+    fs.symlinkSync(real, link);
+    const once = canonicalizeSource(link, dir);
+    expect(canonicalizeSource(once, dir)).toBe(once);
+    fs.rmSync(real, { recursive: true, force: true });
+    const gone = canonicalizeSource(once, dir);
+    expect(canonicalizeSource(gone, dir)).toBe(gone);
+    expect(canonicalizeSource('@github:a/b@v1', dir)).toBe('@github:a/b@v1');
   });
 
   it('does not collide across sources that share a document path', () => {
