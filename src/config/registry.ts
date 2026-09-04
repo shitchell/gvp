@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as yaml from 'js-yaml';
 import { getProjectsDir } from '../registry/paths.js';
 import { writeFileAtomic } from '../registry/atomic.js';
+import { mergeUsageEdges, type UsageEdge } from '../registry/usage-edge.js';
 
 /**
  * Global project registry (D22, amended by D43/D44) — cross-project
@@ -47,6 +48,8 @@ export interface RegistryEntry {
   project_id: string;
   project_name: string;
   locations: RegistryLocation[];
+  /** Usage edge (D53) — which library entries this project resolved. */
+  libraries?: UsageEdge[];
 }
 
 /** @deprecated Use getProjectsDir() from ../registry/paths.js. */
@@ -65,11 +68,19 @@ export function getRegistryDir(): string {
  * The `projectPath` is the filesystem location of the project's
  * `.gvp/` parent directory (NOT the .gvp/ itself — we track the
  * project root so consumers can `cd` into it).
+ *
+ * `observedLibraryHashes` (D53) folds the usage-edge merge into this
+ * SAME read-modify-write. Kept separate, a recording invocation would
+ * write the project file twice with a prune in between, doubling the
+ * window in which a concurrent reader sees a half-updated registry.
+ * The argument is OPTIONAL and omitting it must leave existing edges
+ * exactly as they were — D58 relies on that when recording is skipped.
  */
 export function upsertRegistryEntry(
   projectId: string,
   projectName: string,
   projectPath: string,
+  observedLibraryHashes?: string[],
 ): void {
   const registryDir = getProjectsDir();
   const entryPath = path.join(registryDir, `${projectId}.yml`);
@@ -122,6 +133,23 @@ export function upsertRegistryEntry(
     existing.last_seen = now;
   } else {
     entry.locations.push({ path: projectPath, last_seen: now });
+  }
+
+  // Usage edge (D53), merged into the same write as the location upsert.
+  // Merge, never replace: D22 gives no CROSS-project collision, but C2 says
+  // parallel sessions in ONE project are normal and they contend on exactly
+  // this file. Under a rewrite a lost update drops another session's edge;
+  // under a merge it costs at most a stale timestamp.
+  if (observedLibraryHashes !== undefined) {
+    entry.libraries = mergeUsageEdges(
+      Array.isArray(entry.libraries) ? entry.libraries : [],
+      observedLibraryHashes,
+      now,
+    );
+  } else if (!Array.isArray(entry.libraries)) {
+    // Nothing observed and nothing valid on disk: do not introduce an empty
+    // key. A plain location upsert must leave the file's library shape alone.
+    delete entry.libraries;
   }
 
   try {
