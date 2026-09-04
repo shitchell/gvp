@@ -2305,6 +2305,15 @@ decisions:
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
+    reviewed_by:
+      - id: 115d2ee4-f0e7-40bd-be8c-23b2486e400e
+        date: '2026-09-04T10:46:43.119Z'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+        updates_reviewed:
+          - 0d0f76da-a0be-4444-a67c-e956e097bf5d
+        note: Maintainer approved the atomicity/durability scope clause as written.
   - id: D53
     name: The usage edge is stored project-side and derived by inversion
     rationale: |
