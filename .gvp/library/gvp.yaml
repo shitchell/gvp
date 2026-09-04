@@ -2696,10 +2696,19 @@ decisions:
       - file: src/registry/library-entry.ts
         identifier: listLibraryKeys
         role: uses
+      - file: README.md
+        identifier: Library registry
+        role: documents
     updated_by:
       - id: 712e7268-8a39-4584-808c-ab9e26e796a3
         date: '2026-09-04T21:44:26.551Z'
         rationale: 'Task 14: both halves are mechanical facts about recordLibraries -- nothing reads the registry for correctness, so deleting it is safe; and an entry only reappears when recordLibraries next resolves that library, which is precisely why the rebuild is lossy and incremental. The README statement of it is Task 15.'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+      - id: 3ba89fad-b6a9-44f8-a625-7266cb00bb86
+        date: '2026-09-04T21:48:53.317Z'
+        rationale: D56 is a decision about DOCUMENTED semantics, so its implementation is prose. Task 14 could only ref the mechanisms that make the claim true because the README section did not exist yet; it does now.
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
