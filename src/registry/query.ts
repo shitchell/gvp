@@ -50,6 +50,12 @@ export function loadAllLibraries(): LibraryView[] {
 }
 
 /** Invert the project-side usage edge into per-library usage (D53). */
+// NOTE: timestamps are compared with string < / >. That is correct ONLY
+// because every writer emits `new Date().toISOString()`, which is always
+// UTC with a `Z` suffix and fixed width -- lexical order equals chronological
+// order. A writer that ever emitted an offset form (`+02:00`) would silently
+// misorder first_seen/last_seen here with no error. If that becomes possible,
+// switch to Date.parse comparison.
 export function invertUsage(): Map<string, UsageView> {
   const usage = new Map<string, UsageView>();
   let files: string[];
