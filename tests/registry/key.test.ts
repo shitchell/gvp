@@ -55,9 +55,15 @@ describe('registry key (D46, D47)', () => {
     }
   });
 
-  it('collapses the dual-lookup forms onto one key', () => {
-    // <p> and <p>/.gvp/library name ONE library. Recording keys on the
-    // RESOLVER'S output, so both must agree.
+  it('pins the premise that the RESOLVER collapses the dual-lookup forms', () => {
+    // Honest framing: canonicalizeSource does NOT do the dual lookup -- it
+    // resolves and realpaths. `<p>` and `<p>/.gvp/library` are different
+    // paths and canonicalize differently. The collapse happens because
+    // recordLibraries keys on LocalSourceResolver.resolve's OUTPUT.
+    //
+    // So this is a regression guard on that premise, not coverage of
+    // canonicalizeSource. It fails if the resolver ever stops collapsing
+    // them, which is what would silently mint duplicate entries.
     const proj = path.join(dir, 'proj');
     fs.mkdirSync(path.join(proj, '.gvp', 'library'), { recursive: true });
     const resolver = new LocalSourceResolver(dir);
@@ -65,9 +71,13 @@ describe('registry key (D46, D47)', () => {
       .toBe(canonicalizeSource(resolver.resolve(path.join(proj, '.gvp', 'library')), dir));
   });
 
-  it('never lets a free-form config.source value become a key', () => {
-    // Two unrelated projects both setting `source: mylib` must not
-    // collide: recording keys on the resolved dir, never config.source.
+  it('gives distinct keys to distinct resolved directories', () => {
+    // Renamed for honesty: this does not construct a config.source, and an
+    // implementation that DID key on config.source would not fail here.
+    // That failure mode is prevented by canonicalizeSource's signature --
+    // it takes a resolved directory, so a free-form config value cannot
+    // reach it -- and by recordLibraries passing the resolver's output.
+    // Asserted end-to-end in Task 9's record tests, not here.
     const a = path.join(dir, 'a'); const b = path.join(dir, 'b');
     fs.mkdirSync(a); fs.mkdirSync(b);
     expect(entryKey(canonicalizeSource(a, dir), 'x'))

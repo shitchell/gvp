@@ -1749,7 +1749,7 @@ function resolveIfCached(source: string, baseDir: string): string | null {
 
 > `expandTilde` and `isRemoteSource` are exported from `src/registry/key.ts` in Task 5.
 >
-> Also delete `src/cli/helpers.ts`'s private `expandTilde` (`helpers.ts:429`) and import the exported one — otherwise there are two copies of the same logic, the P11 duplication this plan already avoided for `findYamlFiles`:
+> **Already done in Task 5.** (Historical note: this instruction lived here, but Task 5's verify step required a single `expandTilde` definition, so it landed there.) Delete `src/cli/helpers.ts`'s private `expandTilde` (`helpers.ts:429`) and import the exported one — otherwise there are two copies of the same logic, the P11 duplication this plan already avoided for `findYamlFiles`:
 >
 > ```typescript
 > import { expandTilde } from '../registry/key.js';
