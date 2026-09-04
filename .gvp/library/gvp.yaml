@@ -2121,7 +2121,7 @@ decisions:
   - id: D42
     name: Hook recording at catalog construction, not per-command
     rationale: |
-      buildCatalog() is the single choke point for library LOADING -- 11 of 12 commands call it, and the one that does not (init) creates a library rather than loading one. It holds the resolved library directory across all three discovery paths (--library, --store, and cwd walk-back), the source cache keyed by every external source resolved, the resolver that maps those to paths and refs, meta.name per document, and per-document element counts. One hook there covers every present and future catalog-building command; per-command hooks would drift as commands are added and would re-derive the same facts.
+      buildCatalog() is the single choke point for library LOADING -- 11 of 13 command files call it. The two that do not are `init` (which creates a library rather than loading one) and `libs` (which reads the registry rather than building a catalog); `libs` did not exist when this was first written. It holds the resolved library directory across all three discovery paths (--library, --store, and cwd walk-back), the source cache keyed by every external source resolved, the resolver that maps those to paths and refs, meta.name per document, and per-document element counts. One hook there covers every present and future catalog-building command; per-command hooks would drift as commands are added and would re-derive the same facts.
       It does NOT hold project identity, and the first draft of this design wrongly assumed it did. runProjectPreflight is called inside parseConfigOptions, whose return value carries only the config and config options -- the PreflightResult is consumed and discarded. Recording the usage edge therefore requires a plumbing change: parseConfigOptions must return the PreflightResult and it must reach the recording function. The single-choke-point property is true of library loading, not of project identity.
     tags:
       - framework
@@ -2144,6 +2144,12 @@ decisions:
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
+      - id: 8eccb8f1-08b8-4e69-bed3-0f784b5a76e4
+        date: '2026-09-04T22:05:30.255Z'
+        rationale: 'Correct a stale count: there are now 13 command files, and libs.ts is a second legitimate non-caller.'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
     reviewed_by:
       - id: 3d0f1e0b-7f7f-4ed8-a7bc-41dffd64369b
         date: '2026-09-04T21:50:07.524Z'
@@ -2153,6 +2159,14 @@ decisions:
         updates_reviewed:
           - 954b84b2-d695-4207-9e7f-4674094096b2
         note: Refs added during Task 14 (D40-D58) and Task 15 (D56 README). Mechanical ref additions linking each decision to its implementation; no rationale changed.
+      - id: 81ade6b9-0c31-4e44-85c5-3df3cfcc4176
+        date: '2026-09-04T22:05:48.080Z'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+        updates_reviewed:
+          - 8eccb8f1-08b8-4e69-bed3-0f784b5a76e4
+        note: 'Honesty amendment from the final compliance sweep: the element''s unqualified wording overclaimed relative to known behavior. No behavior changed.'
   - id: D43
     name: Library recording defaults on, with a named opt-out
     rationale: |
@@ -2162,6 +2176,7 @@ decisions:
       Flipping the default is not a one-word change. The config schema declares the registry object itself as optional, so omitting the registry key yields undefined and the enabled lookup stays falsy regardless of the inner default. The object needs a default of its own, and the schema comment stating the feature is off by default must be rewritten.
       The substantive cost is acknowledged: read-only commands now write to the home directory by default. D22 raised three objections -- CI sandboxes, multi-user environments, and auditability. D57's resilience answers the sandbox half; the other two are accepted costs of the flip, recorded here so the trade is explicit rather than overlooked.
             **Required mechanism: `mergeConfigs` must deep-merge the `registry` key.** The "in any config layer" clause above is not free -- config layering is otherwise last-wins per key, so a global `registry.enabled: false` plus a project config that merely mentions `registry:` for any reason would yield `{}`, the object default would fill in `enabled: true`, and recording would silently resume against an explicit opt-out. That is the worst available failure for this decision: it re-enables a write side effect precisely for the user who took the trouble to disable it. `registry` is therefore deep-merged while every other nested key stays last-wins.
+            **Limit: `--no-config` defeats the CONFIG opt-out.** A global `registry.enabled: false` is discarded by `cairn --no-config validate` (and by `--config <other>`, and by an empty `GVP_CONFIG_GLOBAL`), so recording resumes. That is arguably what `--no-config` means -- but with the default now ON it means the flag that makes the tool quieter makes it write, which a reader of this decision alone would not predict. The `--no-registry` FLAG is unaffected: it is applied to the already-loaded config, so no config-discovery flag can reach it, and that is tested.
     tags:
       - framework
       - usability
@@ -2215,6 +2230,12 @@ decisions:
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
+      - id: d2eb21d8-a123-4a7c-9d09-33b4ce74cf11
+        date: '2026-09-04T22:05:29.741Z'
+        rationale: Record that --no-config defeats the config opt-out. The flag opt-out survives it; the config one does not, and D43 promised "any config layer" without qualifying which flags can bypass the layers entirely.
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
     reviewed_by:
       - id: e1f91863-d2fb-4b88-ad70-c0ebddcb864b
         date: '2026-09-04T11:03:56.643Z'
@@ -2233,6 +2254,14 @@ decisions:
         updates_reviewed:
           - 51a7f3bb-fbe2-44da-98f7-1cd3d9c37013
         note: Refs added during Task 14 (D40-D58) and Task 15 (D56 README). Mechanical ref additions linking each decision to its implementation; no rationale changed.
+      - id: d4f20401-d27a-4008-9137-42d6dd536f0c
+        date: '2026-09-04T22:05:47.084Z'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+        updates_reviewed:
+          - d2eb21d8-a123-4a7c-9d09-33b4ce74cf11
+        note: 'Honesty amendment from the final compliance sweep: the element''s unqualified wording overclaimed relative to known behavior. No behavior changed.'
     refs:
       - file: src/config/schema.ts
         identifier: configSchema
@@ -2878,6 +2907,7 @@ decisions:
     rationale: |
       A read-only home directory, a full disk, or a corrupt entry must never change the exit code or stdout of the command the user actually ran -- the index is not load-bearing for correctness, and #15 asks for exactly this behavior, to carry on and at most warn. This inherits D22's resilience posture, which wraps every registry filesystem operation and returns silently on failure.
       D22 swallowed such failures entirely. That is amended here: failure emits at most one stderr warning per invocation. Silent swallowing conflicts with V3 (Honesty); one line is loud enough to diagnose and quiet enough not to become noise on a machine where the condition persists.
+            **Scope: "never fails the command" assumes the registry root is a normal filesystem path.** Under procfs it can instead never RETURN: `mkdir(2)` on `/proc` answers ENOENT even when the parent exists, and Node's recursive mkdir treats ENOENT as "create the parent and retry", looping forever. Verified: `GVP_REGISTRY_ROOT=/proc/self/x cairn validate` hangs indefinitely. Hanging is strictly worse than throwing, so this is stated rather than left implicit -- V10 asks that a guarantee be reliable or visibly absent. It requires a hostile root, so it is recorded rather than defended against; closing it would need a decision about validating the registry root.
     tags:
       - framework
       - integrity
@@ -2906,6 +2936,12 @@ decisions:
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
+      - id: 1cef7616-8a1e-431b-8eec-8560d529c1ca
+        date: '2026-09-04T22:05:29.196Z'
+        rationale: 'Record the procfs hang: D57 promises the command never fails, but under /proc it never returns. Found during Task 9, where it hung the suite three times.'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
     reviewed_by:
       - id: ac6ae22c-7587-44ed-b000-340207256f5d
         date: '2026-09-04T21:50:21.270Z'
@@ -2915,6 +2951,14 @@ decisions:
         updates_reviewed:
           - ceda9386-ae5a-4575-9ceb-1a52d386952a
         note: Refs added during Task 14 (D40-D58) and Task 15 (D56 README). Mechanical ref additions linking each decision to its implementation; no rationale changed.
+      - id: 0be700dd-6795-4b6d-8913-d5e62391d76c
+        date: '2026-09-04T22:05:46.087Z'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+        updates_reviewed:
+          - 1cef7616-8a1e-431b-8eec-8560d529c1ca
+        note: 'Honesty amendment from the final compliance sweep: the element''s unqualified wording overclaimed relative to known behavior. No behavior changed.'
   - id: D58
     name: Library facts are recorded without project context; the usage edge is skipped
     rationale: |

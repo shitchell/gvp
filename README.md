@@ -242,7 +242,7 @@ constraint's `impact` are searchable, not just `statement`. It never reaches
 the network unless you pass `--fetch`, and it names everything it skipped
 rather than returning a quietly incomplete answer.
 
-`list` and `show` refuse to guess: `meta.name` is not unique across
+`show` and `forget` refuse to guess: `meta.name` is not unique across
 libraries, so an ambiguous name lists its candidates and exits non-zero
 rather than picking one. All three commands take `--json`.
 
