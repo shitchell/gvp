@@ -397,6 +397,15 @@ principles:
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
+    reviewed_by:
+      - id: be177a5e-85ce-4290-9c86-7e565338b329
+        date: '2026-09-04T21:50:23.143Z'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+        updates_reviewed:
+          - 1cd774ae-69b5-4e77-a0ad-99c3ab8d7bf9
+        note: Refs added during Task 14 (D40-D58) and Task 15 (D56 README). Mechanical ref additions linking each decision to its implementation; no rationale changed.
   - id: P12
     name: Surface tension, don't resolve it
     statement: |
@@ -2061,6 +2070,15 @@ decisions:
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
+    reviewed_by:
+      - id: cd2c4a6c-07c3-4ea0-a2dd-873299cb1297
+        date: '2026-09-04T21:50:05.730Z'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+        updates_reviewed:
+          - a456c31f-949c-4c50-aba5-1d5b134e724a
+        note: Refs added during Task 14 (D40-D58) and Task 15 (D56 README). Mechanical ref additions linking each decision to its implementation; no rationale changed.
   - id: D41
     name: Record every document in the resolved library directory, not only inherited ones
     rationale: |
@@ -2091,6 +2109,15 @@ decisions:
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
+    reviewed_by:
+      - id: ae264ec8-d1e0-4b4f-a11b-3b5c2d91d428
+        date: '2026-09-04T21:50:06.650Z'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+        updates_reviewed:
+          - 87d47a9f-b4aa-42ae-a01f-126e9d2039b9
+        note: Refs added during Task 14 (D40-D58) and Task 15 (D56 README). Mechanical ref additions linking each decision to its implementation; no rationale changed.
   - id: D42
     name: Hook recording at catalog construction, not per-command
     rationale: |
@@ -2117,6 +2144,15 @@ decisions:
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
+    reviewed_by:
+      - id: 3d0f1e0b-7f7f-4ed8-a7bc-41dffd64369b
+        date: '2026-09-04T21:50:07.524Z'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+        updates_reviewed:
+          - 954b84b2-d695-4207-9e7f-4674094096b2
+        note: Refs added during Task 14 (D40-D58) and Task 15 (D56 README). Mechanical ref additions linking each decision to its implementation; no rationale changed.
   - id: D43
     name: Library recording defaults on, with a named opt-out
     rationale: |
@@ -2189,6 +2225,14 @@ decisions:
           - 0d055cab-0015-49f7-8176-5a2cf582b643
           - 72d1b104-aa6c-49f9-90cf-d037ed1f9e3c
         note: Mechanism clause and considered alternative recorded during Task 3 review. Both are factual (the mergeConfigs dependency is verifiable in code; the rejected alternative was actually weighed) rather than inferred rationale. Per P15, human review is scoped to guiding elements; D43 is a decision.
+      - id: 7d561d86-e4ff-41f5-8fd4-9d394152a53d
+        date: '2026-09-04T21:50:08.397Z'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+        updates_reviewed:
+          - 51a7f3bb-fbe2-44da-98f7-1cd3d9c37013
+        note: Refs added during Task 14 (D40-D58) and Task 15 (D56 README). Mechanical ref additions linking each decision to its implementation; no rationale changed.
     refs:
       - file: src/config/schema.ts
         identifier: configSchema
@@ -2237,6 +2281,15 @@ decisions:
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
+    reviewed_by:
+      - id: 81247d2a-9619-43ba-90fe-318cd061c8f7
+        date: '2026-09-04T21:50:09.316Z'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+        updates_reviewed:
+          - 6cc4f991-e590-49f7-9397-784c2b93b7a8
+        note: Refs added during Task 14 (D40-D58) and Task 15 (D56 README). Mechanical ref additions linking each decision to its implementation; no rationale changed.
   - id: D45
     name: Index unit is the document, not the library directory
     rationale: |
@@ -2274,6 +2327,15 @@ decisions:
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
+    reviewed_by:
+      - id: 26e866fc-6847-4d78-9d40-ad5ee048e7bf
+        date: '2026-09-04T21:50:10.273Z'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+        updates_reviewed:
+          - c0038a4f-6d8a-4206-a5e4-42bdb61e43d6
+        note: Refs added during Task 14 (D40-D58) and Task 15 (D56 README). Mechanical ref additions linking each decision to its implementation; no rationale changed.
   - id: D46
     name: Entries are keyed by source identity, not by name or UUID
     rationale: |
@@ -2323,6 +2385,15 @@ decisions:
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
+    reviewed_by:
+      - id: 206ce76c-01c0-4c31-8b6a-88ad59ad6de2
+        date: '2026-09-04T21:50:11.163Z'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+        updates_reviewed:
+          - df2149b9-87dd-4d1a-a50f-91073a199006
+        note: Refs added during Task 14 (D40-D58) and Task 15 (D56 README). Mechanical ref additions linking each decision to its implementation; no rationale changed.
   - id: D47
     name: Local libraries are keyed by resolved filesystem path, not by the source string
     rationale: |
@@ -2359,6 +2430,15 @@ decisions:
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
+    reviewed_by:
+      - id: a6688b95-906d-45a9-8cb3-d721430b0b1f
+        date: '2026-09-04T21:50:12.062Z'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+        updates_reviewed:
+          - aadc364b-5e21-4c77-b3a9-81a16b7d2a0f
+        note: Refs added during Task 14 (D40-D58) and Task 15 (D56 README). Mechanical ref additions linking each decision to its implementation; no rationale changed.
   - id: D48
     name: Name, project_id, and library_id are correlation fields, not keys
     rationale: |
@@ -2390,6 +2470,15 @@ decisions:
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
+    reviewed_by:
+      - id: 85d4e983-8645-44c7-8624-9105233263aa
+        date: '2026-09-04T21:50:12.953Z'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+        updates_reviewed:
+          - 97b7e333-0c62-49b4-946e-effb1c701de2
+        note: Refs added during Task 14 (D40-D58) and Task 15 (D56 README). Mechanical ref additions linking each decision to its implementation; no rationale changed.
   - id: D49
     name: Location is expressed as a source string reusing inherits grammar
     rationale: |
@@ -2421,6 +2510,15 @@ decisions:
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
+    reviewed_by:
+      - id: 8b8e9598-4f56-448d-8422-db49f1b66858
+        date: '2026-09-04T21:50:13.831Z'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+        updates_reviewed:
+          - b5cd8fd3-c4e3-488d-885c-8edd42ef44ea
+        note: Refs added during Task 14 (D40-D58) and Task 15 (D56 README). Mechanical ref additions linking each decision to its implementation; no rationale changed.
   - id: D50
     name: The resolved cache path is derived, never stored
     rationale: |
@@ -2453,6 +2551,15 @@ decisions:
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
+    reviewed_by:
+      - id: 13d6a3e4-641d-4833-b42b-4bd875406855
+        date: '2026-09-04T21:50:14.704Z'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+        updates_reviewed:
+          - 6b0afa8a-cfa6-43c4-a6fa-ce09a65c6d81
+        note: Refs added during Task 14 (D40-D58) and Task 15 (D56 README). Mechanical ref additions linking each decision to its implementation; no rationale changed.
   - id: D51
     name: Split registry writes by write-shape
     rationale: |
@@ -2514,6 +2621,15 @@ decisions:
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
+    reviewed_by:
+      - id: e65674cc-615f-486b-b610-50beeec2296e
+        date: '2026-09-04T21:50:15.633Z'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+        updates_reviewed:
+          - c9ce1292-0c75-43ec-a49c-4cccbe8c07da
+        note: Refs added during Task 14 (D40-D58) and Task 15 (D56 README). Mechanical ref additions linking each decision to its implementation; no rationale changed.
   - id: D52
     name: Registry writes are atomic
     rationale: |
@@ -2556,6 +2672,14 @@ decisions:
         updates_reviewed:
           - 0d0f76da-a0be-4444-a67c-e956e097bf5d
         note: Maintainer approved the atomicity/durability scope clause as written.
+      - id: 863ee25f-ea28-40cf-983a-7bfbc9abc818
+        date: '2026-09-04T21:50:16.528Z'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+        updates_reviewed:
+          - ed452024-f456-4b24-9f9b-d54014b34412
+        note: Refs added during Task 14 (D40-D58) and Task 15 (D56 README). Mechanical ref additions linking each decision to its implementation; no rationale changed.
     refs:
       - file: src/registry/atomic.ts
         identifier: writeFileAtomic
@@ -2598,6 +2722,15 @@ decisions:
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
+    reviewed_by:
+      - id: 2fa32799-1de3-453c-a9c5-b6d8ab5329a5
+        date: '2026-09-04T21:50:17.440Z'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+        updates_reviewed:
+          - 4036b33a-92ca-43f1-8658-56d83f091f85
+        note: Refs added during Task 14 (D40-D58) and Task 15 (D56 README). Mechanical ref additions linking each decision to its implementation; no rationale changed.
   - id: D54
     name: Ship cairn libs list, show, and search
     rationale: |
@@ -2640,6 +2773,15 @@ decisions:
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
+    reviewed_by:
+      - id: 40737681-813e-4357-acb4-ef2806970974
+        date: '2026-09-04T21:50:18.375Z'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+        updates_reviewed:
+          - df4bd1e3-23d1-4962-8256-4cb19612fd88
+        note: Refs added during Task 14 (D40-D58) and Task 15 (D56 README). Mechanical ref additions linking each decision to its implementation; no rationale changed.
   - id: D55
     name: Prune local entries by document; retain remote entries; provide explicit forget
     rationale: |
@@ -2672,6 +2814,15 @@ decisions:
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
+    reviewed_by:
+      - id: 565e4022-be51-4344-b486-118991a3320f
+        date: '2026-09-04T21:50:19.358Z'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+        updates_reviewed:
+          - 52b6b09c-90ce-409c-b708-47658c76b8ab
+        note: Refs added during Task 14 (D40-D58) and Task 15 (D56 README). Mechanical ref additions linking each decision to its implementation; no rationale changed.
   - id: D56
     name: Registry deletion is safe; rebuild is lossy and incremental
     rationale: |
@@ -2698,7 +2849,7 @@ decisions:
         role: uses
       - file: README.md
         identifier: Library registry
-        role: documents
+        role: implements
     updated_by:
       - id: 712e7268-8a39-4584-808c-ab9e26e796a3
         date: '2026-09-04T21:44:26.551Z'
@@ -2712,6 +2863,16 @@ decisions:
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
+    reviewed_by:
+      - id: 31c75ea0-a770-4849-93d9-38b44bbcbb92
+        date: '2026-09-04T21:50:20.331Z'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+        updates_reviewed:
+          - 712e7268-8a39-4584-808c-ab9e26e796a3
+          - 3ba89fad-b6a9-44f8-a625-7266cb00bb86
+        note: Refs added during Task 14 (D40-D58) and Task 15 (D56 README). Mechanical ref additions linking each decision to its implementation; no rationale changed.
   - id: D57
     name: Recording failure never fails the command
     rationale: |
@@ -2745,6 +2906,15 @@ decisions:
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
+    reviewed_by:
+      - id: ac6ae22c-7587-44ed-b000-340207256f5d
+        date: '2026-09-04T21:50:21.270Z'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+        updates_reviewed:
+          - ceda9386-ae5a-4575-9ceb-1a52d386952a
+        note: Refs added during Task 14 (D40-D58) and Task 15 (D56 README). Mechanical ref additions linking each decision to its implementation; no rationale changed.
   - id: D58
     name: Library facts are recorded without project context; the usage edge is skipped
     rationale: |
@@ -2773,6 +2943,15 @@ decisions:
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
+    reviewed_by:
+      - id: 84ebaeec-d071-4df6-b23a-34e2edff725e
+        date: '2026-09-04T21:50:22.211Z'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+        updates_reviewed:
+          - a3da9f3b-36e7-40b1-bea4-13ddbf57bbe7
+        note: Refs added during Task 14 (D40-D58) and Task 15 (D56 README). Mechanical ref additions linking each decision to its implementation; no rationale changed.
 constraints:
   - id: C1
     name: Agents optimize for minimal effort
