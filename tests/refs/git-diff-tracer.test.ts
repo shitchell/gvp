@@ -131,6 +131,12 @@ describe('Git Diff Tracer (DEC-10.2)', () => {
     expect(result).toBeDefined();
   });
 
+  // NOTE the timeout. This test traces HEAD~1..HEAD against the LIVE repo,
+  // so its runtime scales with whatever the most recent commit happens to
+  // be -- it took 27s (over the 20s default) the first time HEAD was a
+  // large feature merge (59 files, ~9k insertions). The coupling to real
+  // history is the actual defect; tracked separately. Until then, give it
+  // headroom rather than let an unrelated large commit turn the suite red.
   it('handles commit range with no ref-related changes', () => {
     const catalog = buildCatalogFromLibrary();
     // Use HEAD~1..HEAD which might not touch ref'd files
@@ -138,5 +144,5 @@ describe('Git Diff Tracer (DEC-10.2)', () => {
     // Should not error even if no refs are affected
     expect(result.changedFiles).toBeDefined();
     expect(result.refChanges).toBeDefined();
-  });
+  }, 120_000);
 });
