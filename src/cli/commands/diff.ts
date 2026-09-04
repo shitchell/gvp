@@ -12,8 +12,8 @@ export function diffCommand(): Command {
     .option('--format <format>', 'Output format: text (default) or json', 'text')
     .action(async (commitA?: string, commitB?: string) => {
       try {
-        const { config } = parseConfigOptions(cmd);
-        const catalog = buildCatalog(config, process.cwd(), getLibraryOverride(cmd), getStoreOverride(cmd));
+        const { config, preflight } = parseConfigOptions(cmd);
+        const catalog = buildCatalog(config, process.cwd(), getLibraryOverride(cmd), getStoreOverride(cmd), preflight);
         const opts = cmd.opts();
 
         let a: string;

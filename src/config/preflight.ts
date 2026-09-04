@@ -2,14 +2,13 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
 import { randomUUID } from 'crypto';
-import type { GVPConfig } from './schema.js';
-import { upsertRegistryEntry, pruneStaleRegistryEntries } from './registry.js';
 
 /**
  * Project preflight — runs before every catalog-building cairn
- * invocation to ensure the current project has a stable identity
- * and to serve as the insertion point for additional per-invocation
- * side effects (registry upsert for feature 2, etc.).
+ * invocation to ensure the current project has a stable identity.
+ * Its result is returned to the caller, which hands it to
+ * buildCatalog so registry recording can attribute the libraries it
+ * resolved to this project (D42, D53).
  *
  * The preflight walks back from cwd looking for a `.gvp/` directory
  * (the parent of `.gvp/library/`). If found and the project lacks
@@ -141,56 +140,9 @@ export function runProjectPreflight(cwd: string = process.cwd()): PreflightResul
   };
 }
 
-/**
- * Phase 2 of the preflight (D22): registry upsert. Called AFTER
- * loadConfig has merged all config layers, so we can check
- * `registry.enabled` and act on it without double-loading config.
- *
- * On by default (D43, amending D22): this function upserts the
- * current project's entry at ~/.gvp/registry/by-id/<project_id>.yml
- * with the current path and timestamp, then prunes any stale entries
- * whose locations have all disappeared from disk. It is a no-op only
- * when the user opts out with `registry.enabled: false` in any config
- * layer, or `--no-registry` (D44) — the flag is registered in a later
- * task on this branch and is NOT yet available.
- *
- * Requires a PreflightResult from runProjectPreflight: if there's no
- * project context (no .gvp/ dir) or no project_id, the function is
- * a no-op — there's nothing meaningful to register.
- */
-export function runRegistryPreflight(
-  preflightResult: PreflightResult,
-  config: GVPConfig,
-): void {
-  // Opt-out gate (D43): enabled unless the user turned it off.
-  if (!config.registry?.enabled) return;
-
-  // Must have project context to register anything
-  if (!preflightResult.gvpDir || !preflightResult.projectId) return;
-
-  // The project's "path" is the parent of .gvp/, not .gvp/ itself
-  const projectPath = path.dirname(preflightResult.gvpDir);
-
-  // Derive project_name from the config if available, else from the
-  // project directory basename. Falling back to dirname keeps the
-  // registry entries human-readable even if the project hasn't
-  // set a display name yet.
-  const projectName = path.basename(projectPath);
-
-  // Two INDEPENDENT guards, not one. Sharing a try means a permanently
-  // failing upsert (e.g. a root-owned entry left by one `sudo cairn` run,
-  // giving EACCES forever) would permanently disable pruning for the whole
-  // registry -- and D43 is about to make prune the hygiene mechanism for
-  // every user on every invocation.
-  try {
-    upsertRegistryEntry(preflightResult.projectId, projectName, projectPath);
-  } catch {
-    // D57: registry failure never fails the command. The warn-once half
-    // arrives with recordLibraries in Task 9.
-  }
-  try {
-    pruneStaleRegistryEntries();
-  } catch {
-    // D57, as above.
-  }
-}
+// The registry phase of the preflight — a second exported function here
+// that upserted the project entry from parseConfigOptions — was deleted
+// (D42). Recording now happens in buildCatalog via recordLibraries, which
+// is the only place that knows which libraries this invocation resolved,
+// owns both the project upsert and the prune, and RETURNS a warning
+// instead of swallowing failures into an empty catch (D57).

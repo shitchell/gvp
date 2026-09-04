@@ -209,9 +209,9 @@ export function recordLibraries(args: RecordArgs): string | undefined {
     }
   }
 
-  // D22's auto-prune lost its only call site when Task 10 removed
-  // runRegistryPreflight from parseConfigOptions. Re-home it here so it
-  // still runs -- D52's rationale assumes it does.
+  // D22's auto-prune lost its only call site when Task 10 deleted the
+  // registry preflight from parseConfigOptions. Re-homed here so it still
+  // runs -- D52's rationale assumes it does.
   //
   // Runs on EVERY invocation, deliberately. D22 records "auto-prune on
   // access", and D52's rationale explicitly rests on the prune running

@@ -39,8 +39,8 @@ export function importCommand(): Command {
     .option('--confirm-delete', 'Confirm document deletions from _manifest.yaml')
     .action(async (source: string) => {
       try {
-        const { config } = parseConfigOptions(cmd);
-        const catalog = buildCatalog(config, process.cwd(), getLibraryOverride(cmd), getStoreOverride(cmd));
+        const { config, preflight } = parseConfigOptions(cmd);
+        const catalog = buildCatalog(config, process.cwd(), getLibraryOverride(cmd), getStoreOverride(cmd), preflight);
         const opts = cmd.opts();
 
         const resolved = path.resolve(process.cwd(), source);

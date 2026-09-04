@@ -16,8 +16,8 @@ export function addCommand(): Command {
     .option('--no-provenance', 'Legacy alias for --skip-review')
     .action(async (category: string, name: string) => {
       try {
-        const { config } = parseConfigOptions(cmd);
-        const catalog = buildCatalog(config, process.cwd(), getLibraryOverride(cmd), getStoreOverride(cmd));
+        const { config, preflight } = parseConfigOptions(cmd);
+        const catalog = buildCatalog(config, process.cwd(), getLibraryOverride(cmd), getStoreOverride(cmd), preflight);
         const opts = cmd.opts();
 
         // Verify category exists
