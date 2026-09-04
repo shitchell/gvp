@@ -253,4 +253,19 @@ describe('libs search (D54, R6)', () => {
     expect(searchLibraries('personal')).toEqual([]);
     expect(searchLibraries('keep me').map((h) => h.id)).toEqual(['D1']);
   });
+
+  it('reports a gone library ONCE even when it held several documents', () => {
+    // Buckets are pushed per document; without dedupe a 4-document library
+    // printed four identical stderr lines.
+    const multi = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'multi-')));
+    for (const n of ['a', 'b', 'c']) {
+      upsertLibraryEntry(`k-${n}`, {
+        name: n, source: multi, document_path: n, file: `${n}.yaml`, scope: null,
+        project_id: null, library_id: null, element_counts: {},
+      } as any);
+    }
+    fs.rmSync(multi, { recursive: true, force: true });
+    const { missingLocal } = searchLibrariesWithSkips('anything');
+    expect(missingLocal.filter((x) => x === multi)).toHaveLength(1);
+  });
 });

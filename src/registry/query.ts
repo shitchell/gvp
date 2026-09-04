@@ -209,7 +209,16 @@ export function searchLibrariesWithSkips(
       }
     }
   }
-  return { results, skipped, missingLocal, unreadable };
+  // Dedupe the skip buckets. They are pushed per DOCUMENT, so a deleted
+  // library holding N documents emitted N identical lines -- four in a real
+  // run. Deduping here rather than at the print layer keeps the human output
+  // and the --json payload in agreement (P9).
+  return {
+    results,
+    skipped: [...new Set(skipped)],
+    missingLocal: [...new Set(missingLocal)],
+    unreadable: [...new Set(unreadable)],
+  };
 }
 
 export function searchLibraries(query: string, opts: { fetch?: boolean } = {}): SearchHit[] {
