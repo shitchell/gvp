@@ -1427,8 +1427,8 @@ decisions:
       - file: src/config/registry.ts
         identifier: upsertRegistryEntry
         role: implements
-      - file: src/config/preflight.ts
-        identifier: runRegistryPreflight
+      - file: src/registry/record.ts
+        identifier: recordLibraries
         role: implements
       - file: src/config/schema.ts
         identifier: configSchema
@@ -1438,6 +1438,22 @@ decisions:
         note: Requested by the claude-worker PM as feature 2 of the PM lifecycle architecture, building on D21 project_id as the registry key. Landed in the same session as D21 since the two features are tightly coupled; registry is useless without stable identity, and D21 is nearly useless without a way to correlate IDs across projects.
       - date: '2026-09-03'
         note: 'Amended for issue #15. Name changed from "Opt-in global project registry at ~/.gvp/registry/by-id" -- the opt-in qualifier is no longer accurate. Five parts superseded or extended; see the AMENDED block in the rationale.'
+    updated_by:
+      - id: 325b0400-f952-41b8-bdbf-48592be79333
+        date: '2026-09-04T21:08:18.119Z'
+        rationale: Repoint the dangling ref left by Task 10. D22 referenced runRegistryPreflight, which Task 10 deleted -- its empty catches meant the D57 warn-once half never fired on that path, so removing it is what closed the hole. The upsert and prune it performed now live in recordLibraries, which is the honest implementation site.
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+    reviewed_by:
+      - id: 55df2cb7-f81b-4829-aab9-c02afc000df2
+        date: '2026-09-04T21:08:20.208Z'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+        updates_reviewed:
+          - 325b0400-f952-41b8-bdbf-48592be79333
+        note: Ref repointed after Task 10 deleted runRegistryPreflight. Mechanical ref update, not a rationale change.
   - id: D23
     name: Scalar example field on procedure steps
     rationale: |
