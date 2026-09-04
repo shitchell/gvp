@@ -2,14 +2,13 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
 import { randomUUID } from 'crypto';
-import type { GVPConfig } from './schema.js';
-import { upsertRegistryEntry, pruneStaleRegistryEntries } from './registry.js';
 
 /**
  * Project preflight — runs before every catalog-building cairn
- * invocation to ensure the current project has a stable identity
- * and to serve as the insertion point for additional per-invocation
- * side effects (registry upsert for feature 2, etc.).
+ * invocation to ensure the current project has a stable identity.
+ * Its result is returned to the caller, which hands it to
+ * buildCatalog so registry recording can attribute the libraries it
+ * resolved to this project (D42, D53).
  *
  * The preflight walks back from cwd looking for a `.gvp/` directory
  * (the parent of `.gvp/library/`). If found and the project lacks
@@ -141,40 +140,9 @@ export function runProjectPreflight(cwd: string = process.cwd()): PreflightResul
   };
 }
 
-/**
- * Phase 2 of the preflight (D22): registry upsert. Called AFTER
- * loadConfig has merged all config layers, so we can check
- * `registry.enabled` and act on it without double-loading config.
- *
- * Opt-in: this function is a no-op unless `config.registry?.enabled`
- * is explicitly true. When enabled, it upserts the current project's
- * entry at ~/.gvp/registry/by-id/<project_id>.yml with the current
- * path and timestamp, then prunes any stale entries whose locations
- * have all disappeared from disk.
- *
- * Requires a PreflightResult from runProjectPreflight: if there's no
- * project context (no .gvp/ dir) or no project_id, the function is
- * a no-op — there's nothing meaningful to register.
- */
-export function runRegistryPreflight(
-  preflightResult: PreflightResult,
-  config: GVPConfig,
-): void {
-  // Opt-in gate: registry disabled by default
-  if (!config.registry?.enabled) return;
-
-  // Must have project context to register anything
-  if (!preflightResult.gvpDir || !preflightResult.projectId) return;
-
-  // The project's "path" is the parent of .gvp/, not .gvp/ itself
-  const projectPath = path.dirname(preflightResult.gvpDir);
-
-  // Derive project_name from the config if available, else from the
-  // project directory basename. Falling back to dirname keeps the
-  // registry entries human-readable even if the project hasn't
-  // set a display name yet.
-  const projectName = path.basename(projectPath);
-
-  upsertRegistryEntry(preflightResult.projectId, projectName, projectPath);
-  pruneStaleRegistryEntries();
-}
+// The registry phase of the preflight — a second exported function here
+// that upserted the project entry from parseConfigOptions — was deleted
+// (D42). Recording now happens in buildCatalog via recordLibraries, which
+// is the only place that knows which libraries this invocation resolved,
+// owns both the project upsert and the prune, and RETURNS a warning
+// instead of swallowing failures into an empty catch (D57).

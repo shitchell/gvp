@@ -74,16 +74,27 @@ export const configSchema = z.object({
     })
     .optional(),
 
-  // Global project registry (D22): opt-in cross-project discovery
-  // via ~/.gvp/registry/by-id/<uuid>.yml entries. Off by default
-  // because it introduces write side effects on every read command.
-  // When enabled, the preflight upserts the current project's entry
-  // with its path and timestamp after the project_id backfill.
+  // Global registry (D22, amended by D43/D44): cross-project and
+  // cross-library discovery via ~/.gvp/registry/. ON by default —
+  // the opt-in default was falsified by evidence (the flag was set
+  // nowhere and the registry did not exist ~5 months after D22).
+  // Opt out with `registry.enabled: false` or `--no-registry` (D44 — the
+  // flag is registered on the root command and applied in
+  // parseConfigOptions AFTER loadConfig, so it survives --no-config).
+  // NOTE: the OBJECT-level default is load-bearing, and it must carry
+  // `enabled` explicitly. Without an object default, omitting
+  // `registry:` yields undefined and the inner default never applies.
+  // And under zod 4 (this repo pins ^4.3.6) `.default({})` SHORT-CIRCUITS
+  // -- it returns the default without parsing it, so the inner
+  // `.default(true)` still never runs. Verified against zod 4.3.6:
+  //   .default({})             + omit -> { registry: {} }           WRONG
+  //   .default({enabled:true}) + omit -> { registry:{enabled:true} } RIGHT
   registry: z
     .object({
-      enabled: z.boolean().optional().default(false),
+      enabled: z.boolean().optional().default(true),
     })
-    .optional(),
+    .optional()
+    .default({ enabled: true }),
 }).passthrough(); // Allow unknown keys for forward compat
 
 export type GVPConfig = z.infer<typeof configSchema>;

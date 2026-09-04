@@ -224,6 +224,43 @@ decisions:
     maps_to: [org:values:V1, my-project:G1]   # org:<meta.name>:<id>
 ```
 
+## Library registry
+
+Cairn records every library it resolves into `~/.gvp/registry/` (override with
+`GVP_REGISTRY_ROOT`), so a new project can discover guiding elements that
+already exist instead of re-deriving them.
+
+    cairn libs list                  # everything cairn has seen
+    cairn libs search "flex point"   # across every known library
+    cairn libs show personal         # detail + which projects have used it
+    cairn libs forget <source>:<doc> # drop one entry
+    cairn libs prune [--remote]      # drop entries whose document is gone
+
+`search` matches element names and each category's **primary field** —
+resolved from the schema, not hard-coded — so a decision's `rationale` and a
+constraint's `impact` are searchable, not just `statement`. It never reaches
+the network unless you pass `--fetch`, and it names everything it skipped
+rather than returning a quietly incomplete answer.
+
+`show` and `forget` refuse to guess: `meta.name` is not unique across
+libraries, so an ambiguous name lists its candidates and exits non-zero
+rather than picking one. All three commands take `--json`.
+
+Recording is on by default. Opt out with `registry.enabled: false` in any
+config layer, or `--no-registry` for a single invocation. Recording never
+changes a command's exit code or output; on failure it warns once to stderr
+and carries on.
+
+Recording happens when a command builds the catalog, so `cairn init` — which
+creates a library rather than loading one — does not itself register the
+project. The first `validate`, `query`, or `export` does.
+
+**The registry is safe to delete — but rebuilding it is lossy.** Nothing
+breaks if you `rm -rf ~/.gvp/registry`, and cairn will not complain. But it
+does not rebuild itself: each library reappears only when cairn next
+resolves it, so a library you have not touched since deleting is simply
+absent until you next work in a project that uses it.
+
 ## Refs — Linking Decisions to Artifacts
 
 Any element can have `refs` linking it to external files:

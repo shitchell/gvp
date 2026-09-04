@@ -16,6 +16,7 @@ import { analyzeCommand } from './commands/analyze.js';
 import { initCommand } from './commands/init.js';
 import { importCommand } from './commands/import.js';
 import { mvCommand } from './commands/mv.js';
+import { libsCommand } from './commands/libs.js';
 
 const program = new Command();
 
@@ -29,6 +30,7 @@ program
   .option('--library <path>', 'Load library from this directory instead of discovering from CWD')
   .option('--store <path>', 'Path to a GVP store directory (contains config.yaml and library/)')
   .option('--strict', 'Promote warnings to errors')
+  .option('--no-registry', 'Skip registry recording for this invocation (D43, D44)')
   .option('-v, --verbose', 'Verbose output (-v, -vv, -vvv)', (_: string, prev: number) => (prev ?? 0) + 1, 0);
 
 program.addCommand(validateCommand());
@@ -43,5 +45,6 @@ program.addCommand(analyzeCommand());
 program.addCommand(initCommand());
 program.addCommand(importCommand());
 program.addCommand(mvCommand());
+program.addCommand(libsCommand());
 
 program.parse();

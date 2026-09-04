@@ -16,8 +16,8 @@ export function reviewCommand(): Command {
     .option('--by <name>', 'Reviewer name (overrides config)')
     .action(async (elementId?: string) => {
       try {
-        const { config } = parseConfigOptions(cmd);
-        const catalog = buildCatalog(config, process.cwd(), getLibraryOverride(cmd), getStoreOverride(cmd));
+        const { config, preflight } = parseConfigOptions(cmd);
+        const catalog = buildCatalog(config, process.cwd(), getLibraryOverride(cmd), getStoreOverride(cmd), preflight);
         const opts = cmd.opts();
 
         if (!elementId) {

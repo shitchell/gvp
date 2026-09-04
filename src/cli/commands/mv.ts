@@ -32,8 +32,8 @@ export function mvCommand(): Command {
     .option('-y, --yes', 'Skip confirmation prompt')
     .action(async (source: string, target: string) => {
       try {
-        const { config } = parseConfigOptions(cmd);
-        const catalog = buildCatalog(config, process.cwd(), getLibraryOverride(cmd), getStoreOverride(cmd));
+        const { config, preflight } = parseConfigOptions(cmd);
+        const catalog = buildCatalog(config, process.cwd(), getLibraryOverride(cmd), getStoreOverride(cmd), preflight);
         const opts = cmd.opts();
 
         // Mode detection: an explicit --doc flag, or a source without a colon,

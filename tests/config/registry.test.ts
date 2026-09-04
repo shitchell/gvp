@@ -6,19 +6,14 @@ import * as yaml from 'js-yaml';
 import {
   upsertRegistryEntry,
   pruneStaleRegistryEntries,
-  getRegistryDir,
   type RegistryEntry,
 } from '../../src/config/registry.js';
-import {
-  runProjectPreflight,
-  runRegistryPreflight,
-} from '../../src/config/preflight.js';
-import { configSchema } from '../../src/config/schema.js';
+import { getProjectsDir } from '../../src/registry/paths.js';
 
 /**
- * Tests for the global project registry (D22):
- * opt-in cross-project discovery via ~/.gvp/registry/by-id/<uuid>.yml
- * entries. All tests use the GVP_REGISTRY_ROOT env var to redirect
+ * Tests for the global project registry (D22, amended by D43):
+ * cross-project discovery via ~/.gvp/registry/by-id/<uuid>.yml
+ * entries, recorded by default. All tests use the GVP_REGISTRY_ROOT env var to redirect
  * the registry into a tmpdir, so real user state is never touched.
  *
  * Contract:
@@ -29,10 +24,15 @@ import { configSchema } from '../../src/config/schema.js';
  *   - pruneStaleRegistryEntries removes entries whose paths are gone
  *   - pruneStaleRegistryEntries keeps entries with at least one
  *     still-valid location and trims the gone ones
- *   - runRegistryPreflight is a no-op when registry.enabled is false
- *   - runRegistryPreflight is a no-op when there's no project_id
- *   - runRegistryPreflight upserts when enabled AND project has id
  *   - Corrupt entries are replaced, not propagated
+ *
+ * The CALLER side of this — who upserts, when, and under which opt-out —
+ * used to live here as `runRegistryPreflight integration`. That function
+ * is gone (D42): recording moved into buildCatalog via recordLibraries.
+ * Its behavior is now pinned in tests/registry/wiring.test.ts (the
+ * default-on path, both opt-out surfaces, the project entry's name and
+ * location derivation) and tests/registry/record.test.ts (no project
+ * context means no entry at all, D58).
  */
 describe('Registry (D22)', () => {
   let tmpDir: string;
@@ -54,7 +54,7 @@ describe('Registry (D22)', () => {
   });
 
   function readEntry(projectId: string): RegistryEntry {
-    const entryPath = path.join(getRegistryDir(), `${projectId}.yml`);
+    const entryPath = path.join(getProjectsDir(), `${projectId}.yml`);
     return yaml.load(fs.readFileSync(entryPath, 'utf-8')) as RegistryEntry;
   }
 
@@ -136,8 +136,8 @@ describe('Registry (D22)', () => {
       fs.mkdirSync(projectPath, { recursive: true });
 
       // Write garbage YAML directly
-      fs.mkdirSync(getRegistryDir(), { recursive: true });
-      const entryPath = path.join(getRegistryDir(), `${uuid}.yml`);
+      fs.mkdirSync(getProjectsDir(), { recursive: true });
+      const entryPath = path.join(getProjectsDir(), `${uuid}.yml`);
       fs.writeFileSync(entryPath, '::: not valid yaml [ ]]]');
 
       // Upsert should succeed anyway
@@ -162,7 +162,7 @@ describe('Registry (D22)', () => {
 
       upsertRegistryEntry(uuid, 'gone-project', goneProject);
       expect(
-        fs.existsSync(path.join(getRegistryDir(), `${uuid}.yml`)),
+        fs.existsSync(path.join(getProjectsDir(), `${uuid}.yml`)),
       ).toBe(true);
 
       // Delete the project, then prune
@@ -170,7 +170,7 @@ describe('Registry (D22)', () => {
       pruneStaleRegistryEntries();
 
       expect(
-        fs.existsSync(path.join(getRegistryDir(), `${uuid}.yml`)),
+        fs.existsSync(path.join(getProjectsDir(), `${uuid}.yml`)),
       ).toBe(false);
     });
 
@@ -193,9 +193,9 @@ describe('Registry (D22)', () => {
     });
 
     it('removes corrupt entries', () => {
-      fs.mkdirSync(getRegistryDir(), { recursive: true });
+      fs.mkdirSync(getProjectsDir(), { recursive: true });
       const entryPath = path.join(
-        getRegistryDir(),
+        getProjectsDir(),
         '82345678-1234-1234-1234-123456789abc.yml',
       );
       fs.writeFileSync(entryPath, '::: garbage :: [');
@@ -211,7 +211,7 @@ describe('Registry (D22)', () => {
       fs.mkdirSync(projectPath, { recursive: true });
 
       upsertRegistryEntry(uuid, 'live-project', projectPath);
-      const entryPath = path.join(getRegistryDir(), `${uuid}.yml`);
+      const entryPath = path.join(getProjectsDir(), `${uuid}.yml`);
       const beforeMtime = fs.statSync(entryPath).mtimeMs;
 
       pruneStaleRegistryEntries();
@@ -224,80 +224,48 @@ describe('Registry (D22)', () => {
     });
   });
 
-  describe('runRegistryPreflight integration', () => {
-    it('is a no-op when registry.enabled is false (the default)', () => {
-      // Create a fake project
-      const projectPath = path.join(tmpDir, 'proj');
-      fs.mkdirSync(path.join(projectPath, '.gvp'), { recursive: true });
-
-      // Run phase 1 (project_id backfill)
-      const preflight = runProjectPreflight(projectPath);
-      expect(preflight.projectId).toBeDefined();
-
-      // Phase 2 with registry disabled: should not create the registry
-      const config = configSchema.parse({}); // registry omitted → disabled
-      runRegistryPreflight(preflight, config);
-
-      expect(fs.existsSync(getRegistryDir())).toBe(false);
+  describe('prune safety (D52)', () => {
+    it("leaves another process's in-flight temp file alone", () => {
+      // Cross-module coupling with no test until now: temps end .tmp, prune
+      // filters .yml. Renaming the temp suffix or loosening the filter would
+      // silently reopen the exact deletion path D52 exists to close.
+      const dir = getProjectsDir();
+      fs.mkdirSync(dir, { recursive: true });
+      const tmp = path.join(dir, '.abc.yml.99999.0.deadbeef.tmp');
+      fs.writeFileSync(tmp, 'half-written');
+      pruneStaleRegistryEntries();
+      expect(fs.existsSync(tmp)).toBe(true);
     });
 
-    it('is a no-op when there is no project_id', () => {
-      // No .gvp/ = no project context
-      const preflight = runProjectPreflight(tmpDir);
-      expect(preflight.projectId).toBeUndefined();
-
-      const config = configSchema.parse({
-        registry: { enabled: true },
-      });
-      runRegistryPreflight(preflight, config);
-
-      expect(fs.existsSync(getRegistryDir())).toBe(false);
+    it('sweeps an ORPHANED temp file older than an hour', () => {
+      const dir = getProjectsDir();
+      fs.mkdirSync(dir, { recursive: true });
+      const tmp = path.join(dir, '.old.yml.1.0.cafebabe.tmp');
+      fs.writeFileSync(tmp, 'crashed mid-write');
+      const old = Date.now() - 2 * 60 * 60 * 1000;
+      fs.utimesSync(tmp, old / 1000, old / 1000);
+      pruneStaleRegistryEntries();
+      expect(fs.existsSync(tmp)).toBe(false);
     });
 
-    it('upserts when enabled and project has an id', () => {
-      const projectPath = path.join(tmpDir, 'proj');
-      fs.mkdirSync(path.join(projectPath, '.gvp'), { recursive: true });
+    // Root ignores permission bits; skip rather than prove nothing.
+    const asRoot = typeof process.getuid === 'function' && process.getuid() === 0;
 
-      const preflight = runProjectPreflight(projectPath);
-      expect(preflight.projectId).toBeDefined();
-
-      const config = configSchema.parse({
-        registry: { enabled: true },
-      });
-      runRegistryPreflight(preflight, config);
-
-      const entryPath = path.join(
-        getRegistryDir(),
-        `${preflight.projectId}.yml`,
-      );
-      expect(fs.existsSync(entryPath)).toBe(true);
-
-      const entry = yaml.load(
-        fs.readFileSync(entryPath, 'utf-8'),
-      ) as RegistryEntry;
-      expect(entry.project_id).toBe(preflight.projectId);
-      expect(entry.locations).toHaveLength(1);
-      // Location path is the project root (parent of .gvp/), not .gvp/ itself.
-      expect(entry.locations[0]!.path).toBe(projectPath);
-    });
-
-    it('derives project_name from the project directory basename', () => {
-      const projectPath = path.join(tmpDir, 'my-fancy-project');
-      fs.mkdirSync(path.join(projectPath, '.gvp'), { recursive: true });
-
-      const preflight = runProjectPreflight(projectPath);
-      const config = configSchema.parse({
-        registry: { enabled: true },
-      });
-      runRegistryPreflight(preflight, config);
-
-      const entry = yaml.load(
-        fs.readFileSync(
-          path.join(getRegistryDir(), `${preflight.projectId}.yml`),
-          'utf-8',
-        ),
-      ) as RegistryEntry;
-      expect(entry.project_name).toBe('my-fancy-project');
+    it.skipIf(asRoot)('does NOT delete an entry it cannot read', () => {
+      // A transient read error must not be mistaken for corruption. The
+      // catch used to delete on ANY throw, which is D52's data-loss shape
+      // with an fs error as the tearer instead of a concurrent writer.
+      const dir = getProjectsDir();
+      fs.mkdirSync(dir, { recursive: true });
+      const entry = path.join(dir, 'unreadable.yml');
+      fs.writeFileSync(entry, yaml.dump({ project_id: 'x', project_name: 'y', locations: [] }));
+      fs.chmodSync(entry, 0o000);
+      try {
+        pruneStaleRegistryEntries();
+        expect(fs.existsSync(entry)).toBe(true);
+      } finally {
+        fs.chmodSync(entry, 0o600);
+      }
     });
   });
 });

@@ -1,6 +1,6 @@
 {
   "name": "@principled/cairn",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "description": "Cairn — decision traceability framework. Trace every decision back to what drives it.",
   "type": "module",
   "main": "./dist/index.js",
@@ -15,7 +15,7 @@
   ],
   "scripts": {
     "build": "tsc && node scripts/copy-data.mjs",
-    "test": "vitest run",
+    "test": "npm run build && vitest run",
     "test:watch": "vitest",
     "prepublishOnly": "npm run build",
     "postpublish": "npm dist-tag add @principled/cairn@$npm_package_version latest"

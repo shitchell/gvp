@@ -34,25 +34,18 @@ export class LocalSourceResolver implements SourceResolver {
         ? source
         : path.resolve(this.baseDir, source);
 
-    // Dual lookup (DEC-1.2, DEC-1.10): gvp/ wins over .gvp/library/
-    const gvpDir = path.join(resolved, 'gvp');
-    if (fs.existsSync(gvpDir) && fs.statSync(gvpDir).isDirectory()) {
-      return gvpDir;
-    }
+    // Shared dual-lookup probe; the FALLBACK is what differs here -- an
+    // unresolvable user-supplied path must throw, not silently succeed.
+    const found = findLibrarySubdir(resolved);
+    if (found) return found;
 
-    const dotGvpLibrary = path.join(resolved, '.gvp', 'library');
-    if (fs.existsSync(dotGvpLibrary) && fs.statSync(dotGvpLibrary).isDirectory()) {
-      return dotGvpLibrary;
-    }
-
-    // If path itself looks like a library directory (contains YAML files)
     if (fs.existsSync(resolved) && fs.statSync(resolved).isDirectory()) {
       return resolved;
     }
 
     throw new InheritanceError(
       `Cannot resolve source '${source}': no library directory found at '${resolved}'. ` +
-      `Checked: ${gvpDir}, ${dotGvpLibrary}, ${resolved}`
+      `Checked: ${path.join(resolved, 'gvp')}, ${path.join(resolved, '.gvp', 'library')}, ${resolved}`
     );
   }
 }
@@ -83,7 +76,94 @@ const GIT_PROVIDERS: Record<string, (repoPath: string) => string> = {
  * Default cache directory for cloned git sources.
  */
 function defaultCacheDir(): string {
+  // CAIRN_CACHE_DIR mirrors GVP_REGISTRY_ROOT (D22's test-isolation
+  // pattern). Without it the suite reads the developer's real
+  // ~/.cache/cairn/sources, so record/query tests would pass or fail based
+  // on what happens to be cloned on that machine.
+  const override = process.env.CAIRN_CACHE_DIR;
+  if (override && override.length > 0) return path.resolve(override);
   return path.join(os.homedir(), '.cache', 'cairn', 'sources');
+}
+
+/**
+ * Dual lookup within a resolved repo directory (DEC-1.2, DEC-1.10):
+ * gvp/ wins over .gvp/library/, falling back to the repo root.
+ * Lifted from GitSourceResolver so cachedPathFor can share it.
+ */
+/**
+ * The dual-lookup PROBE (DEC-1.2, DEC-1.10 in the v1 design docs): `gvp/`
+ * wins over `.gvp/library/`. Returns null when neither exists.
+ *
+ * This is the one place that rule is written. Callers supply their own
+ * fallback, which is where they legitimately differ: GitSourceResolver
+ * falls back to the repo root (the clone provably exists and may itself be
+ * the library), while LocalSourceResolver must THROW (the path is
+ * user-supplied and may not exist at all). Collapsing the fallbacks too
+ * would turn that error into a bogus success.
+ */
+export function findLibrarySubdir(dir: string): string | null {
+  const gvpDir = path.join(dir, 'gvp');
+  if (fs.existsSync(gvpDir) && fs.statSync(gvpDir).isDirectory()) return gvpDir;
+  const dotGvpLibrary = path.join(dir, '.gvp', 'library');
+  if (fs.existsSync(dotGvpLibrary) && fs.statSync(dotGvpLibrary).isDirectory()) return dotGvpLibrary;
+  return null;
+}
+
+/** Probe, falling back to the repo root. For clones, which provably exist. */
+export function findLibraryDirIn(repoDir: string): string {
+  return findLibrarySubdir(repoDir) ?? repoDir;
+}
+
+/**
+ * The remote source grammar: `@<provider>:<path>@<commitish>`.
+ *
+ * The single definition, used by GitSourceResolver.resolve and
+ * cachedPathFor; registry/key.ts imports it rather than redeclaring.
+ *
+ * Non-global by design: `exec`/`match` on a non-global regex never touch
+ * `lastIndex`, so sharing one module-level instance is safe. Adding a `g`
+ * flag would silently break `.match()` at the call site below (it would
+ * return matched strings instead of capture groups, with no type error).
+ *
+ * Note the lazy `(.+?)` splits at the FIRST `@`, so a repoPath containing
+ * `@` parses oddly. No supported provider allows that, and this matches
+ * pre-extraction behavior exactly -- recorded so it is not inherited as
+ * intentional spec.
+ */
+export const REMOTE_SOURCE_RE = /^@(\w+):(.+?)@(.+)$/;
+
+/** Cache key for a parsed remote source. Single source of truth. */
+export function remoteCacheKey(provider: string, repoPath: string, commitish: string): string {
+  return `${provider}/${repoPath.replace(/\//g, '--')}/${commitish}`;
+}
+
+/**
+ * The cached library directory for a remote source, or null if it is
+ * not on disk. PURE — never performs network I/O, never clones. This is
+ * what the registry uses; calling GitSourceResolver.resolve instead
+ * would fetch (D54).
+ */
+export function cachedPathFor(source: string, cacheDir: string = defaultCacheDir()): string | null {
+  // Reuses the single grammar definition declared above.
+  const m = REMOTE_SOURCE_RE.exec(source);
+  if (!m) return null;
+  const dir = path.join(cacheDir, remoteCacheKey(m[1] as string, m[2] as string, m[3] as string));
+
+  // Containment: `commitish` is interpolated into the path unescaped, and
+  // sources arrive from third-party library YAML, so `..` segments could
+  // otherwise point outside the cache -- which Task 12 would then scan for
+  // YAML. `resolve` gets away with this because a bogus ref fails the
+  // fetch; a pure read has no such gate.
+  const resolvedDir = path.resolve(dir);
+  if (resolvedDir !== path.resolve(cacheDir) &&
+      !resolvedDir.startsWith(path.resolve(cacheDir) + path.sep)) return null;
+
+  // existsSync is not isDirectory: a cache entry that is a regular file
+  // would otherwise be handed back as a "library directory", and the caller
+  // gets ENOTDIR from a path it never typed instead of a clean "not cached".
+  const st = fs.statSync(resolvedDir, { throwIfNoEntry: false });
+  if (!st?.isDirectory()) return null;
+  return findLibraryDirIn(resolvedDir);
 }
 
 /**
@@ -159,8 +239,8 @@ export class GitSourceResolver implements SourceResolver {
   }
 
   resolve(source: string): string {
-    // Parse @provider:path@commitish
-    const match = source.match(/^@(\w+):(.+?)@(.+)$/);
+    // Parse @provider:path@commitish using the single shared grammar.
+    const match = source.match(REMOTE_SOURCE_RE);
     if (!match) {
       // Check if it's a git source without commit-ish
       const noVersion = source.match(/^@(\w+):(.+)$/);
@@ -181,12 +261,11 @@ export class GitSourceResolver implements SourceResolver {
       );
     }
 
-    // Step 0: Check cache
-    const cacheKey = `${provider}/${repoPath!.replace(/\//g, '--')}/${commitish}`;
-    const cachedPath = path.join(this.cacheDir, cacheKey);
+    // Step 0: Check cache (same derivation cachedPathFor uses — one source of truth)
+    const cachedPath = path.join(this.cacheDir, remoteCacheKey(provider!, repoPath!, commitish));
 
     if (fs.existsSync(cachedPath)) {
-      return this.findLibraryDir(cachedPath, source);
+      return findLibraryDirIn(cachedPath);
     }
 
     // Step 1: Map provider to git URL
@@ -234,26 +313,7 @@ export class GitSourceResolver implements SourceResolver {
     }
 
     // Step 3: Return library path
-    return this.findLibraryDir(cachedPath, source);
-  }
-
-  /**
-   * Find the library directory within a cloned repo.
-   * Dual lookup per DEC-1.2, DEC-1.10: gvp/ wins over .gvp/library/
-   */
-  private findLibraryDir(repoDir: string, source: string): string {
-    const gvpDir = path.join(repoDir, 'gvp');
-    if (fs.existsSync(gvpDir) && fs.statSync(gvpDir).isDirectory()) {
-      return gvpDir;
-    }
-
-    const dotGvpLibrary = path.join(repoDir, '.gvp', 'library');
-    if (fs.existsSync(dotGvpLibrary) && fs.statSync(dotGvpLibrary).isDirectory()) {
-      return dotGvpLibrary;
-    }
-
-    // Fall back to repo root (maybe the whole repo IS the library)
-    return repoDir;
+    return findLibraryDirIn(cachedPath);
   }
 }
 

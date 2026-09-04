@@ -14,8 +14,8 @@ export function editCommand(): Command {
     .option('--skip-review', 'Mark this update as skip-review (DEC-4.6)')
     .action(async (elementArg: string) => {
       try {
-        const { config } = parseConfigOptions(cmd);
-        const catalog = buildCatalog(config, process.cwd(), getLibraryOverride(cmd), getStoreOverride(cmd));
+        const { config, preflight } = parseConfigOptions(cmd);
+        const catalog = buildCatalog(config, process.cwd(), getLibraryOverride(cmd), getStoreOverride(cmd), preflight);
         const opts = cmd.opts();
 
         const element = catalog.getAllElements().find(e =>

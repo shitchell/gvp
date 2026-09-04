@@ -1,18 +1,22 @@
 import { loadConfig, type LoadConfigOptions } from '../config/loader.js';
 import type { GVPConfig } from '../config/schema.js';
-import { runProjectPreflight, runRegistryPreflight } from '../config/preflight.js';
+import { runProjectPreflight, type PreflightResult } from '../config/preflight.js';
+import { recordLibraries } from '../registry/record.js';
 import { loadDefaults } from '../schema/defaults-loader.js';
 import { CategoryRegistry } from '../model/category-registry.js';
 import { parseDocument } from '../model/document-parser.js';
 import { documentMetaSchema } from '../model/document-meta.js';
 import { resolveInheritance, type DocumentLoader, type SourceLoader, type ResolvedInheritance } from '../inheritance/inheritance-resolver.js';
 import { createSourceResolver } from '../inheritance/source-resolver.js';
-import * as os from 'os';
+// One definition of the tilde expansion, shared with the registry (P11).
+import { expandTilde } from '../registry/key.js';
 import { Catalog } from '../catalog/catalog.js';
 import type { Element } from '../model/element.js';
 import type { CategoryDefinition } from '../schema/category-definition.js';
 import type { FieldSchemaEntry } from '../schema/field-schema.js';
 import { setVerbosity, logv } from '../utils/logger.js';
+// One definition of the YAML walker, shared with the registry recorder (P11).
+import { findYamlFiles } from '../utils/yaml-files.js';
 import type { Command } from 'commander';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -35,8 +39,16 @@ import * as yaml from 'js-yaml';
  * reading. Someone using `--library <elsewhere>` to peek at
  * another library from inside their project still wants their own
  * project identified. Preflight's walk-back always starts from cwd.
+ *
+ * The PreflightResult is RETURNED rather than consumed here (D42):
+ * registry recording moved to `buildCatalog`, which is the only place
+ * that knows which libraries this invocation actually resolved (D53).
  */
-export function parseConfigOptions(cmd: Command): { config: GVPConfig; configOptions: LoadConfigOptions } {
+export function parseConfigOptions(cmd: Command): {
+  config: GVPConfig;
+  configOptions: LoadConfigOptions;
+  preflight: PreflightResult;
+} {
   const opts = cmd.optsWithGlobals();
 
   // Resolve --store path if provided
@@ -72,7 +84,8 @@ export function parseConfigOptions(cmd: Command): { config: GVPConfig; configOpt
     storePath,
   };
 
-  const config = loadConfig(configOptions);
+  // `let`, not `const`: --no-registry replaces the config below.
+  let config = loadConfig(configOptions);
 
   // Apply verbose level (R9)
   setVerbosity(opts.verbose ?? 0);
@@ -82,12 +95,20 @@ export function parseConfigOptions(cmd: Command): { config: GVPConfig; configOpt
     (config as Record<string, unknown>).strict = true;
   }
 
-  // Phase 2 of preflight: registry upsert. Runs AFTER loadConfig so
-  // we can check the merged `registry.enabled` flag. Opt-in: no-op
-  // unless the user explicitly enables the registry in their config.
-  runRegistryPreflight(preflight, config);
+  // --no-registry (D44). Commander's `--no-X` idiom sets `registry` to
+  // false only when the flag is present (true otherwise), matching how
+  // --no-config is already read above.
+  //
+  // Routed through the CONFIG rather than an env var: D43 names exactly
+  // two opt-out surfaces (`registry.enabled: false` and `--no-registry`),
+  // and an env var would be an undocumented third. Applying it AFTER
+  // loadConfig is what makes the flag survive --no-config and
+  // --config <other> — no config-discovery flag can bypass it.
+  if (opts.registry === false) {
+    config = { ...config, registry: { ...config.registry, enabled: false } };
+  }
 
-  return { config, configOptions };
+  return { config, configOptions, preflight };
 }
 
 /**
@@ -128,12 +149,20 @@ export function getStoreOverride(cmd: Command): string | undefined {
  * single shell without `cd`-ing between directories, and it composes
  * cleanly with the existing `--config` flag because the two axes
  * (library discovery vs config discovery) are orthogonal.
+ *
+ * This is also where registry recording happens (D42). Catalog
+ * construction is the only point that knows every library this
+ * invocation actually resolved — the root library plus every external
+ * source — which is what the index records. `preflight` carries the
+ * project identity from `parseConfigOptions`; omit it and the libraries
+ * are still indexed but no usage edge is written (D58).
  */
 export function buildCatalog(
   config: GVPConfig,
   cwd: string = process.cwd(),
   libraryOverride?: string,
   storeOverride?: string,
+  preflight?: PreflightResult,
 ): Catalog {
   const defaults = loadDefaults();
   let registry = CategoryRegistry.fromDefaults(defaults);
@@ -363,6 +392,29 @@ export function buildCatalog(
   const resolved: ResolvedInheritance = { orderedDocuments: allOrderedDocs, sccs: mergedSccs };
   const catalog = new Catalog(resolved, config);
   logv(`Catalog built: ${catalog.getAllElements().length} elements`);
+
+  // Record every library this invocation resolved (D40, D42). ON by
+  // default (D43) — `!== false` rather than truthiness so the only way
+  // to skip is an explicit opt-out, via config or --no-registry (D44).
+  //
+  // recordLibraries never throws (D57); it returns a warning for the
+  // caller to print. Printing it is the other half of D57 — swallowing
+  // it here would leave the failure invisible, which is the D22 behavior
+  // D57 exists to replace.
+  if (config.registry?.enabled !== false) {
+    const warning = recordLibraries({
+      libraryDir: libraryDir!,
+      externalSources: [...sourceDocCache.keys()],
+      projectId: preflight?.projectId ?? null,
+      // The project's path is the PARENT of .gvp/, and its name that
+      // directory's basename — the derivation the deleted registry
+      // preflight owned (D42).
+      projectName: preflight?.gvpDir ? path.basename(path.dirname(preflight.gvpDir)) : null,
+      projectPath: preflight?.gvpDir ? path.dirname(preflight.gvpDir) : null,
+    });
+    if (warning) process.stderr.write(warning + '\n');
+  }
+
   return catalog;
 }
 
@@ -420,31 +472,7 @@ export function filterElementsByDocument(
   return elements.filter((e) => allowedDocPaths.has(e.documentPath));
 }
 
-/**
- * Expand a leading `~` or `~/` to the user's home directory. Other forms
- * (`~user`) are left untouched — cairn sources are the current user's own
- * paths. LocalSourceResolver does not expand tildes, so the CLI does it
- * before handing the source string off.
- */
-function expandTilde(p: string): string {
-  if (p === '~') return os.homedir();
-  if (p.startsWith('~/')) return path.join(os.homedir(), p.slice(2));
-  return p;
-}
-
 function loadDocumentFile(filePath: string, docPath: string, source: string, registry: CategoryRegistry) {
   const content = fs.readFileSync(filePath, 'utf-8');
   return parseDocument(content, filePath, docPath, source, registry);
-}
-
-function findYamlFiles(dir: string): string[] {
-  const files: string[] = [];
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (entry.isFile() && /\.ya?ml$/.test(entry.name)) {
-      files.push(path.join(dir, entry.name));
-    } else if (entry.isDirectory()) {
-      files.push(...findYamlFiles(path.join(dir, entry.name)));
-    }
-  }
-  return files.sort();
 }

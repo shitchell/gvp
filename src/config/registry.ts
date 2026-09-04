@@ -1,22 +1,31 @@
 import * as fs from 'fs';
-import * as os from 'os';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
+import { getProjectsDir } from '../registry/paths.js';
+import { writeFileAtomic } from '../registry/atomic.js';
+import { mergeUsageEdges, type UsageEdge } from '../registry/usage-edge.js';
 
 /**
- * Global project registry (D22) — opt-in cross-project discovery
- * via per-UUID metadata files at `~/.gvp/registry/by-id/<uuid>.yml`.
+ * Global project registry (D22, amended by D43/D44) — cross-project
+ * discovery via per-UUID metadata files at
+ * `~/.gvp/registry/by-id/<uuid>.yml`.
  *
- * When the `registry.enabled: true` config flag is set, the preflight
- * upserts the current project's entry with its current path and
- * a fresh timestamp on every cairn invocation. Consumers can then
- * walk the registry directory to discover what projects exist,
- * correlate by UUID, and check last-seen timestamps for staleness.
+ * Recording is ON by default. The preflight upserts the current
+ * project's entry with its current path and a fresh timestamp on
+ * every cairn invocation. Consumers can then walk the registry
+ * directory to discover what projects exist, correlate by UUID, and
+ * check last-seen timestamps for staleness. Opt out with
+ * `registry.enabled: false` in any config layer, or `--no-registry` (D44).
  *
  * Rationale captured in D22 of the cairn library:
- * - Write side effects on read commands are tolerated here (unlike
- *   elsewhere) because they're explicitly opted into via config,
- *   not silent defaults.
+ * - Write side effects on read commands: D22 originally justified
+ *   these by the explicit opt-in. D43 falsified that default (the
+ *   flag was set nowhere and the registry did not exist ~5 months
+ *   later) and flipped it. D43 records the trade explicitly rather
+ *   than dissolving it: of D22's three objections, the CI-sandbox
+ *   half is answered by D57's resilience, while multi-user
+ *   environments and auditability are ACCEPTED COSTS of the flip —
+ *   not harms that were argued away.
  * - "Registry" naming, not "cache" — the data is persistent state,
  *   not regenerable.
  * - ~/.gvp/registry/ chosen over XDG for simplicity and to match
@@ -39,48 +48,41 @@ export interface RegistryEntry {
   project_id: string;
   project_name: string;
   locations: RegistryLocation[];
-}
-
-/**
- * The registry root directory. Respects the GVP_REGISTRY_ROOT
- * environment variable for test isolation and custom setups, and
- * otherwise defaults to ~/.gvp/registry/by-id/.
- */
-export function getRegistryDir(): string {
-  const override = process.env.GVP_REGISTRY_ROOT;
-  if (override && override.length > 0) {
-    return path.join(override, 'by-id');
-  }
-  const home = process.env.HOME || process.env.USERPROFILE || '';
-  return path.join(home, '.gvp', 'registry', 'by-id');
+  /** Usage edge (D53) — which library entries this project resolved. */
+  libraries?: UsageEdge[];
 }
 
 /**
  * Upsert the current project's registry entry. Creates the entry
  * if it doesn't exist, updates the timestamp and path-list if it
- * does. No-op if the registry directory can't be created (e.g.,
- * read-only home directory in a sandboxed environment); the
- * caller should not fail hard on registry errors because the
- * feature is non-load-bearing for correctness.
+ * does. THROWS if the write fails (e.g., read-only home directory
+ * in a sandboxed environment) so the caller can surface D57's single
+ * warning; the caller must catch, because registry recording is
+ * non-load-bearing for correctness and never fails the command.
  *
  * The `projectPath` is the filesystem location of the project's
  * `.gvp/` parent directory (NOT the .gvp/ itself — we track the
  * project root so consumers can `cd` into it).
+ *
+ * `observedLibraryHashes` (D53) folds the usage-edge merge into this
+ * SAME read-modify-write. Kept separate, a recording invocation would
+ * write the project file twice with a prune in between, doubling the
+ * window in which a concurrent reader sees a half-updated registry.
+ * The argument is OPTIONAL and omitting it must leave existing edges
+ * exactly as they were — D58 relies on that when recording is skipped.
  */
 export function upsertRegistryEntry(
   projectId: string,
   projectName: string,
   projectPath: string,
+  observedLibraryHashes?: string[],
 ): void {
-  const registryDir = getRegistryDir();
+  const registryDir = getProjectsDir();
   const entryPath = path.join(registryDir, `${projectId}.yml`);
 
-  try {
-    fs.mkdirSync(registryDir, { recursive: true });
-  } catch {
-    return; // Can't create dir — silently skip, preserving caller stability
-  }
-
+  // No mkdir early-return here: writeFileAtomic does the mkdir and throws
+  // uniformly. Returning early meant a read-only $HOME produced no write AND
+  // no warning — the D22 behavior that D57 amends.
   const now = new Date().toISOString();
 
   let entry: RegistryEntry = {
@@ -128,14 +130,33 @@ export function upsertRegistryEntry(
     entry.locations.push({ path: projectPath, last_seen: now });
   }
 
-  try {
-    fs.writeFileSync(
-      entryPath,
-      yaml.dump(entry, { lineWidth: 120, noRefs: true }),
+  // Usage edge (D53), merged into the same write as the location upsert.
+  // Merge, never replace: D22 gives no CROSS-project collision, but C2 says
+  // parallel sessions in ONE project are normal and they contend on exactly
+  // this file. Under a rewrite a lost update drops another session's edge;
+  // under a merge it costs at most a stale timestamp.
+  if (observedLibraryHashes !== undefined) {
+    entry.libraries = mergeUsageEdges(
+      Array.isArray(entry.libraries) ? entry.libraries : [],
+      observedLibraryHashes,
+      now,
     );
-  } catch {
-    // Write failure — silently skip
-    return;
+  } else if (!Array.isArray(entry.libraries)) {
+    // Nothing observed and nothing valid on disk: do not introduce an empty
+    // key. A plain location upsert must leave the file's library shape alone.
+    delete entry.libraries;
+  }
+
+  try {
+    writeFileAtomic(entryPath, yaml.dump(entry, { lineWidth: 120, noRefs: true }));
+  } catch (err) {
+    // Signal failure so recordLibraries (Task 9) can emit D57's single
+    // warning -- no caller emits one YET, so as of this commit the net
+    // behavior is still a silent skip. Preserve `cause`: a warning reading
+    // "registry write failed" with no errno cannot distinguish EROFS
+    // (read-only home) from ENOSPC (full disk) from EACCES, which are three
+    // different user actions.
+    throw new Error('registry write failed', { cause: err });
   }
 }
 
@@ -149,7 +170,7 @@ export function upsertRegistryEntry(
  * No-op if the registry directory doesn't exist yet.
  */
 export function pruneStaleRegistryEntries(): void {
-  const registryDir = getRegistryDir();
+  const registryDir = getProjectsDir();
   if (!fs.existsSync(registryDir)) return;
 
   let files: string[];
@@ -159,20 +180,49 @@ export function pruneStaleRegistryEntries(): void {
     return;
   }
 
+  const now = Date.now();
   for (const file of files) {
+    // Sweep orphaned temp files. A crash between writeFileSync and
+    // renameSync leaves one behind, and the very `.yml` filter below that
+    // keeps them SAFE from deletion also makes them immortal -- nothing
+    // else in the codebase removes them. The age bound is what makes this
+    // safe: no live write takes an hour.
+    if (file.endsWith('.tmp')) {
+      try {
+        if (now - fs.statSync(path.join(registryDir, file)).mtimeMs > 60 * 60 * 1000) {
+          fs.unlinkSync(path.join(registryDir, file));
+        }
+      } catch {
+        // Raced with another sweeper, or unreadable — leave it.
+      }
+      continue;
+    }
     if (!file.endsWith('.yml')) continue;
     const entryPath = path.join(registryDir, file);
+
+    // Read and PARSE are separated deliberately. Sharing one try means a
+    // transient EIO, an EACCES on a root-owned entry, or ENFILE under load
+    // is indistinguishable from corrupt YAML -- and the catch DELETES. That
+    // is the same data-loss shape D52 closes for torn reads, with an fs
+    // error as the tearer instead of a concurrent writer.
+    let raw: string;
+    try {
+      raw = fs.readFileSync(entryPath, 'utf-8');
+    } catch {
+      continue; // Cannot read it => cannot judge it => must not delete it.
+    }
+
     let entry: RegistryEntry;
     try {
-      const parsed = yaml.load(fs.readFileSync(entryPath, 'utf-8'));
+      const parsed = yaml.load(raw);
       if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-        // Corrupt entry — remove it
+        // Genuinely corrupt content — remove it
         fs.unlinkSync(entryPath);
         continue;
       }
       entry = parsed as RegistryEntry;
     } catch {
-      // Can't parse — remove it
+      // Genuinely unparseable — remove it
       try {
         fs.unlinkSync(entryPath);
       } catch {
@@ -207,10 +257,7 @@ export function pruneStaleRegistryEntries(): void {
       // Some locations pruned — rewrite the entry
       entry.locations = liveLocations;
       try {
-        fs.writeFileSync(
-          entryPath,
-          yaml.dump(entry, { lineWidth: 120, noRefs: true }),
-        );
+        writeFileAtomic(entryPath, yaml.dump(entry, { lineWidth: 120, noRefs: true }));
       } catch {
         // ignore
       }

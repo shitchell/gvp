@@ -16,8 +16,8 @@ export function queryCommand(): Command {
     .option('--include-deprecated', 'Include deprecated/rejected elements')
     .action(async () => {
       try {
-        const { config } = parseConfigOptions(cmd);
-        const catalog = buildCatalog(config, process.cwd(), getLibraryOverride(cmd), getStoreOverride(cmd));
+        const { config, preflight } = parseConfigOptions(cmd);
+        const catalog = buildCatalog(config, process.cwd(), getLibraryOverride(cmd), getStoreOverride(cmd), preflight);
         const opts = cmd.opts();
 
         let elements = catalog.getAllElements();

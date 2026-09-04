@@ -81,8 +81,8 @@ export function inspectCommand(): Command {
     .option('--format <format>', 'Output format (text, json, markdown)', 'text')
     .action(async (elementArg: string | undefined) => {
       try {
-        const { config } = parseConfigOptions(cmd);
-        const catalog = buildCatalog(config, process.cwd(), getLibraryOverride(cmd), getStoreOverride(cmd));
+        const { config, preflight } = parseConfigOptions(cmd);
+        const catalog = buildCatalog(config, process.cwd(), getLibraryOverride(cmd), getStoreOverride(cmd), preflight);
         const opts = cmd.opts();
 
         // If no element and no --ref, show help
