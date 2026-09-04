@@ -1,20 +1,10 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import * as fs from 'fs';
-import * as os from 'os';
-import * as path from 'path';
+import { describe, it, expect } from 'vitest';
 import { mergeUsageEdges, type UsageEdge } from '../../src/registry/usage-edge.js';
 
 describe('usage edge merge (D53)', () => {
-  let tmp: string, orig: string | undefined;
-  beforeEach(() => {
-    tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'edge-'));
-    orig = process.env.GVP_REGISTRY_ROOT;
-    process.env.GVP_REGISTRY_ROOT = tmp;
-  });
-  afterEach(() => {
-    if (orig === undefined) delete process.env.GVP_REGISTRY_ROOT; else process.env.GVP_REGISTRY_ROOT = orig;
-    fs.rmSync(tmp, { recursive: true, force: true });
-  });
+  // No fixture: mergeUsageEdges is pure and touches no filesystem.
+  // (The plan carried tmpdir + GVP_REGISTRY_ROOT scaffolding here, which
+  // implied a filesystem dependency that does not exist.)
 
   it('adds new edges', () => {
     const out = mergeUsageEdges([], ['a', 'b'], '2026-01-02T00:00:00Z');
