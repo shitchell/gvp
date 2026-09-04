@@ -1762,7 +1762,19 @@ function resolveIfCached(source: string, baseDir: string): string | null {
 Run: `npx vitest run tests/registry/record.test.ts`
 Expected: PASS (5 tests)
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 5: Confirm the suite isolation is now actually doing work**
+
+Task 3 added `globalSetup` isolation on the premise that ~80 `buildCatalog` calls would otherwise write into the developer's real `~/.gvp/registry/`. As of Task 3 that guard is **preventive, not curative**: `runRegistryPreflight`'s only caller is `parseConfigOptions`, and no test calls `parseConfigOptions` — so the run-scoped registry root was verified EMPTY after a full suite run. The writes arrive here, with `recordLibraries`.
+
+This is the point where the guard starts mattering, so verify it rather than assume it:
+
+1. Temporarily log the contents of `process.env.GVP_REGISTRY_ROOT` in `tests/setup.ts`'s teardown.
+2. Run the full suite. The root must now be **non-empty** — if it is still empty, recording is not wired into the tests' code path and the coverage you think you have does not exist.
+3. Confirm `~/.gvp/registry` still does not exist. Remove the logging.
+
+A silent regression in that guard is invisible today and expensive later: it would mean every contributor's real registry accumulates fixture libraries.
+
+- [ ] **Step 6: Commit**
 
 ```bash
 git add src/registry/record.ts src/utils/yaml-files.ts src/cli/helpers.ts tests/registry/record.test.ts
