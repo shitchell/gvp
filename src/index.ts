@@ -1,5 +1,6 @@
 // GVP v1 - Goals, Values, and Principles framework
-export const VERSION = '1.0.0';
+// Kept in sync with package.json by hand. It had been stale since 1.1.0.
+export const VERSION = '3.1.0';
 
 export { GVPError, SchemaError, InheritanceError, ConfigError, ValidationError, ProvenanceError, SourceResolutionError, CatalogError, DuplicateIdPrefixError, DuplicateYamlKeyError, InvalidMappingRuleRefError, CircularInheritanceError, MissingMappingRulesError } from './errors.js';
 export * from './schema/index.js';
