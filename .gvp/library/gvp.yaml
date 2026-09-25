@@ -23,6 +23,9 @@ meta:
     origin:
       - date: '2026-02-23'
         note: Inferred from planning sessions
+  inherits:
+    - source: '@github:shitchell/gvp-docs@v0.7.0'
+      as: me
 goals:
   - id: G1
     name: Facilitate alignment across collaborators
@@ -2996,6 +2999,62 @@ decisions:
         updates_reviewed:
           - a3da9f3b-36e7-40b1-bea4-13ddbf57bbe7
         note: Refs added during Task 14 (D40-D58) and Task 15 (D56 README). Mechanical ref additions linking each decision to its implementation; no rationale changed.
+  - id: D59
+    name: Inherit the maintainer's personal library from gvp-docs
+    disposition: accepted
+    rationale: |
+      gvp.yaml carried no `inherits`, so the maintainer's own guiding elements -- `personal`, `ai-common`, `code-common`, `code-realtime`, `code-testing`, `code-web` -- were absent from this project's library graph and could not be cited by a gvp decision. Two independent investigations (#24, #25) flagged this as blocking. It was never only a lint problem: `docs/plans/2026-09-03-library-registry-design.md` records a draft that misquoted `personal:P8` as `gvp:P8`, and the repo's own correction calls that "the most serious defect -- a false quotation entering an append-only record." Decisions were reaching for this guidance and having to either misattribute it or leave it uncited. The maintainer's stated reason for wiring it now, verbatim (2026-09-25): "ooh, when it started my lib wasn't in the cloud. now that it is, yes, we should import the GitHub/shitchell/gvp-docs repo" -- the library was not publishable when this project started, and now is, so the obstacle that justified a self-contained library no longer exists. The source is pinned to the immutable tag `@github:shitchell/gvp-docs@v0.7.0` (DEC-1.9 forbids a branch), aliased `as: me`. The alias is deliberately a name that collides with no upstream `meta.name`, so the two-segment forms already in circulation -- `personal:R2`, `code-common:CP11` -- keep resolving verbatim and no existing or future citation has to be rewritten; the alias exists only as the three-segment escape hatch should a future document name ever collide. Upstream carries no `meta.config_overrides`, so the ancestor-wins override path cannot disable this project's registry.
+    tags:
+      - framework
+      - alignment
+      - integrity
+    maps_to:
+      - gvp:G11
+      - gvp:P15
+      - gvp:V1
+      - gvp:V3
+      - personal:G2
+      - personal:V3
+    considered:
+      keep_self_contained:
+        description: Leave gvp.yaml with no `inherits` -- the library stays self-contained.
+        rationale: |
+          Rejected. This was the right call only while the personal library was unpublished; the maintainer's quote retires that premise. Holding it now keeps the most relevant guidance permanently uncitable and leaves the misquotation failure mode live.
+        would_have_served:
+          - gvp:V4
+        conflicts_with:
+          - gvp:G11
+          - gvp:V3
+          - personal:G2
+      duplicate_elements_locally:
+        description: Copy the needed upstream elements into gvp.yaml as gvp-native analogues.
+        rationale: |
+          Rejected. It buys citability with no network fetch, cache, or pin to maintain, but forks guidance that has one author: the copies drift from upstream with nothing to detect it, and a reader cannot tell a gvp-native element from a transcribed one. That is the same false-provenance failure the misquotation already demonstrated, made structural -- and it is the copy-paste that personal:V3 exists to forbid.
+        would_have_served:
+          - gvp:V4
+        conflicts_with:
+          - gvp:V2
+          - gvp:V9
+          - personal:V3
+      name_documents_individually:
+        description: Inherit only `personal` and `code-common` rather than the whole source.
+        rationale: |
+          Not available. Object-form `inherits` names a source, not a document, and pulls every document from it (DEC-1.7); the string form selects a document only within the same source. Pulling all six is therefore the only cross-repo form, and it is also the wanted one -- `code-testing`, `code-web`, `ai-common` and `code-realtime` are the same author's guidance and cost nothing to have resolvable.
+        would_have_served:
+          - gvp:V4
+        conflicts_with:
+          - gvp:G11
+    refs:
+      - file: .gvp/library/gvp.yaml
+        identifier: meta
+        role: defines
+    origin:
+      - id: c70d8221-7943-4541-a585-9d2cd3a94cab
+        date: '2026-09-25T20:41:19.519Z'
+        note: Imported from inherits-patch.yaml
+        by:
+          name: Shaun Mitchell
+          email: shaun@shitchell.com
 constraints:
   - id: C1
     name: Agents optimize for minimal effort
