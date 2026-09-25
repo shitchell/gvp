@@ -132,6 +132,24 @@ export function mergeConfigs(...layers: Record<string, unknown>[]): Record<strin
         const prev = (result[key] ?? {}) as Record<string, unknown>;
         const next = value as Record<string, unknown>;
         result[key] = { ...prev, ...next };
+      } else if (key === 'diagnostics' && typeof value === 'object' && value !== null && !Array.isArray(value)) {
+        // Deep-merge, same reasoning as `registry` above. A project layer
+        // that scopes ONE source must not discard a global layer's
+        // `inherited:` setting, and scoping source A in the project layer
+        // must not drop the global layer's entry for source B — so
+        // `by_source` merges key-wise rather than being replaced wholesale.
+        // Closer scope still wins per key.
+        const prev = (result[key] ?? {}) as Record<string, unknown>;
+        const next = value as Record<string, unknown>;
+        const merged: Record<string, unknown> = { ...prev, ...next };
+        const prevBySource = prev.by_source;
+        const nextBySource = next.by_source;
+        const prevIsMap = typeof prevBySource === 'object' && prevBySource !== null && !Array.isArray(prevBySource);
+        const nextIsMap = typeof nextBySource === 'object' && nextBySource !== null && !Array.isArray(nextBySource);
+        if (prevIsMap && nextIsMap) {
+          merged.by_source = { ...(prevBySource as object), ...(nextBySource as object) };
+        }
+        result[key] = merged;
       } else if (key === 'strict') {
         // OR merge for strict (any source enabling wins — once true, stays true)
         if (value === true || result[key] === true) {

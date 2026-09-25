@@ -149,6 +149,102 @@ suppress_diagnostics:
   - W005
 ```
 
+Suppression is **total and silent**: a suppressed code produces no line, no count,
+and no trace that anything was withheld. That is occasionally what you want, and it
+is also how a real library accumulated 23 instances of one authoring habit over
+three months without anyone noticing ([#29](https://github.com/shitchell/gvp/issues/29)).
+Before reaching for it, check whether the finding is genuinely uninteresting (it is)
+or merely someone else's to fix (in which case use [source scoping](#source-scoped-diagnostics),
+below, which leaves a trace).
+
+
+## Source-Scoped Diagnostics
+
+Once a project inherits a library, `cairn validate` reports diagnostics on the
+**inherited** elements too. They are not the consuming project's defects, they cannot
+be fixed from the consuming repo, and they grow with the library rather than with the
+project. In the `gvp` repo itself, 49 of 148 warnings landed on upstream elements.
+
+The `diagnostics` config block scopes *display* by source. It does not change what is
+analysed -- only what is printed.
+
+```yaml
+diagnostics:
+  inherited: count                            # show | count | hide
+  by_source:
+    "@github:shitchell/gvp-docs": count       # per-source override
+```
+
+| State | Behaviour |
+|-------|-----------|
+| `show` | Print every diagnostic individually -- the behaviour before source scoping existed. |
+| `count` | Withhold the individual lines; print a one-line roll-up with totals and per-code counts. **Default for inherited sources.** |
+| `hide` | Withhold the lines and the counts; print a bare `N sources fully hidden` trace. |
+
+There is deliberately **no state that renders nothing**. `gvp:P9` says "hide what is
+not actively needed, but never lose it" -- a silent hide loses it. `hide` is the
+quietest setting the mechanism offers, and it still tells you it is doing something.
+The `hide` trace names no source, no code, and no count; it only guarantees you cannot
+be unaware that something was withheld.
+
+The trace is only emitted when a diagnostic was *actually* withheld. A `hide`-scoped
+source with nothing to report prints nothing.
+
+### Which source is which
+
+The local library is always `show` unless `by_source` names it explicitly. The blanket
+`inherited:` setting never reaches local elements by accident.
+
+`by_source` keys match the raw `inherits[].source` string either in full
+(`@github:org/repo@v0.7.0`) or with the commit-ish dropped (`@github:org/repo`), so
+the setting survives a version bump. An exact key beats a version-stripped one.
+
+Across config layers, `diagnostics` deep-merges: a project layer scoping one source
+does not discard a global layer's `inherited:` setting or its entries for other
+sources.
+
+### Errors are never scoped
+
+Only warnings are scopable. An **error** on an inherited element means the composed
+catalog you are actually consuming is invalid, which is your problem whoever authored
+it -- so errors always print, and source scoping can never quietly turn a failing
+`validate` green.
+
+Under `--strict`, warnings are promoted to errors, and scoping still applies to the
+promoted ones: `inherited: hide` means upstream authoring findings do not fail your
+build, while genuine structural errors still do.
+
+### CLI override
+
+```bash
+cairn validate --include-inherited        # force `show` for this run
+cairn validate --inherited hide           # or any of show | count | hide
+```
+
+A CLI override replaces the whole `diagnostics` block, `by_source` included -- so
+`--include-inherited` really does show everything.
+
+### Relationship to `suppress_diagnostics`
+
+They are orthogonal, not redundant:
+
+- `suppress_diagnostics` answers *"I don't care about this kind of finding."*
+- `diagnostics.by_source` answers *"this isn't my code."*
+
+`gvp:P11` ("purpose, not structural similarity, determines whether to merge") is the
+reason they stay distinct. They compose as per-code x per-source: suppression runs
+first and removes codes everywhere; source scoping then partitions what remains.
+
+### Is upstream health `validate`'s job?
+
+Partly. `cairn validate` answers *"is the library I am consuming usable, and is my own
+authoring sound?"* -- errors from any source, warnings from mine. It does not answer
+*"is my upstream library well-authored?"*; that question belongs with the library
+author, who gets it by running `cairn validate` in the library's own repo. Running
+`cairn validate --include-inherited` from a consumer is the stopgap for asking it from
+here; a dedicated upstream-health check closer to `cairn libs` would be the proper
+home, and is not built.
+
 
 ## Strict Mode
 

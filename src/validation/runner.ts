@@ -38,7 +38,10 @@ export function runValidation(
   // Step 3: Strict mode promotes warnings to errors
   if (config.strict) {
     diagnostics = diagnostics.map(d =>
-      d.severity === 'warning' ? { ...d, severity: 'error' as const } : d,
+      // `strictPromoted` records that the PASS called this a warning, so
+      // source-scoping can still scope it (#29). Without the stamp the
+      // original severity is unrecoverable downstream.
+      d.severity === 'warning' ? { ...d, severity: 'error' as const, strictPromoted: true } : d,
     );
   }
 

@@ -107,6 +107,39 @@ describe('mergeConfigs', () => {
     const merged = mergeConfigs({ registry: { enabled: false } }, { registry: {} });
     expect(configSchema.parse(merged).registry?.enabled).toBe(false);
   });
+
+  // #29 — diagnostics deep-merges for the same reason registry does: a
+  // closer layer that scopes ONE source must not silently discard the wider
+  // layer's `inherited:` setting or its entries for other sources.
+  it('diagnostics.inherited survives a project layer that only sets by_source', () => {
+    const merged = mergeConfigs(
+      { diagnostics: { inherited: 'hide' } },
+      { diagnostics: { by_source: { '@github:a/b': 'show' } } },
+    );
+    const cfg = configSchema.parse(merged).diagnostics;
+    expect(cfg.inherited).toBe('hide');
+    expect(cfg.by_source).toEqual({ '@github:a/b': 'show' });
+  });
+
+  it('diagnostics.by_source merges key-wise, closer scope winning per key', () => {
+    const merged = mergeConfigs(
+      { diagnostics: { by_source: { '@github:a/b': 'hide', '@github:c/d': 'hide' } } },
+      { diagnostics: { by_source: { '@github:a/b': 'show' } } },
+    );
+    expect(configSchema.parse(merged).diagnostics.by_source).toEqual({
+      '@github:a/b': 'show',
+      '@github:c/d': 'hide',
+    });
+  });
+
+  it('diagnostics defaults to show-local / count-inherited when absent', () => {
+    const cfg = configSchema.parse({}).diagnostics;
+    expect(cfg).toEqual({ inherited: 'count', by_source: {} });
+  });
+
+  it('rejects an unknown visibility state', () => {
+    expect(() => configSchema.parse({ diagnostics: { inherited: 'silent' } })).toThrow();
+  });
 });
 
 describe('applyInlineOverrides', () => {

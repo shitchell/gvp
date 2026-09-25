@@ -19,6 +19,14 @@ export interface Diagnostic {
   severity: DiagnosticSeverity;
   pass: string;          // Which pass produced it
   context: DiagnosticContext;
+  /**
+   * Set by runValidation when `strict: true` promoted this from a warning
+   * (#29). Source-scoping needs the severity the PASS assigned, not the
+   * severity strict mode rewrote it to: without this, `strict` would make
+   * every inherited warning an error and silently turn the whole
+   * source-scoping feature inert exactly for the users who need it most.
+   */
+  strictPromoted?: boolean;
 }
 
 /** Create a diagnostic */
