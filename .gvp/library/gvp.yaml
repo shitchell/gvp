@@ -3391,7 +3391,7 @@ decisions:
       - file: src/cli/commands/query.ts
         identifier: queryCommand
         role: implements
-  - id: D62
+  - id: D66
     name: Ship the agent skill inside the package, installed by an explicit cairn skill command
     rationale: |
       The skill that teaches an agent how to use cairn was unreachable from the published artifact. `@principled/cairn@3.2.0`'s tarball holds 396 entries, of which exactly four are non-code (package.json, README.md, two copies of defaults.yaml); `files` was `["dist/**/*", "src/data/**/*"]`, so `skills/` never shipped, and `grep -rn "skill" src/cli/` returned nothing. A consumer had no route to it at all -- not bundled, not emitted -- so every project adopting cairn re-derived the same usage knowledge by hitting it in the wild, which is precisely the compounding loss G11 exists to stop. The fix is two parts: `skills/cairn/**` joins `files`, and a `cairn skill` command group puts it on disk.
