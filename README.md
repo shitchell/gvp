@@ -103,6 +103,9 @@ cairn export --format markdown
 | `cairn query --list documents` | List the documents in the resolved library, with element counts |
 | `cairn diff <commitA> <commitB>` | Trace code changes back to decisions |
 | `cairn analyze` | Detect unmapped relationships via similarity |
+| `cairn skill install` | Install the bundled agent skill into `~/.claude/skills/cairn/` |
+| `cairn skill path` | Print the bundled skill's directory, for symlinking by hand |
+| `cairn skill status` | Compare the installed skill against the bundled one |
 
 ## Global Options
 
@@ -314,6 +317,51 @@ breaks if you `rm -rf ~/.gvp/registry`, and cairn will not complain. But it
 does not rebuild itself: each library reappears only when cairn next
 resolves it, so a library you have not touched since deleting is simply
 absent until you next work in a project that uses it.
+
+## The agent skill
+
+Cairn ships the skill that teaches an AI agent how to use it — element-ID
+syntax, citation conventions, the import/patch workflow, cross-repo
+inheritance, and the review checklist. It travels inside the npm package, so
+it versions in lockstep with the tool instead of drifting from the schema.
+
+    cairn skill install                 # into ~/.claude/skills/cairn/
+    cairn skill install --dest .claude/skills/cairn   # project-local instead
+    cairn skill path                    # where the bundled copy lives
+    cairn skill status                  # installed version vs. bundled version
+
+Nothing is installed automatically. There is no postinstall hook — it would
+not run under `--ignore-scripts` anyway, and writing into your skills
+directory because you installed a CLI is not a decision cairn gets to make
+for you.
+
+`install` writes a `.cairn-skill.json` manifest beside the files recording the
+source version and a checksum per file, which lets it tell three situations
+apart:
+
+| state | what happens |
+|-------|--------------|
+| nothing installed | installs, after confirming the destination |
+| installed, untouched | replaces it — this is an update |
+| installed, **you edited it** | refuses, even interactively |
+
+To overwrite edits, pass `--force`; the current contents are copied to
+`<dest>/.backups/<timestamp>/` first. `--force` and `-y, --yes` are separate
+on purpose: `--yes` only skips the prompt, so a CI job that wants no prompt
+cannot silently destroy your local edits. Files you add beside the skill are
+never touched or removed.
+
+Without a TTY, `install` refuses and tells you to pass `--yes`. `path` and
+`status` take `--json`, as does `install`. `status` never touches the
+network — it compares what is on disk with what this copy of cairn ships, and
+answers only when asked:
+
+    $ cairn skill status
+    Installed from 3.1.0, current is 3.2.0 — run `cairn skill install` to update.
+
+If you would rather not have cairn write anything, symlink it:
+
+    ln -s "$(cairn skill path)" .claude/skills/cairn
 
 ## Refs — Linking Decisions to Artifacts
 

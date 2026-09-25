@@ -3391,6 +3391,133 @@ decisions:
       - file: src/cli/commands/query.ts
         identifier: queryCommand
         role: implements
+  - id: D62
+    name: Ship the agent skill inside the package, installed by an explicit cairn skill command
+    rationale: |
+      The skill that teaches an agent how to use cairn was unreachable from the published artifact. `@principled/cairn@3.2.0`'s tarball holds 396 entries, of which exactly four are non-code (package.json, README.md, two copies of defaults.yaml); `files` was `["dist/**/*", "src/data/**/*"]`, so `skills/` never shipped, and `grep -rn "skill" src/cli/` returned nothing. A consumer had no route to it at all -- not bundled, not emitted -- so every project adopting cairn re-derived the same usage knowledge by hitting it in the wild, which is precisely the compounding loss G11 exists to stop. The fix is two parts: `skills/cairn/**` joins `files`, and a `cairn skill` command group puts it on disk.
+
+      WHY A NOUN GROUP, NOT `cairn ai-skill`. `libs` already established the shape (D54): a noun with sub-actions, each read action carrying `--json` because the consumer is an agent (G7). `skill install` / `path` / `status` slots into that; a one-off `ai-skill` would be the near-duplicate entry point personal:P8 refuses, and the original ticket's fallback -- one subcommand printing the doc to stdout -- no longer describes the artifact: the skill is nine files with a directory of references, and a single stream cannot carry them.
+
+      EXPLICIT INVOCATION, NEVER A POSTINSTALL HOOK. postinstall does not run under `--ignore-scripts`, so the guarantee would be absent exactly where CI is strictest, and writing into somebody's `~/.claude/skills/` because they installed a CLI is auto-activation over opt-in, which personal:V4 refuses outright. The install happens when asked and not before.
+
+      TWO FLAGS, BECAUSE THERE ARE TWO AUTHORIZATIONS. `-y, --yes` skips the confirmation prompt. `--force` overwrites a LOCALLY MODIFIED skill. Collapsing them is the real hazard rather than a stylistic one: a CI job that only wants to skip a prompt would silently destroy a user's edits, and personal:V5 forbids exactly that discard. The spelling is settled by reuse, not taste -- `cairn mv` already declares `-y, --yes  Skip confirmation prompt` and `import` uses `--yes`, so a `--force` doing that job would be a second spelling of a shipped concept, which code-common:CP11 and gvp:P19 both argue against. `--force` is therefore free to mean the thing that has no spelling yet. The two compose rather than overlap: `--force` in a terminal still prompts, and `--force` without `--yes` in CI is still refused for want of a prompt.
+
+      A MANIFEST IS WHAT MAKES THE INSTALL SAFE. Write-and-replace has only two observable states, present and absent, so every install is a blind overwrite -- and personal:V5 plus personal:R2 make that unavailable. `.cairn-skill.json`, written beside the files, records the source version and a sha256 per file, which separates three states: absent (install, confirming only the destination); present and byte-identical to what we recorded (replace freely, it is an update); present and edited (refuse EVEN INTERACTIVELY, `--force` required, and back the tree up before overwriting). A missing or corrupt manifest reads as "provenance unknown" and also requires `--force`, because a half-parsed manifest is the only way this design could lose an edit. Two further consequences follow from the same value: the manifest records only the files this install wrote, so a note the user dropped beside the skill is never adopted and so never pruned; and a retired file the user edited is kept rather than deleted, while a retired file still matching its recorded hash is removed so an older version's document cannot linger as drift.
+
+      THE MANIFEST AND THE BACKUP BOTH LIVE INSIDE THE DESTINATION. Keeping provenance in a central location would strand it the moment someone installs to a project-local `--dest` and then moves that project: the files travel, the manifest does not, and an install with no provenance has to be treated as modified. The backup goes to `<dest>/.backups/<timestamp>/` rather than a sibling `<dest>.bak`, because a sibling of `~/.claude/skills/cairn/` is another directory in `~/.claude/skills/` containing a SKILL.md -- which is exactly what a skill loader scans for. The dot prefix is also what keeps both out of the content listing, so neither can be mistaken for part of the skill.
+
+      `--dest <path>`, DEFAULTING TO `~/.claude/skills/cairn/`. A command named `skill` rather than `claude-skill` must not hardcode one vendor's directory, and the same flag covers a project-local `.claude/skills/cairn` with no second `--project` flag to maintain. Where no home directory can be determined -- HOME unset or empty, as in some systemd, cron and CI environments -- there is no default: `path.join('', ...)` yields the RELATIVE path `.claude/skills/cairn` and would strand the skill in whatever directory the process happened to be in, so the command errors and names `--dest` instead of guessing.
+
+      THE PACKAGED PATH IS RESOLVED BY SEARCH, NOT BY ARITHMETIC. `skills/` sits at the repo root, not under `dist/`, so the installed layout differs from a dev checkout. `src/` and `dist/` currently sit the same distance below the root, which means `__dirname/../../skills/cairn` happens to work in both -- an agreement between two tsconfig settings, not a guarantee, and one that would break at runtime in a consumer's install rather than in CI. So the resolver walks up for the nearest ancestor whose package.json NAMES this package, falling back to the nearest ancestor that actually holds `skills/cairn/SKILL.md`. Identity rather than proximity: a consumer's own package.json sits above ours in `node_modules` and must not match. Verified for real by `npm pack`, installing the tarball into a scratch project, and running the command from an unrelated cwd.
+
+      `status` ANSWERS ONLY WHEN ASKED. It compares the manifest's `source_version` against the packaged version and says, in the plain case, "installed from 3.1.0, current is 3.2.0". No network call and no automatic check on other commands: skill/schema drift is what #14 filed this for, and a background update check would reintroduce the auto-activation personal:V4 refuses. `path` prints the packaged directory and nothing else, so `ln -s "$(cairn skill path)" .claude/skills/cairn` works and a consumer can adopt the skill without the install command writing anything.
+    tags:
+      - tooling
+      - usability
+      - documentation
+      - integrity
+    maps_to:
+      - gvp:G7
+      - gvp:G11
+      - gvp:V6
+      - gvp:V10
+      - gvp:C1
+      - gvp:D54
+      - gvp:P19
+      - personal:V4
+      - personal:V5
+      - personal:R2
+      - personal:P8
+      - code-common:CP11
+    considered:
+      postinstall_hook:
+        rationale: |
+          Install the skill automatically from a postinstall script, so `npm install @principled/cairn` alone is enough. Cheapest possible path for the user and the one the original ticket reached for first. Refused on two independent grounds. Mechanically it does not hold: postinstall does not run under `--ignore-scripts`, which is standard in hardened CI, so the guarantee would be missing exactly where it was most confidently assumed. And in posture it is auto-activation -- writing into a user's `~/.claude/skills/` because they installed a CLI -- which personal:V4 refuses in as many words.
+        would_have_served:
+          - gvp:C1
+        conflicts_with:
+          - personal:V4
+          - personal:V5
+      one_flag_for_both_authorizations:
+        rationale: |
+          A single flag -- either `--force` or `--yes` -- covering both "do not prompt me" and "overwrite my edits". Fewer flags, and the two are usually requested together. Refused because the failure is silent and destructive rather than merely confusing: the overwhelmingly common caller is a CI job that wants no prompt, and under one flag that job also acquires the authority to discard a maintainer's local edits with no way to decline it. personal:V5 names that discard directly and personal:R2 requires it be explicit. Keeping them separate costs one flag in the help text and makes the dangerous case unreachable by accident.
+        would_have_served:
+          - personal:V1
+          - personal:P8
+        conflicts_with:
+          - personal:V5
+          - personal:R2
+      write_and_replace_no_manifest:
+        rationale: |
+          Copy the directory over whatever is there, prompting once to confirm the destination. No manifest, no checksums, no state machine. Refused: without recorded checksums an update and a destructive overwrite are indistinguishable at the only moment the distinction matters, so the command would have to either refuse every update or silently destroy edits, and it cannot tell which it is doing. That is the guarantee V10 requires to be reliable or visibly absent, and personal:V5 rules out the silent branch.
+        would_have_served:
+          - personal:V1
+        conflicts_with:
+          - personal:V5
+          - personal:R2
+          - gvp:V10
+      stdout_emitting_subcommand:
+        rationale: |
+          The original ticket's fallback: `cairn ai-skill` printing the canonical doc to stdout, redirected by the consumer. Attractive because it needs no change to the publish surface at all. Refused because the artifact outgrew it -- the skill is nine files, including a references directory that SKILL.md links to -- so a single stream would deliver a document whose links all dangle, and an agent following them would find nothing. `skill path` preserves what was actually good about the idea: a way to reach the content without the tool writing anything.
+        would_have_served:
+          - personal:V1
+        conflicts_with:
+          - gvp:G7
+          - gvp:V10
+      ship_the_whole_skills_directory:
+        rationale: |
+          `skills/**` in `files`, as the agreed design comment spelled it -- one glob, and any future skill ships for free. Narrowed to `skills/cairn/**` after reading what else is in there: `skills/decision-tracking-markdown.md` describes itself as an "interim format until GVP YAML tooling is ready", so shipping it INSIDE the GVP tooling hands a consumer's agent a document telling it to write DECISIONS.md markdown instead of using the library it just installed. The command can only ever reach `skills/cairn`, so nothing else in that directory is even addressable, and a publish surface is a commitment (code-common:CP11) that should not be made for files no consumer can use. One glob per shipped skill is the additive version of the same promise.
+        would_have_served:
+          - personal:V1
+          - code-common:CP11
+        conflicts_with:
+          - gvp:G7
+          - gvp:V10
+      dirname_arithmetic_for_the_packaged_path:
+        rationale: |
+          Resolve the skill as `__dirname/../../skills/cairn`. It works today in both layouts, because `src/` and `dist/` sit the same distance below the root, and it is two lines shorter. Refused because the agreement is a coincidence of the current `rootDir`/`outDir` pair rather than a property of either layout: moving this module one directory deeper, nesting `outDir`, or introducing a bundler breaks it, and it breaks in a consumer's installed copy while every test in this repo keeps passing. Resolving by identity fails loudly and in one place instead.
+        would_have_served:
+          - personal:V1
+        conflicts_with:
+          - gvp:V10
+          - personal:R2
+      sibling_backup_directory:
+        rationale: |
+          Back up to a sibling `<dest>.backup-<timestamp>`, the conventional spelling, which keeps stale copies out of the live skill directory. Refused on a concrete mechanism: a sibling of `~/.claude/skills/cairn/` is another directory under `~/.claude/skills/` containing a SKILL.md, and that is exactly the shape a skill loader scans for -- the backup would come back as a second, stale copy of the same skill, silently competing with the real one. `<dest>/.backups/<timestamp>/` is skipped by that scan and by the content listing for the same reason, so it can be neither loaded nor mistaken for skill content.
+        would_have_served:
+          - gvp:V6
+        conflicts_with:
+          - gvp:V10
+      automatic_update_check_on_every_invocation:
+        rationale: |
+          Have `status` -- or any command -- check the npm registry for a newer skill and mention it. Directly serves the drift problem #14 named, and is the familiar update-notifier pattern. Deferred, not merely refused: it turns a command that answers questions into one that phones home, spends network latency on invocations that did not ask for it, and re-establishes the auto-activation posture personal:V4 refuses. The local comparison already answers the question the drift problem actually poses -- is what I have installed the version this tool ships -- with no network at all.
+        would_have_served:
+          - gvp:C1
+        conflicts_with:
+          - personal:V4
+          - gvp:V10
+    origin:
+      - date: '2026-09-25'
+        note: 'Issue #1 (filed by a consuming team whose agents had no way to obtain the skill) and item 3 of issue #14 (ship docs and skill via npm so the skill versions in lockstep with the tool). The authoritative design is the 2026-09-25 comment on #1, which supersedes that ticket''s stdout-emitting fallback. Items 1, 2 and 4 of #14 -- CHANGELOG, GitHub Releases, `cairn changelog` -- are separate release-UX scope and are not covered here.'
+      - id: 208c4c6e-d41b-430c-bb48-96a1a478ee0e
+        date: '2026-09-25T23:19:41.418Z'
+        note: Imported from skill-patch.yaml
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+    refs:
+      - file: src/skill/paths.ts
+        identifier: getSkillSourceDir
+        role: implements
+      - file: src/skill/manifest.ts
+        identifier: inspectDest
+        role: implements
+      - file: src/skill/install.ts
+        identifier: performInstall
+        role: implements
+      - file: src/cli/commands/skill.ts
+        identifier: skillCommand
+        role: implements
 constraints:
   - id: C1
     name: Agents optimize for minimal effort

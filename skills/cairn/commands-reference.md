@@ -140,6 +140,31 @@ cairn analyze                    # default threshold 0.7
 cairn analyze --threshold 0.5    # lower threshold, more results
 ```
 
+### cairn skill \<subcommand\>
+Install, locate, and version-check this skill. It ships inside the npm package,
+so it stays in lockstep with the schema of the cairn you are running.
+```bash
+cairn skill status                         # installed version vs. bundled version
+cairn skill install                        # into ~/.claude/skills/cairn/
+cairn skill install --dest .claude/skills/cairn   # project-local instead
+cairn skill install --yes                  # skip the confirmation prompt
+cairn skill install --force --yes          # overwrite edits (backs them up first)
+cairn skill path                           # where the bundled copy lives
+```
+`install` writes a `.cairn-skill.json` manifest recording the source version and
+a checksum per file, so it can tell an update (installed and untouched) from a
+destructive overwrite (installed and **edited**), and refuses the latter — even
+interactively — without `--force`. `--force` and `--yes` are distinct: `--yes`
+only skips the prompt. With `--force`, the current contents are copied to
+`<dest>/.backups/<timestamp>/` before anything is written. Files you add beside
+the skill are never removed. Without a TTY, `install` refuses and names `--yes`.
+
+`status` makes **no network call** — it compares disk against the bundled copy
+and answers only when asked ("installed from 3.1.0, current is 3.2.0"). Check it
+when the schema seems to disagree with this document. `path` prints only the
+directory, so `ln -s "$(cairn skill path)" .claude/skills/cairn` works if you
+would rather nothing be copied. `path`, `status` and `install` all take `--json`.
+
 ## Global Options
 
 | Flag | Description |
