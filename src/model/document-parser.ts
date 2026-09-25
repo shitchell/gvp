@@ -1,5 +1,5 @@
 import * as yaml from 'js-yaml';
-import { documentMetaSchema } from './document-meta.js';
+import { documentMetaSchema, findUnrecognizedMetaKeys } from './document-meta.js';
 import { Document } from './document.js';
 import { Element } from './element.js';
 import type { CategoryRegistry } from './category-registry.js';
@@ -30,6 +30,10 @@ export function parseDocument(
   // Extract and validate meta
   const rawMeta = data.meta ?? {};
   const meta = documentMetaSchema.parse(rawMeta);
+  // Computed from the RAW meta, before the schema normalizes it. `meta`
+  // is `.passthrough()`, so these keys survive onto `meta` as well —
+  // W019 reports them, it does not remove them (R12, personal:V5).
+  const unrecognizedMetaKeys = findUnrecognizedMetaKeys(rawMeta);
 
   // Parse elements by category
   const elementsByCategory = new Map<string, Element[]>();
@@ -100,6 +104,7 @@ export function parseDocument(
     source,
     autoAssignedStepIds,
     unrecognizedKeys,
+    unrecognizedMetaKeys,
   );
 }
 

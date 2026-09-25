@@ -3391,6 +3391,124 @@ decisions:
       - file: src/cli/commands/query.ts
         identifier: queryCommand
         role: implements
+  - id: D62
+    name: The library-scoped registry opt-out is read at the write site, and both spellings are scoped there
+    rationale: |
+      A library can now say `meta.registry.enabled: false` about itself and stay out of the machine-wide registry however cairn is pointed at it -- `--store`, `--library`, or discovery from the current directory. It is the third spelling D43's amendment admits, and it delegates: `src/registry/record.ts` reduces it to the one `registry.enabled` switch and applies the same `!== false` gate `src/cli/helpers.ts` applies to the invocation's config. Nothing about recording suppression is reimplemented, which is the whole licence for a third spelling under P19 and the reason P11 stays satisfied rather than overridden.
+
+      WHERE IT IS READ IS THE DESIGN. The gate lives inside `record(dir, source)`, per library, not at the invocation gate in `src/cli/helpers.ts`. That placement is the entirety of D60: a declaration suppresses the DECLARING library's entries and reaches nothing else, so an inherited library can no longer switch off its consumer's registry. It also answers the other half of #25 -- recording depending on how the library was addressed -- for free rather than by enumeration, because every addressing path arrives at that one function.
+
+      BOTH SPELLINGS ARE SCOPED, NOT JUST THE NEW ONE. `meta.config_overrides.registry` already worked before this change and was simply undocumented; it was also the path D60 measured its hazard on. Scoping only the new spelling was rejected for two reasons. First, it would leave D60 stated but unimplemented for the very mechanism it was measured against -- the decision names `src/catalog/catalog.ts` as the unfixed site. Second, and worse, it would give one mechanism two scopes depending on how it was spelled, when P19's licence rests on a spelling inheriting every guarantee and precedence rule of the thing it delegates to. Two spellings that disagree about whose registry they govern are two mechanisms wearing one name.
+
+      So `registry` joins `user` as a config key that a document-declared override does not apply to the loading invocation (`src/catalog/catalog.ts`), for a different reason: `user` is excluded because identity is personal, `registry` because its effect is a WRITE that lands in the consumer's environment. The override is not discarded -- `record.ts` reads it library-scoped, alongside the named spelling, through one function. A config LAYER setting `registry.enabled: false` still gates the whole invocation, exactly as D43 says.
+
+      MEASURED, BEFORE AND AFTER. Fixture: a consumer project inheriting an upstream library that declares the opt-out. Before: with `config_overrides`, total entries 0 -- the consumer's own two documents destroyed along with the upstream one; with `meta.registry.enabled`, 2 entries, the key silently ignored. After: 1 entry in both cases, the consumer's own, upstream suppressed. The same fixture across `--store`, `--library` and cwd discovery gives 0 entries for the declaring library on every path and both spellings.
+
+      THREE SMALLER CALLS, EACH DELIBERATE. (1) Any one document opting out opts out the whole library, and a sibling's `enabled: true` does not overturn it -- library-wide for the same reason `collectLibraryCategories` is, since a base document commonly carries the library's metadata while siblings carry its elements, and a per-document reading would record the siblings of the document that opted out. The quieter answer wins, matching the `!== false` gate where only an explicit opt-out skips. (2) `enabled: true` grants nothing: when the invocation's config or `--no-registry` has turned recording off, this code is never reached, so a library cannot acquire a write on its consumer's machine -- the authority D60 denies it. (3) Only LIBRARY entries are suppressed, not the project keyspace (D22, `by-id`). D60 scopes a library's declaration to "that library's own records", and a project entry is a record of the project; suppressing it would also misfire under `--library <someone else's library>`, where the library that opted out is not the invoking project's at all, which is the shape of over-reach D60 exists to forbid.
+
+      W019 UNRECOGNIZED_META_KEY, AND HOW BROAD IT IS. R12 required the diagnostic; the open question was breadth. It fires on EVERY unrecognized `meta` key, not only on members of a recognized namespace like `meta.registry.*`. R12 names "`meta` and its sub-keys" as containers in their own right, and the narrow reading would have left the plain misspelling -- `meta.registery:` -- silent, which is the same no-op failure one letter away and the one a user is most likely to hit. The cost is that a forward-compatibility key riding on `meta`'s passthrough now warns; R12 already answers that, and the answer is `suppress_diagnostics: [W019]` under D7 -- an explicit escape hatch rather than silence. It is a warning, not an error, per H8: an unrecognized `meta` key is inert by definition. It names the key and stops (P14).
+
+      `meta` STAYS PASSTHROUGH. personal:V5 forbids filtering unknown fields, and `meta.library_id` is read through passthrough today (R9 / #16), so a strict schema would break the registry. Preserve AND warn -- both, not either, which is R12's point: preserving without warning trades a data-loss failure for a no-op failure, in which the user's key survives, means nothing, and nothing says so. `library_id` is now DECLARED in the schema for the same reason `registry` is: a key cairn actually reads must not be reported as unrecognized.
+
+      SUB-NAMESPACE CHECKING IS LIMITED TO CLOSED MEMBERSHIP. `registry` is the only `meta` sub-namespace whose members are a fixed, enumerable set. `defaults` is keyed by field names, `definitions.tags` by tag names, `config_overrides` by config keys -- all open by construction, with no unknown member to detect. Extending W019 into them would fire on correct documents.
+
+      DOCUMENTED, WHICH IS WHY #25 WAS FILED AT ALL. Neither `config_overrides` nor `registry` appeared in the schema reference's `meta` table, so the reporter reached for a key that did not work. Both are listed now, with sections for each; `registry`'s section states the scope alongside the spelling, and `tests/registry/docs.test.ts` holds the README to both.
+    tags:
+      - framework
+      - tooling
+      - integrity
+    maps_to:
+      - gvp:G7
+      - gvp:G8
+      - gvp:V8
+      - gvp:V10
+      - gvp:P11
+      - gvp:P14
+      - gvp:P19
+      - gvp:R12
+      - gvp:D43
+      - gvp:D60
+      - gvp:D22
+      - personal:V5
+      - personal:R2
+    considered:
+      scope_only_the_new_spelling:
+        rationale: |
+          Ship `meta.registry.enabled` library-scoped and leave `meta.config_overrides.registry` ancestor-wins over the whole invocation, on the grounds that the new spelling is what #25 asked for and the general mechanism is pre-existing behaviour nobody had complained about. Refused on measurement and on P19. The measurement: `config_overrides` is the path D60's hazard was measured on, and it is the one that destroys the consumer's own entries -- 0 entries where 1 was correct. The principle: a spelling's licence under P19 is that it inherits the guarantees and precedence of what it delegates to, so two spellings of `registry.enabled` that disagree about whose registry they govern are two mechanisms, which is what P11 forbids and what admitting the spelling was supposed to avoid.
+        would_have_served:
+          - personal:V1
+        conflicts_with:
+          - gvp:D60
+          - gvp:P19
+          - gvp:P11
+      gate_at_the_invocation_site:
+        rationale: |
+          Read the library's declaration in `src/cli/helpers.ts`, next to the existing `config.registry?.enabled !== false` check, and skip `recordLibraries` entirely when the root library opts out. Simplest possible diff and it passes the `--library <scratch>` case from the issue. Refused: that gate is all-or-nothing for the invocation, so it can express "do not record" but not "do not record ME", which is the distinction D60 fixes in advance. It would have honoured a root library's declaration and had nothing at all to say about an inherited one -- leaving the measured hazard open while looking fixed.
+        would_have_served:
+          - personal:V1
+        conflicts_with:
+          - gvp:D60
+      a_separate_record_switch:
+        rationale: |
+          Give the library-scoped declaration its own name and its own code path -- `meta.registry.record: false` handled by a dedicated skip in `record.ts` -- rather than reducing it to `registry.enabled`. Refused outright: this is the second mechanism P11 forbids and the one thing P19's delegation clause exists to rule out. It would also have to re-derive, and keep in step, every guarantee `registry.enabled` already carries about precedence and about which commands write.
+        conflicts_with:
+          - gvp:P11
+          - gvp:P19
+          - gvp:D43
+      strict_meta_schema:
+        rationale: |
+          Make `documentMetaSchema` strict so an unrecognized `meta` key is an error at parse time, which would make `meta.registry.enabled: false` impossible to get silently wrong. Refused: personal:V5 requires unknown fields to be preserved, not filtered, and `meta.library_id` is read purely through passthrough (R9 / #16), so strictness would break the registry's own correlation field. R12 is explicit that preserving and warning are not alternatives -- both, or the failure just changes shape.
+        would_have_served:
+          - personal:R2
+        conflicts_with:
+          - personal:V5
+          - gvp:R12
+      w019_only_inside_recognized_namespaces:
+        rationale: |
+          Warn only on unknown members of a recognized `meta` sub-namespace (`meta.registry.enable`) and stay silent on unknown top-level `meta` keys, so that forward-compatibility keys riding on passthrough keep working without noise. A real option, and the narrower reading of R12. Set aside because it leaves the likeliest mistake silent: `meta.registery:` -- the namespace itself misspelled -- is not inside any recognized namespace, so nothing would say anything, which is the exact #25 failure with the typo moved one level up. The noise objection is answered by the escape hatch R12 already names, `suppress_diagnostics: [W019]` under D7, rather than by suppressing the diagnostic for everyone.
+        would_have_served:
+          - gvp:C1
+        conflicts_with:
+          - gvp:R12
+      suppress_the_project_entry_too:
+        rationale: |
+          Have a root library's opt-out also suppress the project entry in the `by-id` keyspace, so a scratch project leaves no trace anywhere. Tempting, because a throwaway copy does mint a fresh project_id and so does pollute that keyspace too. Set aside: D60 scopes a library's declaration to "that library's own records", and a project entry records the project, not the library. It also misfires under `--library <someone else's library>`, where the declaring library belongs to a different project entirely -- suppressing the invoking project's entry on a stranger's say-so is the over-reach D60 forbids, arriving by the other door. A scratch project that wants neither keyspace still has the config layer and `--no-registry`.
+        would_have_served:
+          - gvp:G8
+        conflicts_with:
+          - gvp:D60
+          - gvp:D22
+    origin:
+      - date: '2026-09-25'
+        note: 'Issue #25, filed after measuring that a library''s own declaration was never consulted: `meta.registry.enabled` validated clean and did nothing, while `registry.enabled` was read only from the invocation''s config, so the same library was recorded or not depending on how cairn was pointed at it. The guidance was settled first -- P19 earned the named spelling, D60 fixed its scope, R12 required the diagnostic, and D43''s amendment admitted it as a spelling rather than a mechanism -- and this decision records what implementing them actually cost and which calls were left open.'
+      - id: 9e4db47e-089b-4901-9fa2-ce09f0e91e19
+        date: '2026-09-25T22:46:07.513Z'
+        note: Imported from patch-25.yaml
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+    refs:
+      - file: src/model/document-meta.ts
+        identifier: documentRegistrySchema
+        role: defines
+      - file: src/model/document-meta.ts
+        identifier: findUnrecognizedMetaKeys
+        role: implements
+      - file: src/registry/record.ts
+        identifier: declaredRegistryEnabled
+        role: implements
+      - file: src/registry/record.ts
+        identifier: libraryOptsOut
+        role: implements
+      - file: src/catalog/catalog.ts
+        identifier: Catalog
+        role: implements
+      - file: src/validation/passes/structural-pass.ts
+        identifier: structuralPass
+        role: implements
+      - file: src/model/document.ts
+        identifier: Document
+        role: defines
 constraints:
   - id: C1
     name: Agents optimize for minimal effort

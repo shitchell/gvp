@@ -54,20 +54,23 @@ describe('registry documentation (D56)', () => {
     const SHIPPED_SPELLINGS = [
       /registry\.enabled: false/, // config layer
       /--no-registry/, // single invocation
+      /meta\.registry\.enabled: false/, // library-scoped declaration (#25)
     ];
     for (const spelling of SHIPPED_SPELLINGS) expect(r).toMatch(spelling);
-
-    // `meta.registry.enabled` is ADMITTED by the D43 amendment (a
-    // library-scoped declaration, warranted under gvp:P19 and scoped by
-    // gvp:D60) but is NOT implemented — issue #25 carries that. Until it
-    // ships the README must not document it, for exactly the reason the env
-    // var was removed. DELETE THIS ASSERTION in the change that implements
-    // it, and move the pattern into SHIPPED_SPELLINGS above.
-    expect(r).not.toMatch(/meta\.registry\.enabled/);
 
     // Spellings D43 has never admitted, in any form.
     const UNADMITTED_SPELLINGS = [/GVP_NO_REGISTRY/, /GVP_REGISTRY_DISABLED/];
     for (const spelling of UNADMITTED_SPELLINGS) expect(r).not.toMatch(spelling);
+  });
+
+  it('documents the library-scoped spelling WITH its scope (D60)', () => {
+    // Documenting `meta.registry.enabled` without saying whose records it
+    // governs invites the unscoped reading D60 exists to forbid — that an
+    // inherited library switches off its consumer's registry. The spelling
+    // and its scope ship together or the docs mislead.
+    const r = readme().toLowerCase();
+    expect(r).toMatch(/inherit/);
+    expect(r).toMatch(/only suppress|cannot re-enable|will not re-enable/);
   });
 
   it('says search covers decision rationale, not just names and statements', () => {

@@ -105,6 +105,7 @@ Warnings are printed to stderr but do not cause a non-zero exit code under norma
 | W016 | UNRECOGNIZED_YAML_KEY | A top-level YAML key in a document is neither `meta` nor a known category `yaml_key` (structural pass). |
 | W017 | NO_VALUE_TRACE | A non-root element does not trace to any value transitively. Soft anchor: the acceptance value often lives upstream in an inherited library, so this warns rather than errors (promotable under `--strict`). |
 | W018 | ROOT_NO_DECISION | An actionable root -- a category declaring `requires_decision: true` (goal, constraint, user_requirement) -- has no Decision tracing to it (coverage pass only). `value` and `exclusion` are exempt. Ensures decreed drivers are explicitly actioned (accept/decline/defer). |
+| W019 | UNRECOGNIZED_META_KEY | A key in a document's `meta` block, or a member of a recognized `meta` sub-namespace (`meta.registry.*`), that cairn reads no meaning from (structural pass). The key is *preserved* -- `meta` is passthrough -- but it has no effect, and this says so rather than letting it look accepted. Names the key only; no guess at what was meant. Suppress with `suppress_diagnostics: [W019]` if a downstream tool deliberately rides on `meta`. |
 
 ### W005 on self-contained libraries
 

@@ -208,6 +208,97 @@ describe('recordLibraries (D40, D41, D57, D58)', () => {
     expect(snap2).toEqual(snap);
   });
 
+  // #25. The registry's purpose is an index of REAL libraries, so a
+  // throwaway one -- a scratch copy made to reproduce a bug -- needs to be
+  // able to say so about itself. D43's amendment admits
+  // `meta.registry.enabled` as a third SPELLING of the one
+  // `registry.enabled` mechanism; D60 fixes its scope.
+  describe('a library-declared opt-out (D43 amendment, D60)', () => {
+    const NAMED = '  registry:\n    enabled: false\n';
+    const GENERAL = '  config_overrides:\n    registry:\n      mode: replace\n      value:\n        enabled: false\n';
+
+    /** Rewrite one document's meta with an extra block, elements intact. */
+    function declare(file: string, block: string): void {
+      const raw = fs.readFileSync(file, 'utf-8');
+      const [, metaName, rest] = raw.match(/^meta:\n((?:  .*\n)+)([\s\S]*)$/)!;
+      fs.writeFileSync(file, `meta:\n${metaName}${block}${rest}`);
+    }
+
+    // Both spellings, one behavior -- the point of P19's delegation clause.
+    // A spelling that behaved differently from the mechanism it names would
+    // be a second mechanism, which P11 forbids.
+    for (const [label, block] of [['meta.registry.enabled', NAMED], ['meta.config_overrides.registry', GENERAL]] as const) {
+      it(`keeps the library out of the registry when it declares ${label}: false`, () => {
+        declare(path.join(lib, 'personal.yaml'), block);
+        expect(recordLibraries({ libraryDir: lib, ...NO_PROJECT })).toBeUndefined();
+        expect(entries()).toEqual([]);
+      });
+
+      it(`suppresses the DECLARING library only, never the consumer's (D60) — ${label}`, () => {
+        // The measured hazard: `config_overrides` is ancestor-wins, so an
+        // inherited library declaring this used to switch off the CONSUMING
+        // project's entire registry, including the consumer's own entries,
+        // which the ancestor has no view of and no stake in.
+        const upstream = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'up-')));
+        try {
+          fs.writeFileSync(path.join(upstream, 'up.yaml'),
+            `meta:\n  name: upstream\n${block}values:\n  - id: V1\n    name: V\n    statement: v\n`);
+          recordLibraries({ libraryDir: lib, externalSources: [upstream], projectId: null, projectName: null, projectPath: null });
+          const names = entries().map((e) => e.name).sort();
+          expect(names).toEqual(['code-common', 'personal']);
+          expect(names).not.toContain('upstream');
+        } finally {
+          fs.rmSync(upstream, { recursive: true, force: true });
+        }
+      });
+    }
+
+    it('opts out the WHOLE library from any one document, including a nested one', () => {
+      // Library-wide, like collectLibraryCategories and for the same reason:
+      // a base document commonly carries the library's own metadata while
+      // siblings carry its elements. A per-document reading would record the
+      // siblings of the document that opted out — a partial, silent miss.
+      declare(path.join(lib, 'code', 'common.yaml'), NAMED);
+      recordLibraries({ libraryDir: lib, ...NO_PROJECT });
+      expect(entries()).toEqual([]);
+    });
+
+    it('does not let a sibling document overturn an opt-out', () => {
+      declare(path.join(lib, 'personal.yaml'), NAMED);
+      declare(path.join(lib, 'code', 'common.yaml'), '  registry:\n    enabled: true\n');
+      recordLibraries({ libraryDir: lib, ...NO_PROJECT });
+      expect(entries()).toEqual([]);
+    });
+
+    it('records normally on enabled: true, which grants nothing new', () => {
+      // A library-scoped declaration can only SUPPRESS (D60). `true` is not
+      // an opt-IN: when the invocation's config or --no-registry has turned
+      // recording off, recordLibraries is never called at all.
+      declare(path.join(lib, 'personal.yaml'), '  registry:\n    enabled: true\n');
+      recordLibraries({ libraryDir: lib, ...NO_PROJECT });
+      expect(entries().map((e) => e.name).sort()).toEqual(['code-common', 'personal']);
+    });
+
+    it('ignores a MISSPELLED member rather than guessing at it (W019 reports it)', () => {
+      // The one-letter-off key must not silently opt out, and must not
+      // silently do nothing either: the structural pass warns W019. Recording
+      // acts only on what it actually recognizes (P14).
+      declare(path.join(lib, 'personal.yaml'), '  registry:\n    enable: false\n');
+      recordLibraries({ libraryDir: lib, ...NO_PROJECT });
+      expect(entries().map((e) => e.name).sort()).toEqual(['code-common', 'personal']);
+    });
+
+    it('honours the declaration even when the declaring document is unparseable', () => {
+      // Recording deliberately does not require a document to parse into
+      // Elements. A library whose one broken document says "do not record me"
+      // must still not be recorded.
+      declare(path.join(lib, 'personal.yaml'), NAMED);
+      fs.writeFileSync(path.join(lib, 'code', 'common.yaml'), 'meta:\n  name: code-common\nrules: not-a-list\n');
+      recordLibraries({ libraryDir: lib, ...NO_PROJECT });
+      expect(entries()).toEqual([]);
+    });
+  });
+
   // D22's auto-prune lost its only call site when runRegistryPreflight left
   // parseConfigOptions; recordLibraries is where it is re-homed. Both calls
   // survived mutation until these existed — deleting either left the whole

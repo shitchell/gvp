@@ -93,6 +93,94 @@ function factsFor(
 }
 
 /**
+ * The `registry.enabled` value a single document declares ABOUT ITS OWN
+ * LIBRARY, or undefined when it declares nothing (#25).
+ *
+ * Both admitted library-scoped spellings reduce here to the one switch
+ * D43 names, `registry.enabled` — that reduction IS the delegation P19
+ * requires, and it is why this is a spelling rather than a second
+ * mechanism. Nothing below reimplements recording suppression; the
+ * caller applies the same `!== false` gate src/cli/helpers.ts applies to
+ * the invocation's config.
+ *
+ *   meta.registry.enabled: false               <- the named affordance
+ *   meta.config_overrides.registry:            <- the general mechanism
+ *     mode: replace
+ *     value: { enabled: false }
+ *
+ * The named spelling wins when a document carries both, because it is
+ * the one that says only what it means.
+ *
+ * Read from raw YAML rather than from a parsed Document for the same
+ * reason factsFor is: recording must not depend on a document parsing
+ * cleanly enough to become an Element. A library whose one broken
+ * document says "do not record me" must still not be recorded.
+ */
+function declaredRegistryEnabled(meta: Record<string, unknown>): boolean | undefined {
+  const named = meta.registry;
+  if (named && typeof named === 'object' && !Array.isArray(named)) {
+    const enabled = (named as Record<string, unknown>).enabled;
+    if (typeof enabled === 'boolean') return enabled;
+  }
+  const overrides = meta.config_overrides;
+  if (overrides && typeof overrides === 'object' && !Array.isArray(overrides)) {
+    const entry = (overrides as Record<string, unknown>).registry;
+    if (entry && typeof entry === 'object' && !Array.isArray(entry)) {
+      const value = (entry as Record<string, unknown>).value;
+      if (value && typeof value === 'object' && !Array.isArray(value)) {
+        const enabled = (value as Record<string, unknown>).enabled;
+        if (typeof enabled === 'boolean') return enabled;
+      }
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Does this library declare itself not-for-registry? (D43, D60, #25)
+ *
+ * LIBRARY-WIDE, like collectLibraryCategories and for the same reason:
+ * the natural GVP shape is a base document that sibling documents
+ * extend, so a per-document reading would record the siblings of the
+ * document that opted out — a partial, silent miss of exactly the kind
+ * #15 was filed about.
+ *
+ * ANY document declaring `false` opts the whole library out, and a
+ * sibling's `true` does not overturn it. An opt-out is a claim that this
+ * library is throwaway; the quieter answer wins, matching the `!== false`
+ * gate on the invocation's config, where only an explicit opt-out skips.
+ *
+ * The asymmetry is deliberate and is D60's: a library-scoped declaration
+ * can only SUPPRESS its own entries. `enabled: true` cannot re-enable
+ * recording that the consumer's config layer or `--no-registry` turned
+ * off, because by then this function is never reached — a library
+ * acquiring the right to write on its consumer's machine is the exact
+ * authority D60 denies it.
+ *
+ * Costs one extra read of each document's YAML, alongside the reads
+ * collectLibraryCategories and factsFor already make. Kept as its own
+ * pass rather than folded into either: the answer must be known BEFORE
+ * any entry is written, and merging it into the category scan would put
+ * two unrelated decisions in one loop.
+ */
+function libraryOptsOut(files: string[]): boolean {
+  for (const file of files) {
+    let meta: Record<string, unknown>;
+    try {
+      const raw = yaml.load(fs.readFileSync(file, 'utf-8'));
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) continue;
+      const m = (raw as Record<string, unknown>).meta;
+      if (!m || typeof m !== 'object' || Array.isArray(m)) continue;
+      meta = m as Record<string, unknown>;
+    } catch {
+      continue;
+    }
+    if (declaredRegistryEnabled(meta) === false) return true;
+  }
+  return false;
+}
+
+/**
  * The project_id of the project that OWNS `libDir`, by walking up for a
  * `.gvp/config.yaml`. Cached per directory — this runs once per document
  * and the answer is identical for every document in a library.
@@ -194,6 +282,29 @@ export function recordLibraries(args: RecordArgs): string | undefined {
       failed = true;
       return;
     }
+    // The library's own declaration about itself, honored HERE — inside
+    // the per-library record — rather than at the invocation gate in
+    // src/cli/helpers.ts. That placement is the whole of D60: the
+    // declaration suppresses the DECLARING library's entries and reaches
+    // nothing else, so an inherited library can no longer switch off its
+    // consumer's registry, including the consumer's own entries, which
+    // it has no view of and no stake in.
+    //
+    // It is also what answers #25's other half — recording depending on
+    // how the library is addressed. Every addressing path (`--store`,
+    // `--library`, cwd discovery) arrives at this same function, so the
+    // declaration is honored identically on all of them.
+    //
+    // Only LIBRARY entries (D40/D45) are suppressed. The project
+    // keyspace (D22, `by-id`) is a record of the PROJECT, not of the
+    // library, and D60 scopes a library's declaration to "that library's
+    // own records". Suppressing the project entry from a library
+    // document would also misfire under `--library <someone else's lib>`,
+    // where the library that opted out is not the invoking project's at
+    // all — which is the very shape of over-reach D60 forbids. The
+    // opted-out library's keys are simply absent from the `hashes` this
+    // invocation reports for the project.
+    if (libraryOptsOut(files)) return;
     // One merged registry per LIBRARY, not per document (see
     // collectLibraryCategories). Built here so a base document's category
     // is recognized in the siblings that populate it.

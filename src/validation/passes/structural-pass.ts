@@ -286,6 +286,41 @@ export function structuralPass(catalog: Catalog, _config: GVPConfig): Diagnostic
     }
   }
 
+  // W019: Unrecognized `meta` keys, and unrecognized members of a
+  // recognized `meta` sub-namespace (`registry.*`).
+  //
+  // R12: a recognized namespace accepts unknown members only with a
+  // diagnostic. W016 above has done exactly this for a document's
+  // TOP-LEVEL keys since long before R12 was written; `meta` was simply
+  // never covered, which is why `meta.registry.enabled: false` validated
+  // clean and did nothing at all (#25).
+  //
+  // Breadth: EVERY unrecognized `meta` key, not only those inside a
+  // recognized namespace. R12 names "`meta` and its sub-keys" as
+  // containers in their own right, and the narrower reading would leave
+  // the plain misspelling — `meta.registery:` — silent, which is the
+  // same no-op failure one letter away. A key kept deliberately (a
+  // downstream tool's annotation riding on `meta`'s passthrough) is
+  // served by `suppress_diagnostics: [W019]` under D7 — R12's own
+  // answer: "the escape hatch for a deliberately unrecognised key is the
+  // existing, explicit one rather than silence."
+  //
+  // Warning, not error, per H8: an unrecognized `meta` key cannot affect
+  // the current output — it is inert by definition. It names the key and
+  // stops (P14): no guess at what was meant.
+  for (const doc of catalog.documents) {
+    for (const key of doc.unrecognizedMetaKeys) {
+      diagnostics.push(createDiagnostic(
+        'W019',
+        'UNRECOGNIZED_META_KEY',
+        `Document '${doc.name}' has unrecognized meta key 'meta.${key}', which cairn reads no meaning from`,
+        'warning',
+        PASS_NAME,
+        { documentPath: doc.documentPath, details: key },
+      ));
+    }
+  }
+
   // E003: Broken inheritance — document references a parent that doesn't exist.
   // Inherits entries may reference parents by docPath, by source:docPath, or
   // by meta.name (the canonical convention). All three forms must resolve.

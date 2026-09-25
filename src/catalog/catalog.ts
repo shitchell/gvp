@@ -65,6 +65,23 @@ export class Catalog {
       for (const [key, override] of Object.entries(overrides)) {
         // DEC-4.8: user identity is personal, excluded from config_overrides
         if (key === 'user') continue;
+        // D60 / #25: `registry` is excluded too, for a different reason —
+        // its effect is a WRITE SIDE EFFECT that lands in the CONSUMER's
+        // environment. Ancestor-wins is defensible for overrides about
+        // how a library should be READ, because the ancestor knows its
+        // own content best; it is indefensible here, because an
+        // inherited library carrying `registry.enabled: false` would
+        // switch off the consuming project's ENTIRE registry, including
+        // the consumer's own entries, silently, for every command.
+        //
+        // The override is not discarded — it is read LIBRARY-SCOPED by
+        // src/registry/record.ts, which suppresses the declaring
+        // library's own entries and nothing else. Both spellings of the
+        // opt-out (`config_overrides.registry` and `meta.registry`) are
+        // therefore read in one place, by one rule; a config LAYER
+        // setting `registry.enabled: false` still gates the whole
+        // invocation, as D43 says it should.
+        if (key === 'registry') continue;
         if (override.mode === 'replace') {
           // Ancestor-wins: only set if not already set by an earlier ancestor
           if (!appliedOverrides.has(key)) {

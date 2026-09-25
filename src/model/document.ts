@@ -25,6 +25,16 @@ export class Document {
    * Surfaced by the structural pass as W016 UNRECOGNIZED_YAML_KEY.
    */
   readonly unrecognizedKeys: string[];
+  /**
+   * Members of the `meta` block (and of its recognized sub-namespaces,
+   * e.g. `registry.*`) that cairn does not recognize, as dotted paths.
+   * Surfaced by the structural pass as W019 UNRECOGNIZED_META_KEY.
+   *
+   * Mirrors `unrecognizedKeys` one level down: `meta` is `.passthrough()`
+   * and stays that way (personal:V5), so the keys are PRESERVED on
+   * `this.meta` as well as reported here (R12 — both, not either).
+   */
+  readonly unrecognizedMetaKeys: string[];
 
   constructor(
     meta: DocumentMeta,
@@ -34,6 +44,7 @@ export class Document {
     source: string,
     autoAssignedStepIds: Set<string> = new Set(),
     unrecognizedKeys: string[] = [],
+    unrecognizedMetaKeys: string[] = [],
   ) {
     this.meta = meta;
     this._elementsByCategory = elementsByCategory;
@@ -42,6 +53,7 @@ export class Document {
     this.source = source;
     this._autoAssignedStepIds = new Set(autoAssignedStepIds);
     this.unrecognizedKeys = [...unrecognizedKeys];
+    this.unrecognizedMetaKeys = [...unrecognizedMetaKeys];
   }
 
   /**
