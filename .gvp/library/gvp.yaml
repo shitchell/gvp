@@ -767,6 +767,27 @@ heuristics:
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
+  - id: H11
+    name: 'Retired: superseded by gvp:P19'
+    status: deprecated
+    summary: Tombstone. Superseded by gvp:P19; not guidance.
+    statement: |
+      RETIRED -- superseded by gvp:P19, which carries the full text. This entry is a tombstone, not guidance: consult gvp:P19.
+
+      Reclassified from heuristic to principle on maintainer review, the same day it was authored and before any dependant shipped. The orthogonality judgement at its core -- "enumerate the concepts the user must understand; if any is machinery orthogonal to the task, the generality has leaked" -- turns on judging a concept orthogonal, which is a weighing call rather than a checkable condition, so it fails the hard/soft test a heuristic must pass.
+
+      Kept so the id is never reused (gvp:R1) and never silently removed (gvp:R2). H11 was the highest heuristic at the time it was deleted, so its removal left no gap for W009 to catch and the next `cairn add heuristic` would have minted H11 a second time.
+    tags:
+      - framework
+    maps_to:
+      - gvp:P19
+    origin:
+      - id: a244de91-0652-4f84-b6cf-8ff0614e897d
+        date: '2026-09-25T22:21:29.172Z'
+        note: Imported from patch-tombstones.yaml
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
 rules:
   - id: R1
     name: IDs are never reused
@@ -1000,6 +1021,28 @@ rules:
       - id: b76a5661-bbf5-4c90-8ffe-ac367fcd0b61
         date: '2026-09-25T21:21:17.379Z'
         note: Imported from patch-guidance.yaml
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+  - id: R11
+    name: 'Retired: superseded by gvp:D60'
+    status: deprecated
+    summary: Tombstone. Superseded by gvp:D60; not guidance.
+    statement: |
+      RETIRED -- superseded by gvp:D60, which carries the full text as its rationale. This entry is a tombstone, not guidance: consult gvp:D60.
+
+      Reclassified from rule to decision on maintainer review, the same day it was authored and before any dependant shipped. It describes what cairn DOES at runtime, observable by a user -- product behaviour -- rather than how this project operates while writing code, and by the source test it originated in the design phase, which makes it an architectural decision.
+
+      Kept so the id is never reused (gvp:R1) and never silently removed (gvp:R2). Its deletion left the R11 gap that W009 reported.
+    tags:
+      - framework
+    maps_to:
+      - gvp:G5
+      - gvp:V10
+    origin:
+      - id: d034801a-27fd-4d6f-b172-cf33c56afdbd
+        date: '2026-09-25T22:21:29.172Z'
+        note: Imported from patch-tombstones.yaml
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
@@ -3259,7 +3302,7 @@ decisions:
           name: shaun mitchell
           email: shaun@shitchell.com
       - date: '2026-09-25'
-        note: 'Reclassified from rule gvp:R11 to decision gvp:D60 on maintainer review, before any dependant shipped. It describes what cairn DOES at runtime, observable by a user -- product behaviour -- rather than how this project operates while writing code; contrast gvp:R6, which constrains the code we write. By the source test it originated in the design phase, which makes it an architectural decision. The body is preserved as the decision''s rationale; `considered` alternatives were added on conversion, since a rule states a constraint while a decision must show what it was chosen over. R11 is retired and its id is never reused (R1).'
+        note: Reclassified from rule gvp:R11 to decision gvp:D60 on maintainer review, before any dependant shipped. It describes what cairn DOES at runtime, observable by a user -- product behaviour -- rather than how this project operates while writing code; contrast gvp:R6, which constrains the code we write. By the source test it originated in the design phase, which makes it an architectural decision. The body is preserved as the decision's rationale; `considered` alternatives were added on conversion, since a rule states a constraint while a decision must show what it was chosen over. R11 is retired and its id is never reused (R1).
   - id: D61
     name: Catalog enumerations get a --list <type> selector on query
     rationale: |
