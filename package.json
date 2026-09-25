@@ -11,7 +11,8 @@
   },
   "files": [
     "dist/**/*",
-    "src/data/**/*"
+    "src/data/**/*",
+    "skills/cairn/**"
   ],
   "scripts": {
     "build": "tsc && node scripts/copy-data.mjs",
