@@ -30,7 +30,10 @@ function getChangedFiles(commitA: string, commitB: string, cwd: string): string[
   try {
     const output = execSync(
       `git diff --name-only ${commitA} ${commitB}`,
-      { cwd, encoding: 'utf-8' }
+      // stdio pipes stderr too (as getFileAtCommit already does): an
+      // unresolvable range is handled below, so git's "fatal: ambiguous
+      // argument" must not leak onto the caller's console.
+      { cwd, encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] }
     );
     return output.trim().split('\n').filter(f => f.length > 0);
   } catch {

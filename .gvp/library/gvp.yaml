@@ -3928,6 +3928,94 @@ decisions:
       - file: src/cli/commands/skill.ts
         identifier: skillCommand
         role: implements
+  - id: D67
+    name: A test builds the repository it reads; it never reads the one it lives in
+    disposition: accepted
+    rationale: |
+      A test whose input is the host repository's git history is not a test of the code. `tests/refs/git-diff-tracer.test.ts` read the live repo -- `git log --oneline -20`, `HEAD~1..HEAD`, and "find the commit whose subject mentions X" -- so its runtime and its assertions were both functions of what had last been merged. It timed out the first time HEAD was a 59-file, ~9k-insertion merge (27s against a 20s limit, #20), and the response was a timeout bump: first the suite-wide default to 20s, then `3ba6ba3` ("test: give the git-diff tracer headroom for a large HEAD commit") raising that one test to 120s. Both bumps left the defect intact. A suite whose greenness is a function of git history reports the history, not the code, and the next large merge re-breaks it.
+
+      THE WORSE HALF OF THE DEFECT WAS NOT THE TIMEOUT. The file's commit hunts (`msg.includes('TypeScript parser')`, `msg.includes('add refs to GVP')`) both targeted a3cbe2e, which is now 194 commits back and long outside the 20-commit window. Both hunts therefore found nothing, and three of the five tests took their `if (!parserFixCommit) return` / `if (!refCommit) return` exit and asserted nothing while reporting green -- measured at 2ms, 2782ms (all of it spent on the twenty `git log` spawns before returning) and 49ms. Of the two that still ran, one asserted `expect(result).toBeDefined()`, which no implementation can fail. So a file advertising five passing tests of DEC-10.2 was in fact asserting two substring matches and two non-null checks. Those guards were not defensive: they were the test recognising it could not rely on its environment and choosing silence over failure, which is the exact posture gvp:V3 refuses. A fixture removes the condition the guards were guarding against, so they are gone rather than corrected.
+
+      WHAT SHIPS. `buildFixtureRepo()` creates a repository in a tmpdir with five commits whose content the test wrote: a base commit; a commit that reworks `add()` while leaving its file-mate `subtract()` byte-identical; a commit that removes `subtract()` and introduces `multiply()`; a commit touching only an unref'd file; and a commit changing a markdown heading block, a `.txt` file with no registered parser, and the library document itself. Named indices (`BASE`, `ADD_MODIFIED`, ...) address positions in that sequence. Every assertion is now specific -- exact `changedFiles` arrays, exact `refChanges` lengths, `changeType` per identifier, `blockBefore`/`blockAfter` content, and the `[~]`/`[+]`/`[-]` markers and `Traces to:` walk of `formatDiffTrace`. Coverage is strictly larger than before, not equal: the identifier-level `added` and `removed` paths, the parserless whole-file fallback (DEC-10.15), heading-block scoping, and the "no traced changes" output were all unreachable from live history and are now pinned.
+
+      ONE LIVE-REPO TEST IS KEPT, AND WHY IT IS NOT THE SAME COUPLING. `traceGitDiff(realCatalog, 'HEAD', 'HEAD', WORKTREE_ROOT)` runs against this repository and its actual `.gvp/library`. An empty range is empty whatever HEAD is, so the cost is one `git diff` and no content reads -- constant regardless of history size -- while still proving the tracer composes with the real library's shape rather than only with a three-decision fixture. That is the distinction the fix turns on: depending on git being present and correct is fine; depending on what was committed to this repo is not.
+
+      RUNTIME IS SPAWN-BOUND, WHICH CHANGES WHERE THE COST LIVES. `traceGitDiff` shells out once for the diff and twice per matching ref, and on a machine with a git wrapper ahead of git on PATH each spawn measured ~180ms against ~1ms for the binary. So the file's runtime tracks spawn COUNT, and two measures matter. Fixture construction uses `-c user.email=... -c user.name=...` on the commit rather than three `git config` calls, and one `rev-list --reverse` rather than a `rev-parse` per commit. Traces are memoized per commit pair -- a Catalog is immutable after construction and a `DiffTraceResult` is only ever read, so sharing both across tests is safe, and the eight fixture tests cost four distinct traces. Measured on this machine: isolated 20.29s to 10.86s, and the worst single test from 11116ms to 1504ms isolated / 3359ms under full-suite parallel load against a 20s limit. The 120s override on the old test is deleted; nothing in the file now needs a per-test timeout, which is the real signal that the coupling is gone.
+
+      CLEANUP IS PART OF THE FIXTURE, NOT AN ADDENDUM. `afterAll` removes the root with the `maxRetries: 5, retryDelay: 50` form `tests/setup.ts` already uses, and writes the failure to stderr rather than swallowing it. #19 records 838 leaked `/tmp` directories from suites that build git repos and never remove them; a fix for #20 that added a 12th leak per run would trade one defect for another. Verified: four consecutive full-suite runs left zero `cairn-tracerfix-*` directories.
+
+      ALSO IN SCOPE, ONE LINE OF PRODUCTION CODE. `getChangedFiles` now passes `stdio: ['pipe','pipe','pipe']`, as its sibling `getFileAtCommit` already did. Without it an unresolvable range printed git's "fatal: ambiguous argument" onto the caller's console while the function returned an empty result -- noise on a path that is handled, both in the suite and in `cairn`'s own output.
+
+      ACCEPTED COSTS, RECORDED RATHER THAN GLOSSED (gvp:V3). The fixture library is a second, smaller GVP document that must stay parseable as the schema evolves, which is a real charge against personal:V3; it is accepted because a shared fixture library would couple this file to every other suite's needs, and the document is deliberately three decisions wide. Memoization means a test mutating a result would corrupt its neighbours -- guarded by a comment and by the type being read-only in practice, not by the language. And the tracer is no longer exercised against a several-hundred-commit history; judged acceptable because git does the history walking and the tracer only consumes `--name-only` output, so a large history exercises git's performance rather than this module's behaviour.
+    tags:
+      - tooling
+      - integrity
+      - code
+    maps_to:
+      - personal:G1
+      - gvp:V3
+      - gvp:V10
+      - personal:V2
+      - code-testing:TP2
+      - code-common:CP13
+      - code-common:CP3
+    considered:
+      raise_the_timeout_again:
+        description: Bump the per-test timeout a second time, from 120s to whatever the newest large merge needs.
+        rationale: |
+          The cheapest possible change -- one number, no new code, and it would have made the suite green within the minute. Rejected because it had already been tried twice (the 20s suite default, then `3ba6ba3`'s 120s on this test) and both times the failure returned on the next large commit, which is the definition of a fix that does not address the cause. It also leaves the far worse half of the defect entirely untouched: three tests would continue to report green while asserting nothing, and no timeout value can detect that. The end state of this path is a test that takes minutes, verifies nothing, and still cannot be trusted.
+        would_have_served:
+          - gvp:V4
+          - personal:V1
+        conflicts_with:
+          - gvp:V10
+          - gvp:V3
+      pin_the_test_to_fixed_shas_in_this_repository:
+        description: Replace the commit hunts with hard-coded SHAs from this repo's history, so the ranges stop moving.
+        rationale: |
+          Genuinely fixes the nondeterminism the commit hunts caused -- a pinned SHA cannot scroll out of a window, so the silent `return` guards could go and the assertions could be made specific against known content. Rejected because it buys determinism with portability: a pinned SHA is absent in a shallow clone, in a fresh fork, and after any history rewrite, so the test becomes unrunnable outside this exact clone and the guards would have to come back to cope. The runtime problem also survives, since a pinned commit's cost is still that commit's size, and this repo's largest commits are the ones a tracer test most wants to touch. Content the test wrote is the only input that is both known and available everywhere.
+        would_have_served:
+          - gvp:V3
+        conflicts_with:
+          - gvp:V10
+          - gvp:G6
+      stub_git_and_drive_the_tracer_against_a_fake:
+        description: Inject or mock the command runner so no subprocess is spawned and the diff output is supplied by the test.
+        rationale: |
+          By far the fastest -- milliseconds, no tmpdir, no cleanup, and #19's leak class cannot arise at all. It also has a legitimate design argument behind it, since a seam for the command runner would make the module testable without any process at all (code-common:CP13). Rejected for this module specifically: `traceGitDiff` is almost entirely an adapter over real git's behaviour -- `--name-only` path spelling, `git show <rev>:<path>` failing for a file absent at that commit, which the code reads as "added"/"removed". A stub would assert the test author's model of git, and every interesting bug here lives in the gap between that model and git. Building the repository keeps real git in the loop for a cost that is bounded by the fixture rather than by history.
+        would_have_served:
+          - personal:V1
+          - gvp:V4
+        conflicts_with:
+          - gvp:V10
+      drop_live_repository_coverage_entirely:
+        description: Make the file purely synthetic, with no test that touches this repository or its real library.
+        rationale: |
+          The most internally consistent reading of the rule this decision states, and it would have removed the last line of the file that mentions `WORKTREE_ROOT`. Rejected as slightly too strict: the real `.gvp/library` is hundreds of elements across inherited sources, and a fixture of three decisions cannot show that catalog construction and ref lookup still compose at that scale. The kept `HEAD..HEAD` test buys that for one constant-time `git diff`, and it is history-INDEPENDENT rather than merely history-cheap, so it does not reintroduce what #20 reported. The rule is about reading history, not about never touching the repo.
+        would_have_served:
+          - gvp:V10
+          - personal:V1
+        conflicts_with:
+          - code-testing:TP1
+    refs:
+      - file: tests/refs/git-diff-tracer.test.ts
+        identifier: buildFixtureRepo
+        role: implements
+      - file: tests/refs/git-diff-tracer.test.ts
+        identifier: trace
+        role: implements
+      - file: src/refs/git-diff-tracer.ts
+        identifier: getChangedFiles
+        role: implements
+    origin:
+      - date: '2026-09-25'
+        note: 'Issue #20 (git-diff-tracer test is coupled to live repo history; times out after a large merge), which diagnosed the coupling and proposed the synthetic repo. Issue #19 (838 leaked /tmp directories from git-backed suites) is adjacent and shaped the teardown, but is NOT fixed here -- the source-resolver suites it names still leak ~20 directories per full run.'
+      - id: e0b88bca-ecf7-4b07-90e1-c7bd9dacbb49
+        date: '2026-09-25T23:39:44.857Z'
+        note: Imported from tracer-fixture-patch.yaml
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
 constraints:
   - id: C1
     name: Agents optimize for minimal effort
