@@ -3391,7 +3391,7 @@ decisions:
       - file: src/cli/commands/query.ts
         identifier: queryCommand
         role: implements
-  - id: D62
+  - id: D64
     name: Diagnostic display is scoped by source, tri-state, and never silent
     rationale: |
       A project that inherits a library inherits its diagnostics. Measured in this repo after wiring `@github:shitchell/gvp-docs@v0.7.0`: 49 of 148 warnings landed on upstream `personal:*` / `code-*` elements (W005 x24, W003 x23, W017 x2). They are not this project's defects, they cannot be fixed from this repo, they grow with the library rather than with the project, and they bury the 99 local ones. Validating gvp-docs standalone emits the same set element for element, so inheritance did not generate them -- it only made pre-existing upstream findings visible somewhere nothing can act on them. The display, not the analysis, is what needed work.
