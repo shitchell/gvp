@@ -23,6 +23,9 @@ meta:
     origin:
       - date: '2026-02-23'
         note: Inferred from planning sessions
+  inherits:
+    - source: '@github:shitchell/gvp-docs@v0.7.0'
+      as: me
 goals:
   - id: G1
     name: Facilitate alignment across collaborators
@@ -551,6 +554,42 @@ principles:
     origin:
       - date: '2026-09-03'
         note: Extracted while designing the library registry (#15), where two projects inheriting the same library would otherwise contend on one entry file. The fragility and atomicity caveats were added after adversarial review found the first draft of this design had already violated both.
+  - id: P19
+    name: A named affordance is earned when the general mechanism leaks
+    statement: |
+      A general mechanism does not substitute for a named affordance when using it requires understanding concepts unrelated to the task.
+
+      Default to reuse. An existing general surface should answer a new need, and adding a second way to say the same thing is normally the redundant-mechanism smell P11 exists to catch; CP11 says the same from the other side -- check whether a new surface can reuse an existing one before introducing it.
+
+      Then check the cost of that reuse at the INTERFACE, not at the engine. Enumerate the concepts the user must understand to reach their goal through the general mechanism. If every one of them is about the task, the general mechanism is the answer and no new surface is warranted. If any of them is machinery orthogonal to the task -- an extra wrapper, precedence semantics, a blast radius wider than what the user is trying to affect, a subsystem they had no reason to know exists -- then the generality has leaked into the interface, and a narrow named affordance is warranted for that one task.
+
+      THE NAMED AFFORDANCE MUST DELEGATE TO THE GENERAL MECHANISM, NEVER REIMPLEMENT IT. This clause is not decoration; it is what keeps P11 SATISFIED rather than overridden. One mechanism with two spellings is not two mechanisms. It also fixes how the new surface must be counted: a spelling inherits every guarantee, every precedence rule and every test of the thing it delegates to, so a standing decision that enumerates "the mechanisms" is not contradicted by adding one. A named affordance that reimplements the behaviour IS a second mechanism, and P11 forbids it -- the delegation is the whole licence. H6 says this by layer: unify the engine where purpose is shared, let the interface keep distinct entry points for distinct user intents.
+
+      Worked cases. (1) Opting ONE LIBRARY out of the registry through the general mechanism obliges the user to learn that a document's `meta` can carry config at all, the `{mode, value}` wrapper that carries it, what `replace` means as against `additive`, and that resolution is ancestor-wins over the whole consuming invocation. None of those four concepts is about the registry; the mechanism has leaked, and a named library-scoped opt-out that sets the same underlying switch is warranted. (2) The same test returns the same answer for `--no-registry` (D43), and returned it before this principle existed: asking a CI job to reach `registry.enabled: false` obliges it to learn config-layer discovery and to write a config file it may not be permitted to write. (3) It returns the opposite answer for a proposed shorthand that merely saves typing over an existing flag -- the concepts involved are all about the task, so the shorthand is a second spelling with no leak to justify it, and P11 rejects it.
+
+      WHY THIS IS A PRINCIPLE AND NOT A HEURISTIC. The enumerate-the-concepts step looks like a test but does not decide by itself: judging a concept "machinery orthogonal to the task" is a weighing call, and two readers applying it honestly can reach different answers on the same case. A heuristic's test must be checkable; this one states a preference and supplies a frame for arguing it. Graduation to a heuristic stays available once the orthogonality test has survived enough real use to be stated as a condition rather than a judgement.
+    tags:
+      - framework
+      - tooling
+      - usability
+    maps_to:
+      - gvp:P11
+      - gvp:H6
+      - gvp:V5
+      - gvp:C1
+      - personal:P8
+      - code-common:CP11
+    origin:
+      - date: '2026-09-25'
+        note: 'Authored to settle when a narrow named surface is warranted over an existing general one, which P11, H6, personal:P8 and code-common:CP11 together left open -- they establish the preference for reuse but name no condition under which reuse stops being the answer. Surfaced by issue #25, where the general mechanism (meta.config_overrides) technically reaches the goal but only through four concepts unrelated to it.'
+      - id: a0596d8b-d2f6-45d4-bea7-55dbd553e261
+        date: '2026-09-25T21:21:17.379Z'
+        note: Imported from patch-guidance.yaml
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+      - date: '2026-09-25'
+        note: 'Reclassified from heuristic gvp:H11 to principle gvp:P19 on maintainer review, before any dependant shipped. The hard/soft test fails: the core step -- "enumerate the concepts the user must understand; if any is machinery orthogonal to the task, the generality has leaked" -- turns on judging a concept orthogonal, which is a weighing call rather than a checkable condition, so two readers can differ. Per the cairn skill a soft preference filed as a heuristic is a miscategorisation. Body text and mappings are preserved verbatim apart from the added closing paragraph recording this reasoning; H11 is retired and its id is never reused (R1). Graduation back to a heuristic stays available once the orthogonality test has survived real use.'
 heuristics:
   - id: H1
     name: Core vs. example placement
@@ -694,6 +733,37 @@ heuristics:
       - id: 402a40ac-38b4-4abf-a838-dcd66afd12f1
         date: '2026-07-20T23:00:05.014Z'
         note: Imported from guiding-patch.yaml
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+  - id: H10
+    name: Place a view by its data source, not its subject
+    statement: |
+      Views are placed by their data source, not by their subject matter. Two views can be about the same nouns and still belong on different commands, because what makes an answer trustworthy is which store produced it.
+
+      In cairn the two stores are the RESOLVED CATALOG -- what `buildCatalog` produced for this invocation, i.e. the library this project will actually use -- and the MACHINE-GLOBAL REGISTRY -- every library cairn has ever resolved on this machine. A view over the resolved catalog belongs on a catalog-building command (`query`, `export`). A view over the registry belongs on `libs`. A single command never mixes the two stores, and a view is never derived from the registry when the catalog can answer it.
+
+      The asymmetry is not stylistic. The registry is machine-wide: it does not know which of its entries the current invocation resolved, its names are deliberately not unique (D46), and its index unit is the document rather than the invocation (D45). A catalog question answered out of the registry is therefore answered from a strictly weaker store -- the answer may happen to be right, but the guarantee behind it is gone, which is the failure mode V10 names ("reliable -- or visibly absent"). The converse also holds: a question about libraries this invocation did NOT resolve cannot be answered by the catalog at all, however much it is "about libraries".
+
+      THE TEST when a new view is proposed: name the store that must be read to produce it. If the command you were about to hang it on does not already read that store, it is the wrong command -- and if the answer would require reading both, it is two views, not one.
+
+      Worked cases. A "which documents will this project actually use, with element counts" view (#24) is a catalog question and belongs on a catalog-building command, not on `libs`, even though its subject is libraries. A "list the inherited sources this library pulls in" view is likewise a catalog question. A "registry statistics for this project" view reads the registry and belongs on `libs`, even though its subject is this one project. And D54 needed no separate argument for putting `list`, `show` and `search` on `libs`: all three read the registry.
+    tags:
+      - tooling
+      - usability
+      - framework
+    maps_to:
+      - gvp:P11
+      - gvp:V10
+      - gvp:V6
+      - gvp:C1
+      - code-common:CP11
+    origin:
+      - date: '2026-09-25'
+        note: 'Authored to settle where a resolved-library view belongs (issue #24), which the existing guidance left open. The placement axis is the data source; the subject-matter reading would have put a catalog view on `libs` because both are "about libraries".'
+      - id: 5fca37a4-8d7a-4cba-8304-1f7935b4f159
+        date: '2026-09-25T21:21:17.379Z'
+        note: Imported from patch-guidance.yaml
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
@@ -874,6 +944,65 @@ rules:
     origin:
       - date: '2026-09-03'
         note: 'Raised while designing the library registry (#15) and filed upstream as issue #16. Recorded as a rule rather than a constraint on the human''s correction: the impossibility of locally agreeing on a generated identity is the external fact, but requiring identity to be decreed upstream is a rule this project made.'
+  - id: R10
+    name: An inheritance alias never shadows a document name
+    statement: |
+      An `inherits` alias must not shadow any `meta.name` reachable in the graph -- neither a document in the declaring library nor a document in any library it inherits, directly or transitively.
+
+      R8 makes document names unique within a library, but it is silent on the alias, and aliases and document names share ONE reference keyspace: `[<alias>:]<meta.name>:<id>`. An alias equal to a reachable document name produces references whose leading segment a reader cannot classify -- `personal:R2` reads as document `personal` to one reader and as alias `personal` to another -- and the two readings can denote different elements. The grammar may resolve it deterministically; the human or agent citing it cannot, and a citation that cannot be verified by eye is the same broken foundation R8 exists to prevent (P13/H8). An alias exists as the three-segment escape hatch FOR a collision, so it must not be the collision.
+
+      When authoring an `inherits` entry, choose the alias against the names actually reachable in the resulting graph, not against the source repository's name -- the repository name is the likeliest thing to collide, because it is usually also the name its own root document carries.
+    tags:
+      - framework
+      - integrity
+    maps_to:
+      - gvp:G5
+      - gvp:V10
+      - gvp:V6
+      - gvp:R8
+      - gvp:P14
+    origin:
+      - date: '2026-09-25'
+        note: 'Authored because R8 covers document-name uniqueness and is silent on alias/name collision. D59 chose `as: me` over `as: personal` on exactly this reasoning, but had to argue it from scratch -- an unforced choice at the time, and one a later author had no guidance to repeat.'
+      - id: f2f8af2e-216f-4d04-a73d-bc306c838ca1
+        date: '2026-09-25T21:21:17.379Z'
+        note: Imported from patch-guidance.yaml
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+  - id: R12
+    name: A recognised namespace accepts unknown members only with a diagnostic
+    statement: |
+      A recognised namespace accepts unknown members only with a diagnostic. Passthrough preserves; it does not excuse silence.
+
+      Wherever cairn recognises a container -- a document's top-level keys, `meta` and its sub-keys, an element's fields, a model's fields nested inside a list or dict -- a member of that container that cairn does not recognise must produce a diagnostic naming it. Preserving the member and warning about it are not alternatives. personal:V5 ("unknown fields are preserved, not filtered") and personal:R2 ("no silent failures") are BOTH satisfied only by doing both; preserving without warning merely trades a data-loss failure for a no-op failure, in which the user's key survives, means nothing, and nothing says so.
+
+      Severity follows H8 -- a warning where the unknown member cannot affect the current output, an error where it can -- and stays suppressible by code under D7, so the escape hatch for a deliberately unrecognised key is the existing, explicit one rather than silence.
+
+      The precedent exists and was simply never extended: W016 UNRECOGNIZED_YAML_KEY does exactly this for a document's TOP-LEVEL keys while the element schema stays `.passthrough()` (src/validation/passes/structural-pass.ts). `meta` sub-keys were never covered, which is why `meta.registry.enabled: false` validates clean and does nothing at all.
+
+      SCOPE: this rule binds cairn and is NOT offered as general guidance -- see the origin note for the maintainer's verbatim reason for accepting a restriction this broad here. The reason is specific to what this project is: a library that other libraries inherit, whose entire product is the correctness of a graph its users cannot check by eye. Do not read it as a claim about namespaces in general, and do not promote it upstream.
+    tags:
+      - framework
+      - integrity
+    maps_to:
+      - gvp:G8
+      - gvp:V10
+      - gvp:P14
+      - personal:P4
+      - personal:R2
+      - personal:V5
+    origin:
+      - date: '2026-09-25'
+        note: |
+          Authored to resolve the personal:V5 / personal:R2 tension by construction -- preserve AND warn -- rather than leaving each author to pick a side. Surfaced by issue #25, where `meta.registry.enabled: false` is accepted, preserved, and ignored, with rc 0.
+          The maintainer accepted the breadth of this rule for a project-specific reason, verbatim: "feels a little extra... I would typically object, but given the point of the project, I think I can accept that more broad restriction to help ensure correctness." Recorded here so the acceptance stays attached to its condition, and so a later author does not generalise a project-scoped concession into universal guidance.
+      - id: b76a5661-bbf5-4c90-8ffe-ac367fcd0b61
+        date: '2026-09-25T21:21:17.379Z'
+        note: Imported from patch-guidance.yaml
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
 decisions:
   - id: D1
     name: Walk-backwards config discovery
@@ -2177,6 +2306,11 @@ decisions:
       The substantive cost is acknowledged: read-only commands now write to the home directory by default. D22 raised three objections -- CI sandboxes, multi-user environments, and auditability. D57's resilience answers the sandbox half; the other two are accepted costs of the flip, recorded here so the trade is explicit rather than overlooked.
             **Required mechanism: `mergeConfigs` must deep-merge the `registry` key.** The "in any config layer" clause above is not free -- config layering is otherwise last-wins per key, so a global `registry.enabled: false` plus a project config that merely mentions `registry:` for any reason would yield `{}`, the object default would fill in `enabled: true`, and recording would silently resume against an explicit opt-out. That is the worst available failure for this decision: it re-enables a write side effect precisely for the user who took the trouble to disable it. `registry` is therefore deep-merged while every other nested key stays last-wins.
             **Limit: `--no-config` defeats the CONFIG opt-out.** A global `registry.enabled: false` is discarded by `cairn --no-config validate` (and by `--config <other>`, and by an empty `GVP_CONFIG_GLOBAL`), so recording resumes. That is arguably what `--no-config` means -- but with the default now ON it means the flag that makes the tool quieter makes it write, which a reader of this decision alone would not predict. The `--no-registry` FLAG is unaffected: it is applied to the already-loaded config, so no config-discovery flag can reach it, and that is tested.
+      **Amendment (2026-09-25): the opt-out is ONE mechanism with a set of admitted spellings; a library-scoped declaration joins the set.** The clause above says the opt-out "has two named surfaces", and tests/registry/docs.test.ts enforced that count literally. Both were counting SPELLINGS. There has only ever been one MECHANISM -- `registry.enabled` -- and both named surfaces set it: a config layer sets it directly, and `--no-registry` is applied by parseConfigOptions to the already-loaded config, which is precisely why no config-discovery flag can reach it. Counting spellings made the count brittle without making the guarantee any stronger, because every spelling of one mechanism inherits that mechanism's guarantees, precedence and tests by construction.
+      A third spelling is admitted here: `meta.registry.enabled`, declared by a library about itself. It is warranted under P19 ("a named affordance is earned when the general mechanism leaks") -- reaching the same switch through the general mechanism, `meta.config_overrides`, obliges the user to learn that a document's meta can carry config at all, the `{mode, value}` wrapper, `replace` versus `additive`, and ancestor-wins precedence, none of which is about the registry. It is admitted as a SPELLING rather than as a third mechanism only because P19's delegation clause binds it: it must set `registry.enabled` and must not reimplement recording suppression. A version that reimplemented it would be a second mechanism and P11 would forbid it, so the delegation is the whole licence -- not an implementation note.
+      Its scope is fixed by D60 ("a library's declared config governs its own writes, not its consumer's"), not left to the implementer. A library-scoped declaration governs the DECLARING library's own records and never the consuming invocation's. `config_overrides` is ancestor-wins (src/catalog/catalog.ts), so the unscoped reading -- an inherited library disabling its consumer's entire registry, including the consumer's own entries -- is the exact failure this spelling must not reproduce. That hazard, together with recording depending on how a library happens to be addressed, is what motivated the named spelling in the first place (#25).
+      Why the rule was changed rather than bent, per personal:P9 ("follow rules uniformly, change them explicitly"): the original count was load-bearing for a real reason. An env var was drafted and deliberately removed during planning, and documenting a surface the decision had not admitted would have put the docs ahead of the decision. That reason survives this amendment intact and is not weakened by it; what changes is the UNIT being counted. The test now enumerates the admitted spellings and fails on any other, which enforces the original intent more precisely than "exactly two" did -- "exactly two" would have had to be broken to admit any spelling at all, including one that strengthens the guarantee. The line between the old rule and the new one is P19: a spelling is admitted only when the general mechanism leaks AND the new surface delegates to it; a spelling that merely saves typing is still refused, and the drafted env var remains undecided rather than admitted by implication.
+      NOT IMPLEMENTED BY THIS AMENDMENT. This decides that `meta.registry.enabled` is admissible and fixes its semantics; no source change to the registry path accompanies it. Until it ships, the README must not document the spelling -- the same docs-ahead-of-code rule that removed the env var -- and the counting test guards that. Issue #25 carries the implementation.
     tags:
       - framework
       - usability
@@ -2186,6 +2320,8 @@ decisions:
       - gvp:G7
       - gvp:V5
       - gvp:C1
+      - gvp:P19
+      - gvp:D60
       - gvp:D22
     considered:
       keep_opt_in_but_advertise_it:
@@ -2233,6 +2369,18 @@ decisions:
       - id: d2eb21d8-a123-4a7c-9d09-33b4ce74cf11
         date: '2026-09-04T22:05:29.741Z'
         rationale: Record that --no-config defeats the config opt-out. The flag opt-out survives it; the config one does not, and D43 promised "any config layer" without qualifying which flags can bypass the layers entirely.
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+      - id: 20c689ac-3afc-4c82-9da8-74828e54dd82
+        date: '2026-09-25T21:23:32.156Z'
+        rationale: 'Amend the opt-out clause to count MECHANISMS rather than SPELLINGS, and admit meta.registry.enabled as a third spelling of the one mechanism registry.enabled (#25). D43''s literal "two named surfaces", and tests/registry/docs.test.ts which enforced that count, were both counting spellings; --no-registry was already a spelling, not a second mechanism. The reason the original count existed -- an env var drafted and deliberately removed, and docs must not run ahead of the decision -- survives intact and the env var stays refused. The new spelling is warranted by gvp:P19 and scoped by gvp:D60, both authored for this change (personal:P9: change the rule explicitly and form the heuristic for when old versus new applies); they were first filed as H11 and R11 and reclassified on maintainer review the same day. Decision only: no source change to the registry path, and the README must not document the spelling until it ships.'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+      - id: c186ba33-410b-456d-aba5-13211164ed10
+        date: '2026-09-25T22:10:00.000Z'
+        rationale: 'Reference rewrite only, no rationale changed: the two elements this amendment leans on were reclassified on maintainer review hours after being authored -- heuristic H11 became principle gvp:P19 (its orthogonality test is a weighing call, not a checkable condition) and rule R11 became decision gvp:D60 (it describes runtime product behaviour, not how this project writes code). The amendment''s prose and maps_to now name the live ids; H11 and R11 are retired and their ids are never reused (R1).'
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
@@ -2996,6 +3144,210 @@ decisions:
         updates_reviewed:
           - a3da9f3b-36e7-40b1-bea4-13ddbf57bbe7
         note: Refs added during Task 14 (D40-D58) and Task 15 (D56 README). Mechanical ref additions linking each decision to its implementation; no rationale changed.
+  - id: D59
+    name: Inherit the maintainer's personal library from gvp-docs
+    disposition: accepted
+    rationale: |
+      gvp.yaml carried no `inherits`, so the maintainer's own guiding elements -- `personal`, `ai-common`, `code-common`, `code-realtime`, `code-testing`, `code-web` -- were absent from this project's library graph and could not be cited by a gvp decision. Two independent investigations (#24, #25) flagged this as blocking. It was never only a lint problem: `docs/plans/2026-09-03-library-registry-design.md` records a draft that misquoted `personal:P8` as `gvp:P8`, and the repo's own correction calls that "the most serious defect -- a false quotation entering an append-only record." Decisions were reaching for this guidance and having to either misattribute it or leave it uncited. The maintainer's stated reason for wiring it now, verbatim (2026-09-25): "ooh, when it started my lib wasn't in the cloud. now that it is, yes, we should import the GitHub/shitchell/gvp-docs repo" -- the library was not publishable when this project started, and now is, so the obstacle that justified a self-contained library no longer exists. The source is pinned to the immutable tag `@github:shitchell/gvp-docs@v0.7.0` (DEC-1.9 forbids a branch), aliased `as: me`. The alias is deliberately a name that collides with no upstream `meta.name`, so the two-segment forms already in circulation -- `personal:R2`, `code-common:CP11` -- keep resolving verbatim and no existing or future citation has to be rewritten; the alias exists only as the three-segment escape hatch should a future document name ever collide. Upstream carries no `meta.config_overrides`, so the ancestor-wins override path cannot disable this project's registry.
+    tags:
+      - framework
+      - alignment
+      - integrity
+    maps_to:
+      - gvp:G11
+      - gvp:P15
+      - gvp:V1
+      - gvp:V3
+      - personal:G2
+      - personal:V3
+    considered:
+      keep_self_contained:
+        description: Leave gvp.yaml with no `inherits` -- the library stays self-contained.
+        rationale: |
+          Rejected. This was the right call only while the personal library was unpublished; the maintainer's quote retires that premise. Holding it now keeps the most relevant guidance permanently uncitable and leaves the misquotation failure mode live.
+        would_have_served:
+          - gvp:V4
+        conflicts_with:
+          - gvp:G11
+          - gvp:V3
+          - personal:G2
+      duplicate_elements_locally:
+        description: Copy the needed upstream elements into gvp.yaml as gvp-native analogues.
+        rationale: |
+          Rejected. It buys citability with no network fetch, cache, or pin to maintain, but forks guidance that has one author: the copies drift from upstream with nothing to detect it, and a reader cannot tell a gvp-native element from a transcribed one. That is the same false-provenance failure the misquotation already demonstrated, made structural -- and it is the copy-paste that personal:V3 exists to forbid.
+        would_have_served:
+          - gvp:V4
+        conflicts_with:
+          - gvp:V2
+          - gvp:V9
+          - personal:V3
+      name_documents_individually:
+        description: Inherit only `personal` and `code-common` rather than the whole source.
+        rationale: |
+          Not available. Object-form `inherits` names a source, not a document, and pulls every document from it (DEC-1.7); the string form selects a document only within the same source. Pulling all six is therefore the only cross-repo form, and it is also the wanted one -- `code-testing`, `code-web`, `ai-common` and `code-realtime` are the same author's guidance and cost nothing to have resolvable.
+        would_have_served:
+          - gvp:V4
+        conflicts_with:
+          - gvp:G11
+    refs:
+      - file: .gvp/library/gvp.yaml
+        identifier: meta
+        role: defines
+    origin:
+      - id: c70d8221-7943-4541-a585-9d2cd3a94cab
+        date: '2026-09-25T20:41:19.519Z'
+        note: Imported from inherits-patch.yaml
+        by:
+          name: Shaun Mitchell
+          email: shaun@shitchell.com
+  - id: D60
+    name: A library's declared config governs its own writes, not its consumer's
+    rationale: |
+      A document-declared config override whose effect is a write side effect governs only the declaring library's own writes, never the consuming invocation's.
+
+      Document-declared config (`meta.config_overrides`) resolves ancestor-wins across the inheritance chain. That is defensible for overrides describing how a library should be READ -- priority direction, definitions, anything about interpreting the ancestor's own elements -- because the ancestor genuinely knows more about its own content than its consumer does. It is indefensible for an override that causes or suppresses a WRITE, because the write lands in the consumer's environment, on the consumer's machine, over the consumer's data, and the consumer never opted in. Ancestor-wins there means authority over someone else's side effects acquired purely by being upstream of them.
+
+      The measured instance: an inherited library carrying `config_overrides.registry.enabled: false` disables the CONSUMING project's entire registry -- including the consumer's own entries, which the ancestor has no view of and no stake in -- silently, at load time, for every command. That is a far larger effect than any statement the declaring library could reasonably have meant to make, and the consumer's only signal is that something stopped happening.
+
+      So a declaration about a write side effect is read as a statement about the DECLARING library and applied to that library's own records only; it never propagates to the consumer's. Where a mechanism cannot be scoped that way, it must not be exposed as a document-declared override at all. This also fixes, in advance, what any library-scoped opt-out may mean once one is built: "do not record ME", never "do not record".
+
+      NOT IMPLEMENTED BY THIS DECISION. It fixes the semantics that any implementation must satisfy; `src/catalog/catalog.ts` still applies every override ancestor-wins over the whole invocation. Issue #25 carries the implementation.
+    tags:
+      - framework
+      - integrity
+      - tooling
+    maps_to:
+      - gvp:G5
+      - gvp:V10
+      - gvp:V8
+      - personal:V4
+      - personal:R2
+    considered:
+      ancestor_wins_governs_the_whole_invocation:
+        rationale: |
+          Leave the behaviour as built: every `meta.config_overrides` key, including write-affecting ones, resolves ancestor-wins across the whole consuming invocation. This is the status quo and has the single genuine merit of one uniform precedence rule -- a reader learns "ancestor-wins" once and it holds for every key, with no read/write taxonomy to consult and no per-key exceptions to remember. Rejected because the measured hazard is not a corner case: an inherited library carrying `registry.enabled: false` silently disables the consuming project's entire registry, including entries the ancestor has no view of, for every command, with no signal beyond something quietly no longer happening. A uniform rule is not worth the ancestor holding unrequested authority over the consumer's side effects, and the failure is invisible rather than loud, which is the worst available shape for it.
+        would_have_served:
+          - gvp:V4
+          - personal:V1
+        conflicts_with:
+          - gvp:V10
+          - personal:V4
+      forbid_write_affecting_overrides_entirely:
+        rationale: |
+          Refuse to let a document declare any override whose effect is a write, and diagnose the attempt. This is the strictly safest reading and needs no scoping mechanism at all. Rejected as broader than the hazard: it would also refuse the legitimate, narrow statement a library has standing to make about ITSELF ("do not record me"), which is exactly the surface #25 is trying to build. Scoping the declaration to the declaring library removes the hazard without removing the capability, so the blanket refusal pays a real cost for no additional safety.
+        would_have_served:
+          - gvp:V10
+          - gvp:V4
+        conflicts_with:
+          - gvp:V8
+          - personal:V7
+      consumer_opts_in_to_inherited_write_overrides:
+        rationale: |
+          Keep ancestor-wins, but require the consuming library to list which inherited write-affecting overrides it accepts, so nothing lands unrequested. Rejected under C1 and G8: it makes correctness depend on a consumer knowing in advance that an ancestor might declare such a thing and writing a config stanza about it, which is precisely the "a feature that must be discovered before it works" failure D43 was written against. The default for a consumer who does nothing must already be the safe one.
+        would_have_served:
+          - personal:V4
+        conflicts_with:
+          - gvp:C1
+          - gvp:G8
+    origin:
+      - date: '2026-09-25'
+        note: 'Authored against a measured hazard: meta.config_overrides is ancestor-wins (src/catalog/catalog.ts), so an inherited library carrying config_overrides.registry.enabled false silently disables the consumer''s whole registry. Surfaced while scoping issue #25; written to bind every future document-declared override with a write side effect, not only the registry one.'
+      - id: a5a96a81-65b6-4b0a-bb02-3afb294e4688
+        date: '2026-09-25T21:21:17.379Z'
+        note: Imported from patch-guidance.yaml
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+      - date: '2026-09-25'
+        note: 'Reclassified from rule gvp:R11 to decision gvp:D60 on maintainer review, before any dependant shipped. It describes what cairn DOES at runtime, observable by a user -- product behaviour -- rather than how this project operates while writing code; contrast gvp:R6, which constrains the code we write. By the source test it originated in the design phase, which makes it an architectural decision. The body is preserved as the decision''s rationale; `considered` alternatives were added on conversion, since a rule states a constraint while a decision must show what it was chosen over. R11 is retired and its id is never reused (R1).'
+  - id: D61
+    name: Catalog enumerations get a --list <type> selector on query
+    rationale: |
+      A project needs to know which documents the library it will ACTUALLY USE contains, with element counts, so an agent can decide at session start which documents bear on its task (#24). That view ships as `cairn query --list documents`, with `--list <type>` reading its vocabulary from a listing registry and `--format` unchanged.
+
+      WHERE IT GOES is settled by H10 and not re-argued here: the question names the resolved catalog as its store, so it belongs on a catalog-building command. `libs` reads the machine-global registry, which cannot answer it -- `mergeUsageEdges` is a union that never prunes (src/registry/usage-edge.ts), so a `libs list --resolved` would mean "ever resolved", and D41 makes the registry a strict superset of what this invocation actually resolves. An answer that is merely usually right is the failure V10 names.
+
+      WHY A SELECTOR RATHER THAN A FORMAT. `--format documents` conflates the two axes: a format says HOW to render, a selector says WHAT to enumerate. personal:P3 ("separate what from how at every layer") forbids the merge, and the practical cost is immediate -- once `documents` is a format, there is no way to ask for the listing as JSON, because the slot that would have said so is already spent.
+
+      WHY ONE PARAMETERISED FLAG RATHER THAN A FLAG PER VIEW. `--list-documents`, `--list-tags`, `--list-sources` is the near-duplicate-entry-point shape personal:P8 exists to refuse. One flag whose argument is looked up in a registry (src/listings/registry.ts, shaped after createExporterRegistry per P15) means the next enumeration is a class plus one registration, with no change to the command and no new flag to document. It also composes by construction: `--list documents --format json` needs no special case, and the accepted vocabulary and the help text are the same data, so they cannot drift.
+
+      THE SHAPE OF THE ANSWER. Rows carry `name`, `document_path`, `source`, `description`, `scope`, `element_counts` and `element_total`, and the schema is additive only (code-common:CP11) because an agent-facing ruleset reads it (D54). `description` is `meta.description`, which D18 promoted to a first-class field for exactly this session-start-index use. Counts are keyed by the category's schema `yaml_key`, resolved through the registry rather than written out, mirroring src/registry/record.ts -- hard-coding the built-in names would silently report zero for a user-defined category (R6). Field names deliberately match `libs list --json` for the facts the two share, so the registry view and the catalog view can be joined rather than translated.
+
+      THE TRAP THIS DESIGN EXISTS TO AVOID. Rows are derived from `catalog.documents`, NEVER from the element output. A document that is tags-only, or whose elements are all deprecated, contributes no elements to any filtered view and would disappear entirely from an element-derived listing -- undercounting the catalog with nothing to say so. That is the silent-miss class D54 was written against, and both cases are pinned by tests.
+
+      FILTERS SPLIT ALONG THE SAME SEAM. `--document` selects documents, so it restricts which ROWS appear. The element filters (`--category`, `--tag`, `--status`, `--include-deprecated`, the ref filters) restrict which elements are COUNTED, and never remove a row. A filter that matches nothing yields every document at zero, which is an answer; a filter that made documents vanish would be the trap above by another route.
+
+      ALSO IN SCOPE: `query --format json` gains `_document`, `_documentPath` and `_source`. Issue #24 asked for a document field; three are needed because `_canonicalId` cannot be split back apart -- `source` may itself contain `:` (`@github:org/repo`), so string-splitting it is not a substitute (P14) -- and because document names are not unique across inherited libraries (D46), which makes the name alone an unsound join key. The three fields are exactly the row key `--list documents` emits, so element output and the listing join on equality.
+    tags:
+      - tooling
+      - usability
+      - extensibility
+    maps_to:
+      - gvp:G7
+      - gvp:G11
+      - gvp:V6
+      - gvp:V10
+      - gvp:H10
+      - gvp:D54
+      - gvp:D18
+      - personal:P3
+      - personal:P8
+      - code-common:CP11
+    considered:
+      libs_list_resolved:
+        rationale: |
+          A `--resolved` flag on `cairn libs list`, filtering the machine-global registry down to the entries this project resolved. Refused on the store test (H10) and on a verified mechanism, not on taste: the usage edge is a UNION that never prunes (mergeUsageEdges, src/registry/usage-edge.ts), so an entry a project resolved once stays attached to it forever -- a document deleted, renamed, or removed from `inherits:` still appears. D41 states the registry is a strict superset of what actually resolves. "Resolved" would therefore mean "ever resolved", and the answer would be right often enough to be trusted and wrong without warning, which is precisely the guarantee V10 requires to be reliable or visibly absent.
+        would_have_served:
+          - personal:P8
+        conflicts_with:
+          - gvp:V10
+          - gvp:H10
+          - gvp:D41
+      format_documents:
+        rationale: |
+          `cairn query --format documents`, reusing the existing format slot rather than adding a flag. Refused: a format is HOW output is rendered, not WHAT is selected, and merging the two violates personal:P3. The cost is concrete rather than theoretical -- spending the format slot on the selector leaves no way to ask for the listing as JSON, which is the one output D54 requires, and every future enumeration would have to be smuggled in as another pseudo-format.
+        would_have_served:
+          - personal:V1
+        conflicts_with:
+          - personal:P3
+          - gvp:D54
+      list_documents_boolean_flag:
+        rationale: |
+          A dedicated `--list-documents` boolean. Simplest possible change and correctly separates what from how. Refused because it does not survive its second instance: tags, sources and categories are all plausible enumerations over the same catalog, and each would arrive as another near-duplicate flag -- the shape personal:P8 refuses. The parameterised flag costs one registry lookup and makes the next view free.
+        would_have_served:
+          - personal:V1
+        conflicts_with:
+          - personal:P8
+      list_all_type_spelling:
+        rationale: |
+          Spelling the flag `--list-all <type>` rather than `--list <type>`; identical mechanism, different word. Set aside on readability: "all" invites the reading that it overrides the sibling filters, when in fact `--document` does restrict which rows appear, so the word would be making a promise the flag does not keep. `--list <type>` also parallels `--format <fmt>` -- flag names the axis, argument names the choice. Recorded because the maintainer floated the longer spelling; it is a one-word rename if preferred, with no design consequence either way.
+        would_have_served:
+          - gvp:V6
+      route_query_formats_through_the_exporter_registry:
+        rationale: |
+          Fixing the standing P15/R6 violation in query.ts first -- it imported createExporterRegistry without using it and hand-rolled its format switch -- by routing query's formats through the same registry `export` uses. Refused for this change after reading both paths: the format NAMES collide but the formats do not. `query --format json` emits a flat array of elements while JsonExporter emits `{documents, categories, tags}`; `query --format csv` emits five columns while CsvExporter emits the reserved set plus every dynamic field. Worse, `ExportOptions` carries only `includeDeprecated` and `documentFilter`, so an exporter handed this catalog would silently re-derive the unfiltered element set and ignore `--category`, `--tag`, `--status` and the ref filters. Unifying them means changing the Exporter contract and breaking two output shapes -- including the very output #24 extends. The dead import was deleted and the divergence is now documented at the switch, so the next reader does not mistake it for an abandoned refactor.
+        would_have_served:
+          - gvp:P15
+          - gvp:R6
+        conflicts_with:
+          - gvp:V10
+          - personal:V5
+    origin:
+      - date: '2026-09-25'
+        note: 'Issue #24, filed while defining how agents in the ~/wmd framework load GVP at session start. The issue deliberately left syntax to this project to settle against its own library; H10 (authored days earlier for exactly this question) settled the command, and personal:P3 and personal:P8 settled the flag shape.'
+    refs:
+      - file: src/listings/base.ts
+        identifier: Listing
+        role: defines
+      - file: src/listings/documents-listing.ts
+        identifier: DocumentsListing
+        role: implements
+      - file: src/listings/registry.ts
+        identifier: createListingRegistry
+        role: implements
+      - file: src/cli/commands/query.ts
+        identifier: queryCommand
+        role: implements
 constraints:
   - id: C1
     name: Agents optimize for minimal effort

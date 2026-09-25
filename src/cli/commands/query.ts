@@ -1,8 +1,32 @@
 import { Command } from 'commander';
 import { parseConfigOptions, buildCatalog, resolveDocumentFilter, filterElementsByDocument, getLibraryOverride, getStoreOverride } from '../helpers.js';
-import { createExporterRegistry } from '../../exporters/registry.js';
 import { renderCompactLine } from '../../exporters/compact-exporter.js';
+import { createListingRegistry } from '../../listings/registry.js';
 
+/**
+ * NOTE ON FORMAT DISPATCH (gvp:P15 / gvp:R6). `export` resolves its format
+ * through createExporterRegistry(); this command hand-rolls the switch
+ * below, and the divergence is deliberate rather than pending cleanup:
+ *
+ *   - `query --format json` emits a FLAT ARRAY of elements, while
+ *     JsonExporter emits `{documents, categories, tags}`. `query --format
+ *     csv` emits `qualified_id,category,name,status,tags`, while
+ *     CsvExporter emits reserved columns plus every dynamic field. The
+ *     names collide; the formats do not. Routing query through the registry
+ *     would silently change both outputs — including the very output #24
+ *     extends.
+ *   - `ExportOptions` carries only `includeDeprecated` and `documentFilter`.
+ *     It cannot express `--category`, `--tag`, `--status` or the ref
+ *     filters, so an exporter handed this catalog would re-derive the
+ *     unfiltered element set and quietly ignore the user's query.
+ *
+ * Unifying them is a real change to the Exporter contract (an element-set
+ * or predicate input) plus a breaking change to two output shapes. It is
+ * out of scope for #24 and recorded here so the next reader does not
+ * mistake it for an oversight. The unused `createExporterRegistry` import
+ * that used to sit at the top of this file — the thing that made it look
+ * like an abandoned refactor — is gone.
+ */
 export function queryCommand(): Command {
   const cmd = new Command('query')
     .description('Query and filter elements in the catalog')
@@ -13,6 +37,10 @@ export function queryCommand(): Command {
     .option('--refs-file <path>', 'Filter by ref file path (DEC-10.6)')
     .option('--refs-identifier <id>', 'Filter by ref identifier (DEC-10.6)')
     .option('--format <format>', 'Output format (text, json, csv, compact)', 'text')
+    .option(
+      '--list <type>',
+      `Enumerate a kind of thing in the resolved catalog instead of its elements (${[...createListingRegistry().keys()].join(', ')})`,
+    )
     .option('--include-deprecated', 'Include deprecated/rejected elements')
     .action(async () => {
       try {
@@ -36,13 +64,16 @@ export function queryCommand(): Command {
           elements = elements.filter(e => e.tags.includes(opts.tag as string));
         }
 
+        // Held past the filter step: `--list` needs it to restrict which
+        // ROWS appear, independently of which elements survive.
+        let documentFilter: Set<string> | undefined;
         if (opts.document) {
-          const allowed = resolveDocumentFilter(catalog, opts.document as string);
-          if (allowed.size === 0) {
+          documentFilter = resolveDocumentFilter(catalog, opts.document as string);
+          if (documentFilter.size === 0) {
             console.error(`No document matches '${opts.document}'. Check meta.name or documentPath.`);
             process.exit(1);
           }
-          elements = filterElementsByDocument(elements, allowed);
+          elements = filterElementsByDocument(elements, documentFilter);
         }
 
         // Ref filters (DEC-10.6)
@@ -57,10 +88,53 @@ export function queryCommand(): Command {
           });
         }
 
+        // `--list <type>` selects WHAT to enumerate; `--format` still
+        // selects HOW to render it (personal:P3). The two are separate
+        // flags precisely so they compose — a `--format documents` would
+        // have put a selector in the renderer's slot.
+        if (opts.list) {
+          const listings = createListingRegistry();
+          const listing = listings.get(opts.list as string);
+          if (!listing) {
+            console.error(
+              `Unknown listing type '${opts.list}'. Available: ${[...listings.keys()].join(', ')}`,
+            );
+            process.exit(1);
+          }
+          const rows = listing!.rows(catalog, { elements, documentFilter });
+          if (opts.format === 'json') {
+            process.stdout.write(JSON.stringify(rows, null, 2) + '\n');
+          } else if (opts.format === 'text') {
+            // Text goes to stderr like every other text view in this
+            // command; stdout stays reserved for structured output (DEC-5.12).
+            console.error(listing!.renderText(rows));
+          } else {
+            // Refuse rather than silently falling back to text. A listing
+            // is not an element stream, so the element formats have nothing
+            // to render — saying so beats emitting a shape the caller did
+            // not ask for (gvp:V10).
+            console.error(
+              `Format '${opts.format}' is not available for --list ${listing!.key}. Available: text, json`,
+            );
+            process.exit(1);
+          }
+          return;
+        }
+
         if (opts.format === 'json') {
           const output = elements.map(e => ({
             ...e.data,
             _category: e.categoryName,
+            // Document identity, split out because `_canonicalId` cannot be
+            // split back apart — `source` may itself contain `:` (e.g.
+            // `@github:org/repo`), so string-splitting it is not a
+            // substitute (gvp:P14). These three are the join key against
+            // `--list documents` rows (`name`, `document_path`, `source`);
+            // `_document` alone is not sufficient because document names are
+            // not unique across inherited libraries (gvp:D46).
+            _document: e.documentName,
+            _documentPath: e.documentPath,
+            _source: e.source,
             _libraryId: e.toLibraryId(),
             _canonicalId: e.toCanonicalId(),
           }));

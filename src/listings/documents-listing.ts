@@ -1,0 +1,126 @@
+import type { Catalog } from '../catalog/catalog.js';
+import { Listing, type ListingOptions } from './base.js';
+
+/**
+ * One row of `cairn query --list documents`. This shape is the contract
+ * (D54): it is what an agent reads at session start to decide which
+ * documents bear on its task, so fields are only ever ADDED (code-common:CP11).
+ *
+ * Field names deliberately match `cairn libs list --json` (see
+ * src/registry/library-entry.ts) for the facts the two views share —
+ * `name`, `source`, `document_path`, `scope`, `element_counts`. The two
+ * answer near-identical questions from different stores (gvp:H10), and
+ * identical keys make the answers directly diffable: "which of the
+ * libraries the registry knows about did this invocation actually
+ * resolve?" becomes a join rather than a translation.
+ */
+export interface DocumentRow extends Record<string, unknown> {
+  /** `meta.name`, falling back to documentPath. The address `-d` takes. */
+  name: string;
+  /** Library-relative path without extension. */
+  document_path: string;
+  /** `@local`, or the inherit source string (`@github:org/repo@ref`). */
+  source: string;
+  /** `meta.description` (D18) — the "what is this about" line, or null. */
+  description: string | null;
+  /** `meta.scope` — user-defined vocabulary, or null. */
+  scope: string | null;
+  /** Counts keyed by category YAML KEY (`principles`), schema-resolved. */
+  element_counts: Record<string, number>;
+  /** Sum of element_counts. Present so the common case needs no arithmetic. */
+  element_total: number;
+}
+
+/**
+ * Enumerate the documents in the RESOLVED CATALOG — the library this
+ * invocation actually built, root plus everything it inherits — with a
+ * per-category element count (#24, D61).
+ *
+ * Rows come from `catalog.documents`, NEVER from the element list. A
+ * document whose elements are all deprecated, or that carries only tag or
+ * category definitions, has no elements in any filtered view and would
+ * vanish entirely from an element-derived listing — silently undercounting
+ * the very catalog the caller asked to see. That is the failure class D54
+ * exists to prevent, and it is covered by a dedicated test.
+ */
+export class DocumentsListing extends Listing {
+  readonly key = 'documents';
+  readonly name = 'Documents';
+  readonly description = 'Documents in the resolved catalog, with element counts';
+
+  rows(catalog: Catalog, options: ListingOptions): DocumentRow[] {
+    const { elements, documentFilter } = options;
+
+    // Group the caller's surviving elements by their document. The key is
+    // (source, documentPath) — documentPath alone collides across inherited
+    // libraries, which is exactly the case this listing exists to show.
+    const countsByDoc = new Map<string, Record<string, number>>();
+    for (const el of elements) {
+      const docKey = docKeyOf(el.source, el.documentPath);
+      const counts = countsByDoc.get(docKey) ?? {};
+      // R6: resolve the count key from the schema, never from a literal
+      // category name. Mirrors src/registry/record.ts, which keys the
+      // registry's element_counts by yaml_key for the same reason — the
+      // plural form is what the user types and what `libs` reports.
+      const def = catalog.registry.getByName(el.categoryName);
+      const key = def?.yaml_key ?? el.categoryName;
+      counts[key] = (counts[key] ?? 0) + 1;
+      countsByDoc.set(docKey, counts);
+    }
+
+    const rows: DocumentRow[] = [];
+    for (const doc of catalog.documents) {
+      if (documentFilter && !documentFilter.has(doc.documentPath)) continue;
+      const counts = countsByDoc.get(docKeyOf(doc.source, doc.documentPath)) ?? {};
+      rows.push({
+        name: doc.name,
+        document_path: doc.documentPath,
+        source: doc.source,
+        description: doc.meta.description ?? null,
+        scope: doc.meta.scope ?? null,
+        element_counts: sortKeys(counts),
+        element_total: Object.values(counts).reduce((a, b) => a + b, 0),
+      });
+    }
+    return rows;
+  }
+
+  renderText(rows: Record<string, unknown>[]): string {
+    if (rows.length === 0) return 'No documents in the resolved catalog.';
+    const lines: string[] = [];
+    const nameWidth = Math.max(...rows.map((r) => String(r.name).length), 4);
+    const indent = ' '.repeat(nameWidth + 8); // name + gap + 4-wide total + gap
+    for (const row of rows) {
+      const r = row as DocumentRow;
+      lines.push(
+        `${r.name.padEnd(nameWidth)}  ${String(r.element_total).padStart(4)}  ${r.source}`,
+      );
+      const counts = Object.entries(r.element_counts)
+        .map(([k, v]) => `${k}=${v}`)
+        .join(' ');
+      lines.push(`${indent}${counts || '(no elements)'}`);
+      if (r.description) lines.push(`${indent}${r.description}`);
+    }
+    return lines.join('\n');
+  }
+}
+
+/**
+ * Map key for a document: (source, documentPath).
+ *
+ * JSON-encoded rather than joined on a separator character. `source` can
+ * contain almost anything — `@github:org/repo@v1`, an absolute path — so any
+ * literal separator risks two different documents producing the same key,
+ * which would merge their counts silently. Same reasoning as `_canonicalId`
+ * being unsplittable (gvp:P14).
+ */
+function docKeyOf(source: string, documentPath: string): string {
+  return JSON.stringify([source, documentPath]);
+}
+
+/** Stable key order so two runs over the same catalog are byte-identical. */
+function sortKeys(counts: Record<string, number>): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const k of Object.keys(counts).sort()) out[k] = counts[k]!;
+  return out;
+}
