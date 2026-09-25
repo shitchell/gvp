@@ -12,6 +12,12 @@ const PASS_NAME = 'semantic';
 
 /**
  * Semantic warnings W001-W006 (VAL-4).
+ *
+ * Category lookups are keyed to the element's own library via
+ * `catalog.categoryFor` / `catalog.getRegistryForSource`, not the flat merged
+ * registry (DEC-2.12, #27): whether an element is a root (W001/W004/W005) and
+ * which `list<model>` fields carry refs (W010/W011) are questions about the
+ * definitions that element's library was authored under.
  */
 export function semanticPass(catalog: Catalog, _config: GVPConfig): Diagnostic[] {
   const diagnostics: Diagnostic[] = [];
@@ -28,7 +34,7 @@ export function semanticPass(catalog: Catalog, _config: GVPConfig): Diagnostic[]
     if (element.status !== 'active') continue;
     if (element.maps_to.length > 0) continue;
 
-    const catDef = catalog.registry.getByName(element.categoryName);
+    const catDef = catalog.categoryFor(element);
     if (!catDef || catDef.is_root) continue;
 
     // Non-root active element with no maps_to
@@ -62,7 +68,7 @@ export function semanticPass(catalog: Catalog, _config: GVPConfig): Diagnostic[]
     if (element.status !== 'active') continue;
     if (element.maps_to.length === 0) continue;
 
-    const catDef = catalog.registry.getByName(element.categoryName);
+    const catDef = catalog.categoryFor(element);
     if (catDef?.is_root) continue;
 
     const allSelfDocument = element.maps_to.every(ref => {
@@ -110,7 +116,7 @@ export function semanticPass(catalog: Catalog, _config: GVPConfig): Diagnostic[]
 
     for (const element of catalog.getAllElements()) {
       if (element.status !== 'active') continue;
-      const catDef = catalog.registry.getByName(element.categoryName);
+      const catDef = catalog.categoryFor(element);
       if (!catDef || catDef.is_root) continue;
 
       const libId = element.toLibraryId();
@@ -206,9 +212,10 @@ export function semanticPass(catalog: Catalog, _config: GVPConfig): Diagnostic[]
       }
 
       // Generic: check refs inside any list<model> field whose items have a refs sub-field
-      const catDefRefs = catalog.registry.getByName(element.categoryName);
+      const sourceRegistry = catalog.getRegistryForSource(element.source);
+      const catDefRefs = sourceRegistry.getByName(element.categoryName);
       if (catDefRefs) {
-        const mergedSchemasRefs = { ...catalog.registry.allFieldSchemas, ...(catDefRefs.field_schemas ?? {}) };
+        const mergedSchemasRefs = { ...sourceRegistry.allFieldSchemas, ...(catDefRefs.field_schemas ?? {}) };
         for (const [fieldName, schema] of Object.entries(mergedSchemasRefs)) {
           if (schema.type !== 'list' || !schema.items || schema.items.type !== 'model') continue;
           if (!schema.items.fields?.refs) continue;
