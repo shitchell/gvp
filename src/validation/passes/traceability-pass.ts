@@ -6,8 +6,35 @@ import { createDiagnostic } from '../diagnostic.js';
 const PASS_NAME = 'traceability';
 
 /**
+ * Does any library in play declare a value-anchor category? Checks the flat
+ * merged registry first (the common case) and then each element-owning library's
+ * own registry, so a category that only an ancestor declares — or one a
+ * descendant overrode the flag off — still counts (DEC-2.12).
+ */
+function anyCategoryIsValueAnchor(catalog: Catalog): boolean {
+  const hasAnchor = (registry: Catalog['registry']): boolean =>
+    registry.categoryNames.some(name => registry.getByName(name)?.is_value_anchor);
+
+  if (hasAnchor(catalog.registry)) return true;
+  const sources = new Set(catalog.getAllElements().map(el => el.source));
+  for (const source of sources) {
+    if (hasAnchor(catalog.getRegistryForSource(source))) return true;
+  }
+  return false;
+}
+
+/**
  * Mapping rules compliance (VAL-2).
  * Checks that non-root elements map to appropriate categories per mapping_rules.
+ *
+ * Every category lookup here is keyed to the *element's own library* via
+ * `catalog.categoryFor` (DEC-2.12, #27). An element is judged under the
+ * definitions it was authored against, so a descendant library that tightens
+ * `mapping_rules` cannot retroactively invalidate an ancestor's elements, and one
+ * that loosens them cannot silently stop enforcing the ancestor's stricter
+ * contract. That applies to the walked elements too, not just the starting one:
+ * whether a node counts as a root (W014) or a value anchor (W017) is a question
+ * about *that* node's library.
  */
 export function traceabilityPass(catalog: Catalog, _config: GVPConfig): Diagnostic[] {
   const diagnostics: Diagnostic[] = [];
@@ -17,7 +44,7 @@ export function traceabilityPass(catalog: Catalog, _config: GVPConfig): Diagnost
   for (const element of catalog.getAllElements()) {
     if (element.status === 'deprecated' || element.status === 'rejected') continue;
 
-    const catDef = catalog.registry.getByName(element.categoryName);
+    const catDef = catalog.categoryFor(element);
     if (!catDef || catDef.is_root) continue;
     if (!catDef.mapping_rules || catDef.mapping_rules.length === 0) continue;
 
@@ -52,16 +79,12 @@ export function traceabilityPass(catalog: Catalog, _config: GVPConfig): Diagnost
 
   // W014: Transitive traceability — non-root active elements must trace to at least one root element (R3)
   {
-    // Identify root categories
-    const rootCategories = new Set<string>();
-    for (const catName of catalog.registry.categoryNames) {
-      const catDef = catalog.registry.getByName(catName);
-      if (catDef?.is_root) rootCategories.add(catName);
-    }
-
+    // "Is this a root?" is asked per element, not per category name: two
+    // libraries may disagree about whether a category is a root, and each
+    // library's own elements answer with its own definition (DEC-2.12).
     for (const element of catalog.getAllElements()) {
       if (element.status === 'deprecated' || element.status === 'rejected') continue;
-      const catDef = catalog.registry.getByName(element.categoryName);
+      const catDef = catalog.categoryFor(element);
       if (!catDef || catDef.is_root) continue;
       if (element.maps_to.length === 0) continue; // W001 handles this
 
@@ -78,7 +101,7 @@ export function traceabilityPass(catalog: Catalog, _config: GVPConfig): Diagnost
         const currentEl = catalog.getElement(current);
         if (!currentEl) continue;
 
-        if (rootCategories.has(currentEl.categoryName)) {
+        if (catalog.categoryFor(currentEl)?.is_root) {
           foundRoot = true;
           break;
         }
@@ -112,17 +135,15 @@ export function traceabilityPass(catalog: Catalog, _config: GVPConfig): Diagnost
   // value stub (C1/P6) — the exact smell we are avoiding. Suppressible;
   // --strict promotes. Dispatches on the is_value_anchor flag, not a name (R6).
   {
-    const valueAnchorCategories = new Set<string>();
-    for (const catName of catalog.registry.categoryNames) {
-      const catDef = catalog.registry.getByName(catName);
-      if (catDef?.is_value_anchor) valueAnchorCategories.add(catName);
-    }
-
-    // Only meaningful if the library actually declares a value-anchor category.
-    if (valueAnchorCategories.size > 0) {
+    // Only meaningful if a value-anchor category is declared *somewhere* in play.
+    // The gate is deliberately catalog-wide while the per-node test below is
+    // per-library: a catalog where no library has the concept at all should stay
+    // silent, but once some library does, each element answers with its own
+    // library's definition (DEC-2.12).
+    if (anyCategoryIsValueAnchor(catalog)) {
       for (const element of catalog.getAllElements()) {
         if (element.status === 'deprecated' || element.status === 'rejected') continue;
-        const catDef = catalog.registry.getByName(element.categoryName);
+        const catDef = catalog.categoryFor(element);
         if (!catDef || catDef.is_root) continue;
         if (element.maps_to.length === 0) continue; // W001 handles empty maps_to
 
@@ -140,7 +161,7 @@ export function traceabilityPass(catalog: Catalog, _config: GVPConfig): Diagnost
 
           // The starting element is non-root, so it can never be a value anchor
           // itself; any match is a genuine transitive ancestor.
-          if (valueAnchorCategories.has(currentEl.categoryName)) {
+          if (catalog.categoryFor(currentEl)?.is_value_anchor) {
             foundValue = true;
             break;
           }

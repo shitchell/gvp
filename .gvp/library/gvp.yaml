@@ -3466,6 +3466,106 @@ decisions:
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
+  - id: D63
+    name: A definition is read in the library that authored it, at every element-keyed lookup
+    disposition: accepted
+    rationale: |
+      DEC-2.12 promised that "overriding a definition doesn't retroactively change the meaning of ancestor elements." The accessor built to deliver it, `Catalog.getSourceSnapshot`, had exactly one caller repo-wide and it was a test; every validation pass read the flat descendant-wins merged registry instead (#27). The promise was documented and unenforced -- the failure V10 names, made worse by being written down. It had not bitten only because no library in play declares `meta.definitions.categories`: neither this repo's nor any of the six documents in gvp-docs@v0.7.0, so every source resolved to `src/data/defaults.yaml` verbatim and the flat lookup happened to return the right answer. Latent, not benign.
+
+      THE RULE. A lookup keyed to an ELEMENT is answered by that element's own library's registry: `catalog.categoryFor(element)`. A lookup that is a library-wide question with no owning element -- which categories may a user type at the CLI, which columns does an export carry -- keeps reading `catalog.registry`, the flat merged view DEC-2.1 defines. The split is the whole design: both views are legitimate, and the bug was using one where the other was meant.
+
+      IT APPLIES TO EVERY DEFINITION-DERIVED BEHAVIOUR, NOT JUST `mapping_rules`. `is_root` decides whether an element is exempt from anchoring at all (W001, W004, W005, W014); `requires_decision` drives W018; `is_value_anchor` drives W017. A descendant redefining any of them flips ancestor elements between states they were never authored in. And the defect is symmetric: a descendant that TIGHTENS a rule retroactively invalidates ancestor elements that were always valid, while one that LOOSENS it silently stops enforcing the ancestor's stricter contract -- the second direction is the more dangerous, because it reports nothing.
+
+      IN A TRANSITIVE WALK, EACH NODE ANSWERS FOR ITSELF. W014 and W017 walk the maps_to graph asking "is this a root" / "is this a value anchor" of every node reached. Those are questions about the WALKED node's library, not the starting element's, so the per-element rule is applied at every step rather than once at the top. A decision in a child library that anchors to a parent's element is therefore anchored if the PARENT calls that category an anchor, even where the child does not. The alternative -- freezing the starting element's view over the whole walk -- would have one library's definitions govern another's elements again, just one hop later.
+
+      JUDGEMENT CALL 1: WHAT GOVERNS A LOCAL ELEMENT UNDER AN INHERITED DEFINITION. DEC-2.12 speaks only to ancestors and is silent here. Settled as: the definitions VISIBLE to a library are its own layered over those of the libraries it inherits, transitively -- descendants and siblings contribute nothing. So a local element IS governed by an inherited stricter definition when the local library declares none of its own. This is the reading that makes an inherited definition mean something: the opposite (undeclared falls back to built-ins) would make inheriting a library's category definitions a no-op unless every consumer re-declared them, which defeats G11 and contradicts DEC-2.1's whole merge model. It also keeps one rule rather than two -- "a library sees upstream, never downstream" answers both the ancestor case DEC-2.12 asked about and the local case it did not.
+
+      That rule forced the per-source snapshots to be recomputed rather than merely consumed. The previous computation captured, for each source, the cumulative merge AT THE MOMENT THAT SOURCE'S FIRST DOCUMENT WAS REACHED, which is wrong three ways: a library whose definitions live in its SECOND document never saw its own; `orderedDocuments` is the DFS orders of several leaf documents concatenated, so a document's predecessors include sibling branches and unrelated leaves that are not its ancestors at all; and under `priority.definitions: ancestor` the list is reversed, making the prefix meaningless. Snapshots are now computed per source over exactly the documents that source can see, through the same merge function the global view uses -- so a snapshot can never drift from the global merge in RULES, only in SCOPE.
+
+      JUDGEMENT CALL 2: PERFORMANCE. Per-source registries are memoized on the Catalog, keyed by source, so resolution is O(number of libraries) and never O(number of elements) even though it is invoked per element inside four passes. The memo is a cache and changes no answer; correctness was not traded for it. Stated rather than left implicit because the honest alternative -- resolving per element and letting it cost what it costs -- differs only in speed, and a future reader should know which was chosen and why.
+
+      SCOPE NOT COVERED. `structural-pass.ts` (E001/E005 schema lookups, W009 id-prefix scanning), the CLI commands and the exporters still read the flat registry. Some of those are correct as library-wide questions; others are the same defect in a different file. They were left alone because they were owned by other work in flight, not because they were audited and cleared -- naming that here rather than implying a completeness this change does not have.
+    tags:
+      - framework
+      - integrity
+      - tooling
+    maps_to:
+      - gvp:G5
+      - gvp:G11
+      - gvp:V2
+      - gvp:V10
+      - gvp:V3
+      - gvp:R6
+      - personal:H5
+      - personal:R2
+    considered:
+      flat_registry_amend_the_promise:
+        description: Leave the passes on the merged registry and amend DEC-2.12 to say definitions are global.
+        rationale: |
+          Rejected. It is the cheapest way to make the documentation true, and it has the virtue of describing what the code already does. But it discards the guarantee rather than the gap: an ancestor library's elements would be permanently at the mercy of whatever any descendant later declares, so a library could not be published and relied upon -- exactly the cross-library reuse G11 exists to enable. It also makes a library's own validation result depend on who imports it, which is not a property a publisher can reason about.
+        would_have_served:
+          - gvp:V4
+        conflicts_with:
+          - gvp:G11
+          - gvp:V10
+          - gvp:V2
+      defaults_for_undeclared_libraries:
+        description: A library that declares no definition of its own falls back to the built-in defaults rather than inheriting its ancestors'.
+        rationale: |
+          Rejected. It is a defensible reading of "each library is judged by its own definitions" and it is simpler to state. But it makes inheriting definitions useless: a consumer would have to re-declare every category it wanted to honour, and an org library's tightened `mapping_rules` would silently not apply to the projects that inherit it -- which is the entire reason to put them upstream. It also splits the rule in two, one for ancestors and one for locals, where "a library sees upstream, never downstream" covers both.
+        would_have_served:
+          - gvp:V4
+          - gvp:P14
+        conflicts_with:
+          - gvp:G11
+          - gvp:V2
+      keep_the_existing_snapshot_computation:
+        description: Consume `getSourceSnapshot` as it was already computed, changing only the call sites in the passes.
+        rationale: |
+          Rejected on evidence, not on taste. It is the minimal diff and the one the issue suggests, but the stored snapshot was a cumulative prefix of the document order, which is not the ancestor closure: it misses a library's own later documents, admits sibling branches and unrelated leaves, and inverts under `priority.definitions: ancestor`. Shipping the call-site change over it would have produced a fix that is right in the two-library demo and wrong in the arrangements this project actually resolves -- the answer that is usually right, which V10 refuses.
+        would_have_served:
+          - gvp:V4
+          - personal:V1
+        conflicts_with:
+          - gvp:V10
+          - personal:R1
+      resolve_per_element_without_memoizing:
+        description: Build the per-source registry on every element lookup instead of caching it.
+        rationale: |
+          Set aside, not rejected -- it is semantically identical, and that is the point of recording it. It would re-read and re-parse `defaults.yaml` once per element per pass. The memo is keyed by source rather than by element precisely so that no semantics ride on it: if the cache were dropped tomorrow every diagnostic would be unchanged.
+        would_have_served:
+          - personal:V1
+    origin:
+      - date: '2026-09-25'
+        note: 'Issue #27. DEC-2.12 (docs/plans/2026-03-02-v1-design-decisions.md:601-609) stated the guarantee; this decision states how it is enforced and settles the two questions DEC-2.12 left open -- what governs a local element under an inherited definition, and whether the per-node rule applies inside a transitive walk.'
+      - id: a1d602d3-1eb9-44f4-8d87-1de03188eb1d
+        date: '2026-09-25T22:45:13.920Z'
+        note: Imported from dec27-patch.yaml
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+    refs:
+      - file: src/catalog/catalog.ts
+        identifier: Catalog
+        role: implements
+      - file: src/catalog/category-merger.ts
+        identifier: mergeDefinitions
+        role: implements
+      - file: src/catalog/category-merger.ts
+        identifier: buildSourceVisibility
+        role: implements
+      - file: src/catalog/category-merger.ts
+        identifier: mergeOver
+        role: implements
+      - file: src/validation/passes/traceability-pass.ts
+        identifier: traceabilityPass
+        role: implements
+      - file: src/validation/passes/semantic-pass.ts
+        identifier: semanticPass
+        role: implements
+      - file: src/validation/passes/coverage-pass.ts
+        identifier: coveragePass
+        role: implements
 constraints:
   - id: C1
     name: Agents optimize for minimal effort

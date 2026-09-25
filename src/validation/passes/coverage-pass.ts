@@ -133,7 +133,10 @@ export function coveragePass(catalog: Catalog, config: GVPConfig): Diagnostic[] 
 
     for (const root of catalog.getAllElements()) {
       if (root.status !== 'active') continue;
-      const catDef = catalog.registry.getByName(root.categoryName);
+      // Keyed to the root's own library (DEC-2.12, #27): a descendant library
+      // that adds or drops `requires_decision` on a category must not change
+      // whether an ancestor's roots are expected to be actioned.
+      const catDef = catalog.categoryFor(root);
       if (!catDef?.requires_decision) continue;
 
       // Reverse BFS: does any active decision transitively trace up to this root?

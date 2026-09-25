@@ -5,6 +5,8 @@ import type { FieldSchemaEntry } from '../schema/field-schema.js';
 export interface SourceDefinitionSnapshot {
   categories: Record<string, CategoryDefinition>;
   tags: Record<string, { description: string }>;
+  /** `_all` field schemas visible to this source (DEC-2.8, scoped per DEC-2.12) */
+  allFieldSchemas: Record<string, FieldSchemaEntry>;
 }
 
 export interface MergedDefinitions {
@@ -25,19 +27,18 @@ function deepMergeFieldSchemas(
 }
 
 /**
- * Merge category definitions across documents (DEC-2.1, DEC-2.2, DEC-2.7, DEC-2.8).
- *
- * @param orderedDocuments - Documents in DFS order (ancestors first)
- * @param definitionDirection - 'ancestor' or 'descendant' (from config priority.definitions)
+ * Merge a set of documents' definitions in the given direction.
+ * Shared by the global merge and each per-source snapshot so a snapshot is
+ * always computed by exactly the same rules as the global view — only the
+ * *set of documents in scope* differs (DEC-2.12).
  */
-export function mergeDefinitions(
+function mergeOver(
   orderedDocuments: Document[],
-  definitionDirection: 'ancestor' | 'descendant' = 'descendant',
-): MergedDefinitions {
+  definitionDirection: 'ancestor' | 'descendant',
+): Omit<MergedDefinitions, 'sourceSnapshots'> {
   const mergedCategories: Record<string, CategoryDefinition> = {};
   const mergedTags: Record<string, { description: string }> = {};
   const mergedAll: Record<string, FieldSchemaEntry> = {};
-  const sourceSnapshots = new Map<string, SourceDefinitionSnapshot>();
 
   // Iterate in the direction where the winner comes LAST
   // descendant-wins: iterate ancestors first, descendants overwrite
@@ -87,20 +88,88 @@ export function mergeDefinitions(
         Object.assign(mergedAll, schemas);
       }
     }
+  }
 
-    // Capture per-library snapshot (DEC-2.12)
-    if (!sourceSnapshots.has(doc.source)) {
-      sourceSnapshots.set(doc.source, {
-        categories: { ...mergedCategories },
-        tags: { ...mergedTags },
-      });
+  return { categories: mergedCategories, tags: mergedTags, allFieldSchemas: mergedAll };
+}
+
+/**
+ * Source-level visibility (DEC-2.12): for each source, the set of sources whose
+ * definitions it can see — itself plus its transitive inherited sources.
+ *
+ * Edges come from object-form `inherits` entries, which name an external source
+ * library; `doc.source` for every document pulled from that library is the raw
+ * source string from the entry (see the SourceLoader in src/cli/helpers.ts), so
+ * `entry.source` and `doc.source` are directly comparable. String-form entries
+ * name a document in the SAME source and so add no source-level edge.
+ *
+ * Deliberately NOT a prefix of `orderedDocuments`: that list is the DFS order of
+ * one or more leaf documents concatenated, so a document's predecessors include
+ * sibling branches and unrelated leaves that are not its ancestors at all.
+ */
+function buildSourceVisibility(orderedDocuments: Document[]): Map<string, Set<string>> {
+  const parents = new Map<string, Set<string>>();
+  const allSources = new Set<string>();
+
+  for (const doc of orderedDocuments) {
+    allSources.add(doc.source);
+    const inherits = doc.meta.inherits;
+    if (!Array.isArray(inherits)) continue;
+    for (const entry of inherits) {
+      if (typeof entry !== 'object' || entry === null || !('source' in entry)) continue;
+      const parentSource = (entry as { source: unknown }).source;
+      if (typeof parentSource !== 'string' || parentSource === doc.source) continue;
+      const set = parents.get(doc.source) ?? new Set<string>();
+      set.add(parentSource);
+      parents.set(doc.source, set);
     }
   }
 
-  return {
-    categories: mergedCategories,
-    tags: mergedTags,
-    allFieldSchemas: mergedAll,
-    sourceSnapshots,
-  };
+  const visibility = new Map<string, Set<string>>();
+  for (const source of allSources) {
+    // BFS over the parent graph. The `visited` set doubles as cycle protection —
+    // inheritance cycles are broken rather than errored (DEC-1.8).
+    const visible = new Set<string>([source]);
+    const queue = [source];
+    while (queue.length > 0) {
+      const current = queue.pop()!;
+      for (const parent of parents.get(current) ?? []) {
+        if (visible.has(parent)) continue;
+        visible.add(parent);
+        queue.push(parent);
+      }
+    }
+    visibility.set(source, visible);
+  }
+
+  return visibility;
+}
+
+/**
+ * Merge category definitions across documents (DEC-2.1, DEC-2.2, DEC-2.7, DEC-2.8).
+ *
+ * Also computes the per-source snapshots that DEC-2.12 is built on: each source
+ * gets the definitions *it* was authored under — its own, layered over those of
+ * the sources it inherits — so that overriding a definition downstream does not
+ * retroactively change the meaning of an ancestor library's elements. Sources a
+ * library does not inherit (descendants, siblings, unrelated leaves) contribute
+ * nothing to its snapshot.
+ *
+ * @param orderedDocuments - Documents in DFS order (ancestors first)
+ * @param definitionDirection - 'ancestor' or 'descendant' (from config priority.definitions)
+ */
+export function mergeDefinitions(
+  orderedDocuments: Document[],
+  definitionDirection: 'ancestor' | 'descendant' = 'descendant',
+): MergedDefinitions {
+  const global = mergeOver(orderedDocuments, definitionDirection);
+
+  const visibility = buildSourceVisibility(orderedDocuments);
+  const sourceSnapshots = new Map<string, SourceDefinitionSnapshot>();
+  for (const [source, visible] of visibility) {
+    const scoped = orderedDocuments.filter(doc => visible.has(doc.source));
+    sourceSnapshots.set(source, mergeOver(scoped, definitionDirection));
+  }
+
+  return { ...global, sourceSnapshots };
 }

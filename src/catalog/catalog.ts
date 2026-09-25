@@ -1,5 +1,6 @@
 import type { Document } from '../model/document.js';
 import type { Element } from '../model/element.js';
+import type { CategoryDefinition, DefaultsFile } from '../schema/category-definition.js';
 import type { ResolvedInheritance } from '../inheritance/inheritance-resolver.js';
 import type { GVPConfig } from '../config/schema.js';
 import { CategoryRegistry } from '../model/category-registry.js';
@@ -30,6 +31,14 @@ export class Catalog {
   private readonly _elements: Map<string, Element>; // hashKey -> Element
   private readonly _elementsByCategory: Map<string, Element[]>;
   private readonly _mergedDefinitions: MergedDefinitions;
+  /** The built-in defaults every registry (global and per-source) is layered on. */
+  private readonly _defaults: DefaultsFile;
+  /**
+   * Memoized per-source registries (DEC-2.12). A cache only — it never changes
+   * what the catalog means, so the "immutable after construction" contract holds.
+   * Keyed by source so cost is O(number of libraries), not O(number of elements).
+   */
+  private readonly _registryBySource: Map<string, CategoryRegistry> = new Map();
   /**
    * Document-local alias scopes (D39): docKey → that document's OWN `as:`
    * aliases. Aliases are `import as` sugar, private to the declaring document —
@@ -89,6 +98,7 @@ export class Catalog {
 
     // Step 2: Build registry from defaults + merged user definitions
     const defaults = loadDefaults();
+    this._defaults = defaults;
     let registry = CategoryRegistry.fromDefaults(defaults);
     if (Object.keys(this._mergedDefinitions.categories).length > 0 ||
         Object.keys(this._mergedDefinitions.allFieldSchemas).length > 0) {
@@ -186,6 +196,58 @@ export class Catalog {
   /** Get per-source definition snapshot (DEC-2.12) */
   getSourceSnapshot(source: string): SourceDefinitionSnapshot | undefined {
     return this._mergedDefinitions.sourceSnapshots.get(source);
+  }
+
+  /**
+   * The category registry **as a given library sees it** (DEC-2.12): the built-in
+   * defaults, layered with that library's own definitions and those of the
+   * libraries it inherits — and nothing from libraries downstream or sideways of
+   * it. This is the registry every *element-keyed* lookup must use, so that
+   * overriding a definition in a descendant library does not retroactively change
+   * the meaning of an ancestor library's elements (see #27).
+   *
+   * `catalog.registry` remains the flat, descendant-wins merged view (DEC-2.1) and
+   * is still the right thing for library-wide questions with no owning element —
+   * "what categories can a user type at the CLI", "what columns does an export
+   * have". Falls back to it when a source has no snapshot (e.g. a catalog built
+   * from documents that were never inheritance-resolved).
+   *
+   * Memoized per source: resolution is O(number of libraries), never per element.
+   */
+  getRegistryForSource(source: string): CategoryRegistry {
+    const cached = this._registryBySource.get(source);
+    if (cached) return cached;
+
+    const snapshot = this._mergedDefinitions.sourceSnapshots.get(source);
+    if (!snapshot) {
+      this._registryBySource.set(source, this._registry);
+      return this._registry;
+    }
+
+    let registry = CategoryRegistry.fromDefaults(this._defaults);
+    if (
+      Object.keys(snapshot.categories).length > 0 ||
+      Object.keys(snapshot.allFieldSchemas).length > 0
+    ) {
+      const userAll =
+        Object.keys(snapshot.allFieldSchemas).length > 0
+          ? { field_schemas: snapshot.allFieldSchemas }
+          : undefined;
+      registry = registry.merge(snapshot.categories, userAll);
+    }
+    this._registryBySource.set(source, registry);
+    return registry;
+  }
+
+  /**
+   * The category definition governing `element` — resolved against the element's
+   * OWN library's definitions (DEC-2.12), not the flat merged registry. Prefer
+   * this over `catalog.registry.getByName(element.categoryName)` anywhere the
+   * question is "what does this element's category mean", which is every
+   * `is_root` / `mapping_rules` / `requires_decision` / `is_value_anchor` check.
+   */
+  categoryFor(element: Element): CategoryDefinition | undefined {
+    return this.getRegistryForSource(element.source).getByName(element.categoryName);
   }
 
   /** Build ancestors graph for an element (DEC-6.1, DEC-6.5) */
