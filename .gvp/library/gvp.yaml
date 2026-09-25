@@ -3391,7 +3391,7 @@ decisions:
       - file: src/cli/commands/query.ts
         identifier: queryCommand
         role: implements
-  - id: D62
+  - id: D63
     name: A definition is read in the library that authored it, at every element-keyed lookup
     disposition: accepted
     rationale: |
