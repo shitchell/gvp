@@ -554,6 +554,42 @@ principles:
     origin:
       - date: '2026-09-03'
         note: Extracted while designing the library registry (#15), where two projects inheriting the same library would otherwise contend on one entry file. The fragility and atomicity caveats were added after adversarial review found the first draft of this design had already violated both.
+  - id: P19
+    name: A named affordance is earned when the general mechanism leaks
+    statement: |
+      A general mechanism does not substitute for a named affordance when using it requires understanding concepts unrelated to the task.
+
+      Default to reuse. An existing general surface should answer a new need, and adding a second way to say the same thing is normally the redundant-mechanism smell P11 exists to catch; CP11 says the same from the other side -- check whether a new surface can reuse an existing one before introducing it.
+
+      Then check the cost of that reuse at the INTERFACE, not at the engine. Enumerate the concepts the user must understand to reach their goal through the general mechanism. If every one of them is about the task, the general mechanism is the answer and no new surface is warranted. If any of them is machinery orthogonal to the task -- an extra wrapper, precedence semantics, a blast radius wider than what the user is trying to affect, a subsystem they had no reason to know exists -- then the generality has leaked into the interface, and a narrow named affordance is warranted for that one task.
+
+      THE NAMED AFFORDANCE MUST DELEGATE TO THE GENERAL MECHANISM, NEVER REIMPLEMENT IT. This clause is not decoration; it is what keeps P11 SATISFIED rather than overridden. One mechanism with two spellings is not two mechanisms. It also fixes how the new surface must be counted: a spelling inherits every guarantee, every precedence rule and every test of the thing it delegates to, so a standing decision that enumerates "the mechanisms" is not contradicted by adding one. A named affordance that reimplements the behaviour IS a second mechanism, and P11 forbids it -- the delegation is the whole licence. H6 says this by layer: unify the engine where purpose is shared, let the interface keep distinct entry points for distinct user intents.
+
+      Worked cases. (1) Opting ONE LIBRARY out of the registry through the general mechanism obliges the user to learn that a document's `meta` can carry config at all, the `{mode, value}` wrapper that carries it, what `replace` means as against `additive`, and that resolution is ancestor-wins over the whole consuming invocation. None of those four concepts is about the registry; the mechanism has leaked, and a named library-scoped opt-out that sets the same underlying switch is warranted. (2) The same test returns the same answer for `--no-registry` (D43), and returned it before this principle existed: asking a CI job to reach `registry.enabled: false` obliges it to learn config-layer discovery and to write a config file it may not be permitted to write. (3) It returns the opposite answer for a proposed shorthand that merely saves typing over an existing flag -- the concepts involved are all about the task, so the shorthand is a second spelling with no leak to justify it, and P11 rejects it.
+
+      WHY THIS IS A PRINCIPLE AND NOT A HEURISTIC. The enumerate-the-concepts step looks like a test but does not decide by itself: judging a concept "machinery orthogonal to the task" is a weighing call, and two readers applying it honestly can reach different answers on the same case. A heuristic's test must be checkable; this one states a preference and supplies a frame for arguing it. Graduation to a heuristic stays available once the orthogonality test has survived enough real use to be stated as a condition rather than a judgement.
+    tags:
+      - framework
+      - tooling
+      - usability
+    maps_to:
+      - gvp:P11
+      - gvp:H6
+      - gvp:V5
+      - gvp:C1
+      - personal:P8
+      - code-common:CP11
+    origin:
+      - date: '2026-09-25'
+        note: 'Authored to settle when a narrow named surface is warranted over an existing general one, which P11, H6, personal:P8 and code-common:CP11 together left open -- they establish the preference for reuse but name no condition under which reuse stops being the answer. Surfaced by issue #25, where the general mechanism (meta.config_overrides) technically reaches the goal but only through four concepts unrelated to it.'
+      - id: a0596d8b-d2f6-45d4-bea7-55dbd553e261
+        date: '2026-09-25T21:21:17.379Z'
+        note: Imported from patch-guidance.yaml
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+      - date: '2026-09-25'
+        note: 'Reclassified from heuristic gvp:H11 to principle gvp:P19 on maintainer review, before any dependant shipped. The hard/soft test fails: the core step -- "enumerate the concepts the user must understand; if any is machinery orthogonal to the task, the generality has leaked" -- turns on judging a concept orthogonal, which is a weighing call rather than a checkable condition, so two readers can differ. Per the cairn skill a soft preference filed as a heuristic is a miscategorisation. Body text and mappings are preserved verbatim apart from the added closing paragraph recording this reasoning; H11 is retired and its id is never reused (R1). Graduation back to a heuristic stays available once the orthogonality test has survived real use.'
 heuristics:
   - id: H1
     name: Core vs. example placement
@@ -726,38 +762,6 @@ heuristics:
       - date: '2026-09-25'
         note: 'Authored to settle where a resolved-library view belongs (issue #24), which the existing guidance left open. The placement axis is the data source; the subject-matter reading would have put a catalog view on `libs` because both are "about libraries".'
       - id: 5fca37a4-8d7a-4cba-8304-1f7935b4f159
-        date: '2026-09-25T21:21:17.379Z'
-        note: Imported from patch-guidance.yaml
-        by:
-          name: shaun mitchell
-          email: shaun@shitchell.com
-  - id: H11
-    name: A named affordance is earned when the general mechanism leaks
-    statement: |
-      A general mechanism does not substitute for a named affordance when using it requires understanding concepts unrelated to the task.
-
-      Default to reuse. An existing general surface should answer a new need, and adding a second way to say the same thing is normally the redundant-mechanism smell P11 exists to catch; CP11 says the same from the other side -- check whether a new surface can reuse an existing one before introducing it.
-
-      Then check the cost of that reuse at the INTERFACE, not at the engine. Enumerate the concepts the user must understand to reach their goal through the general mechanism. If every one of them is about the task, the general mechanism is the answer and no new surface is warranted. If any of them is machinery orthogonal to the task -- an extra wrapper, precedence semantics, a blast radius wider than what the user is trying to affect, a subsystem they had no reason to know exists -- then the generality has leaked into the interface, and a narrow named affordance is warranted for that one task.
-
-      THE NAMED AFFORDANCE MUST DELEGATE TO THE GENERAL MECHANISM, NEVER REIMPLEMENT IT. This clause is not decoration; it is what keeps P11 SATISFIED rather than overridden. One mechanism with two spellings is not two mechanisms. It also fixes how the new surface must be counted: a spelling inherits every guarantee, every precedence rule and every test of the thing it delegates to, so a standing decision that enumerates "the mechanisms" is not contradicted by adding one. A named affordance that reimplements the behaviour IS a second mechanism, and P11 forbids it -- the delegation is the whole licence. H6 says this by layer: unify the engine where purpose is shared, let the interface keep distinct entry points for distinct user intents.
-
-      Worked cases. (1) Opting ONE LIBRARY out of the registry through the general mechanism obliges the user to learn that a document's `meta` can carry config at all, the `{mode, value}` wrapper that carries it, what `replace` means as against `additive`, and that resolution is ancestor-wins over the whole consuming invocation. None of those four concepts is about the registry; the mechanism has leaked, and a named library-scoped opt-out that sets the same underlying switch is warranted. (2) The same test returns the same answer for `--no-registry` (D43), and returned it before this heuristic existed: asking a CI job to reach `registry.enabled: false` obliges it to learn config-layer discovery and to write a config file it may not be permitted to write. (3) It returns the opposite answer for a proposed shorthand that merely saves typing over an existing flag -- the concepts involved are all about the task, so the shorthand is a second spelling with no leak to justify it, and P11 rejects it.
-    tags:
-      - framework
-      - tooling
-      - usability
-    maps_to:
-      - gvp:P11
-      - gvp:H6
-      - gvp:V5
-      - gvp:C1
-      - personal:P8
-      - code-common:CP11
-    origin:
-      - date: '2026-09-25'
-        note: 'Authored to settle when a narrow named surface is warranted over an existing general one, which P11, H6, personal:P8 and code-common:CP11 together left open -- they establish the preference for reuse but name no condition under which reuse stops being the answer. Surfaced by issue #25, where the general mechanism (meta.config_overrides) technically reaches the goal but only through four concepts unrelated to it.'
-      - id: a0596d8b-d2f6-45d4-bea7-55dbd553e261
         date: '2026-09-25T21:21:17.379Z'
         note: Imported from patch-guidance.yaml
         by:
@@ -961,35 +965,6 @@ rules:
       - date: '2026-09-25'
         note: 'Authored because R8 covers document-name uniqueness and is silent on alias/name collision. D59 chose `as: me` over `as: personal` on exactly this reasoning, but had to argue it from scratch -- an unforced choice at the time, and one a later author had no guidance to repeat.'
       - id: f2f8af2e-216f-4d04-a73d-bc306c838ca1
-        date: '2026-09-25T21:21:17.379Z'
-        note: Imported from patch-guidance.yaml
-        by:
-          name: shaun mitchell
-          email: shaun@shitchell.com
-  - id: R11
-    name: A library's declared config governs its own writes, not its consumer's
-    statement: |
-      A document-declared config override whose effect is a write side effect governs only the declaring library's own writes, never the consuming invocation's.
-
-      Document-declared config (`meta.config_overrides`) resolves ancestor-wins across the inheritance chain. That is defensible for overrides describing how a library should be READ -- priority direction, definitions, anything about interpreting the ancestor's own elements -- because the ancestor genuinely knows more about its own content than its consumer does. It is indefensible for an override that causes or suppresses a WRITE, because the write lands in the consumer's environment, on the consumer's machine, over the consumer's data, and the consumer never opted in. Ancestor-wins there means authority over someone else's side effects acquired purely by being upstream of them.
-
-      The measured instance: an inherited library carrying `config_overrides.registry.enabled: false` disables the CONSUMING project's entire registry -- including the consumer's own entries, which the ancestor has no view of and no stake in -- silently, at load time, for every command. That is a far larger effect than any statement the declaring library could reasonably have meant to make, and the consumer's only signal is that something stopped happening.
-
-      So a declaration about a write side effect is read as a statement about the DECLARING library and applied to that library's own records only; it never propagates to the consumer's. Where a mechanism cannot be scoped that way, it must not be exposed as a document-declared override at all. This also fixes, in advance, what any library-scoped opt-out may mean once one is built: "do not record ME", never "do not record".
-    tags:
-      - framework
-      - integrity
-      - tooling
-    maps_to:
-      - gvp:G5
-      - gvp:V10
-      - gvp:V8
-      - personal:V4
-      - personal:R2
-    origin:
-      - date: '2026-09-25'
-        note: 'Authored against a measured hazard: meta.config_overrides is ancestor-wins (src/catalog/catalog.ts), so an inherited library carrying config_overrides.registry.enabled false silently disables the consumer''s whole registry. Surfaced while scoping issue #25; the rule is written to bind every future document-declared override with a write side effect, not only the registry one.'
-      - id: a5a96a81-65b6-4b0a-bb02-3afb294e4688
         date: '2026-09-25T21:21:17.379Z'
         note: Imported from patch-guidance.yaml
         by:
@@ -2332,9 +2307,9 @@ decisions:
             **Required mechanism: `mergeConfigs` must deep-merge the `registry` key.** The "in any config layer" clause above is not free -- config layering is otherwise last-wins per key, so a global `registry.enabled: false` plus a project config that merely mentions `registry:` for any reason would yield `{}`, the object default would fill in `enabled: true`, and recording would silently resume against an explicit opt-out. That is the worst available failure for this decision: it re-enables a write side effect precisely for the user who took the trouble to disable it. `registry` is therefore deep-merged while every other nested key stays last-wins.
             **Limit: `--no-config` defeats the CONFIG opt-out.** A global `registry.enabled: false` is discarded by `cairn --no-config validate` (and by `--config <other>`, and by an empty `GVP_CONFIG_GLOBAL`), so recording resumes. That is arguably what `--no-config` means -- but with the default now ON it means the flag that makes the tool quieter makes it write, which a reader of this decision alone would not predict. The `--no-registry` FLAG is unaffected: it is applied to the already-loaded config, so no config-discovery flag can reach it, and that is tested.
       **Amendment (2026-09-25): the opt-out is ONE mechanism with a set of admitted spellings; a library-scoped declaration joins the set.** The clause above says the opt-out "has two named surfaces", and tests/registry/docs.test.ts enforced that count literally. Both were counting SPELLINGS. There has only ever been one MECHANISM -- `registry.enabled` -- and both named surfaces set it: a config layer sets it directly, and `--no-registry` is applied by parseConfigOptions to the already-loaded config, which is precisely why no config-discovery flag can reach it. Counting spellings made the count brittle without making the guarantee any stronger, because every spelling of one mechanism inherits that mechanism's guarantees, precedence and tests by construction.
-      A third spelling is admitted here: `meta.registry.enabled`, declared by a library about itself. It is warranted under H11 ("a named affordance is earned when the general mechanism leaks") -- reaching the same switch through the general mechanism, `meta.config_overrides`, obliges the user to learn that a document's meta can carry config at all, the `{mode, value}` wrapper, `replace` versus `additive`, and ancestor-wins precedence, none of which is about the registry. It is admitted as a SPELLING rather than as a third mechanism only because H11's delegation clause binds it: it must set `registry.enabled` and must not reimplement recording suppression. A version that reimplemented it would be a second mechanism and P11 would forbid it, so the delegation is the whole licence -- not an implementation note.
-      Its scope is fixed by R11 ("a library's declared config governs its own writes, not its consumer's"), not left to the implementer. A library-scoped declaration governs the DECLARING library's own records and never the consuming invocation's. `config_overrides` is ancestor-wins (src/catalog/catalog.ts), so the unscoped reading -- an inherited library disabling its consumer's entire registry, including the consumer's own entries -- is the exact failure this spelling must not reproduce. That hazard, together with recording depending on how a library happens to be addressed, is what motivated the named spelling in the first place (#25).
-      Why the rule was changed rather than bent, per personal:P9 ("follow rules uniformly, change them explicitly"): the original count was load-bearing for a real reason. An env var was drafted and deliberately removed during planning, and documenting a surface the decision had not admitted would have put the docs ahead of the decision. That reason survives this amendment intact and is not weakened by it; what changes is the UNIT being counted. The test now enumerates the admitted spellings and fails on any other, which enforces the original intent more precisely than "exactly two" did -- "exactly two" would have had to be broken to admit any spelling at all, including one that strengthens the guarantee. The line between the old rule and the new one is H11: a spelling is admitted only when the general mechanism leaks AND the new surface delegates to it; a spelling that merely saves typing is still refused, and the drafted env var remains undecided rather than admitted by implication.
+      A third spelling is admitted here: `meta.registry.enabled`, declared by a library about itself. It is warranted under P19 ("a named affordance is earned when the general mechanism leaks") -- reaching the same switch through the general mechanism, `meta.config_overrides`, obliges the user to learn that a document's meta can carry config at all, the `{mode, value}` wrapper, `replace` versus `additive`, and ancestor-wins precedence, none of which is about the registry. It is admitted as a SPELLING rather than as a third mechanism only because P19's delegation clause binds it: it must set `registry.enabled` and must not reimplement recording suppression. A version that reimplemented it would be a second mechanism and P11 would forbid it, so the delegation is the whole licence -- not an implementation note.
+      Its scope is fixed by D60 ("a library's declared config governs its own writes, not its consumer's"), not left to the implementer. A library-scoped declaration governs the DECLARING library's own records and never the consuming invocation's. `config_overrides` is ancestor-wins (src/catalog/catalog.ts), so the unscoped reading -- an inherited library disabling its consumer's entire registry, including the consumer's own entries -- is the exact failure this spelling must not reproduce. That hazard, together with recording depending on how a library happens to be addressed, is what motivated the named spelling in the first place (#25).
+      Why the rule was changed rather than bent, per personal:P9 ("follow rules uniformly, change them explicitly"): the original count was load-bearing for a real reason. An env var was drafted and deliberately removed during planning, and documenting a surface the decision had not admitted would have put the docs ahead of the decision. That reason survives this amendment intact and is not weakened by it; what changes is the UNIT being counted. The test now enumerates the admitted spellings and fails on any other, which enforces the original intent more precisely than "exactly two" did -- "exactly two" would have had to be broken to admit any spelling at all, including one that strengthens the guarantee. The line between the old rule and the new one is P19: a spelling is admitted only when the general mechanism leaks AND the new surface delegates to it; a spelling that merely saves typing is still refused, and the drafted env var remains undecided rather than admitted by implication.
       NOT IMPLEMENTED BY THIS AMENDMENT. This decides that `meta.registry.enabled` is admissible and fixes its semantics; no source change to the registry path accompanies it. Until it ships, the README must not document the spelling -- the same docs-ahead-of-code rule that removed the env var -- and the counting test guards that. Issue #25 carries the implementation.
     tags:
       - framework
@@ -2345,8 +2320,8 @@ decisions:
       - gvp:G7
       - gvp:V5
       - gvp:C1
-      - gvp:H11
-      - gvp:R11
+      - gvp:P19
+      - gvp:D60
       - gvp:D22
     considered:
       keep_opt_in_but_advertise_it:
@@ -2399,7 +2374,13 @@ decisions:
           email: shaun@shitchell.com
       - id: 20c689ac-3afc-4c82-9da8-74828e54dd82
         date: '2026-09-25T21:23:32.156Z'
-        rationale: 'Amend the opt-out clause to count MECHANISMS rather than SPELLINGS, and admit meta.registry.enabled as a third spelling of the one mechanism registry.enabled (#25). D43''s literal "two named surfaces", and tests/registry/docs.test.ts which enforced that count, were both counting spellings; --no-registry was already a spelling, not a second mechanism. The reason the original count existed -- an env var drafted and deliberately removed, and docs must not run ahead of the decision -- survives intact and the env var stays refused. The new spelling is warranted by H11 and scoped by R11, both authored for this change (personal:P9: change the rule explicitly and form the heuristic for when old versus new applies). Decision only: no source change to the registry path, and the README must not document the spelling until it ships.'
+        rationale: 'Amend the opt-out clause to count MECHANISMS rather than SPELLINGS, and admit meta.registry.enabled as a third spelling of the one mechanism registry.enabled (#25). D43''s literal "two named surfaces", and tests/registry/docs.test.ts which enforced that count, were both counting spellings; --no-registry was already a spelling, not a second mechanism. The reason the original count existed -- an env var drafted and deliberately removed, and docs must not run ahead of the decision -- survives intact and the env var stays refused. The new spelling is warranted by gvp:P19 and scoped by gvp:D60, both authored for this change (personal:P9: change the rule explicitly and form the heuristic for when old versus new applies); they were first filed as H11 and R11 and reclassified on maintainer review the same day. Decision only: no source change to the registry path, and the README must not document the spelling until it ships.'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+      - id: c186ba33-410b-456d-aba5-13211164ed10
+        date: '2026-09-25T22:10:00.000Z'
+        rationale: 'Reference rewrite only, no rationale changed: the two elements this amendment leans on were reclassified on maintainer review hours after being authored -- heuristic H11 became principle gvp:P19 (its orthogonality test is a weighing call, not a checkable condition) and rule R11 became decision gvp:D60 (it describes runtime product behaviour, not how this project writes code). The amendment''s prose and maps_to now name the live ids; H11 and R11 are retired and their ids are never reused (R1).'
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
@@ -3219,6 +3200,66 @@ decisions:
         by:
           name: Shaun Mitchell
           email: shaun@shitchell.com
+  - id: D60
+    name: A library's declared config governs its own writes, not its consumer's
+    rationale: |
+      A document-declared config override whose effect is a write side effect governs only the declaring library's own writes, never the consuming invocation's.
+
+      Document-declared config (`meta.config_overrides`) resolves ancestor-wins across the inheritance chain. That is defensible for overrides describing how a library should be READ -- priority direction, definitions, anything about interpreting the ancestor's own elements -- because the ancestor genuinely knows more about its own content than its consumer does. It is indefensible for an override that causes or suppresses a WRITE, because the write lands in the consumer's environment, on the consumer's machine, over the consumer's data, and the consumer never opted in. Ancestor-wins there means authority over someone else's side effects acquired purely by being upstream of them.
+
+      The measured instance: an inherited library carrying `config_overrides.registry.enabled: false` disables the CONSUMING project's entire registry -- including the consumer's own entries, which the ancestor has no view of and no stake in -- silently, at load time, for every command. That is a far larger effect than any statement the declaring library could reasonably have meant to make, and the consumer's only signal is that something stopped happening.
+
+      So a declaration about a write side effect is read as a statement about the DECLARING library and applied to that library's own records only; it never propagates to the consumer's. Where a mechanism cannot be scoped that way, it must not be exposed as a document-declared override at all. This also fixes, in advance, what any library-scoped opt-out may mean once one is built: "do not record ME", never "do not record".
+
+      NOT IMPLEMENTED BY THIS DECISION. It fixes the semantics that any implementation must satisfy; `src/catalog/catalog.ts` still applies every override ancestor-wins over the whole invocation. Issue #25 carries the implementation.
+    tags:
+      - framework
+      - integrity
+      - tooling
+    maps_to:
+      - gvp:G5
+      - gvp:V10
+      - gvp:V8
+      - personal:V4
+      - personal:R2
+    considered:
+      ancestor_wins_governs_the_whole_invocation:
+        rationale: |
+          Leave the behaviour as built: every `meta.config_overrides` key, including write-affecting ones, resolves ancestor-wins across the whole consuming invocation. This is the status quo and has the single genuine merit of one uniform precedence rule -- a reader learns "ancestor-wins" once and it holds for every key, with no read/write taxonomy to consult and no per-key exceptions to remember. Rejected because the measured hazard is not a corner case: an inherited library carrying `registry.enabled: false` silently disables the consuming project's entire registry, including entries the ancestor has no view of, for every command, with no signal beyond something quietly no longer happening. A uniform rule is not worth the ancestor holding unrequested authority over the consumer's side effects, and the failure is invisible rather than loud, which is the worst available shape for it.
+        would_have_served:
+          - gvp:V4
+          - personal:V1
+        conflicts_with:
+          - gvp:V10
+          - personal:V4
+      forbid_write_affecting_overrides_entirely:
+        rationale: |
+          Refuse to let a document declare any override whose effect is a write, and diagnose the attempt. This is the strictly safest reading and needs no scoping mechanism at all. Rejected as broader than the hazard: it would also refuse the legitimate, narrow statement a library has standing to make about ITSELF ("do not record me"), which is exactly the surface #25 is trying to build. Scoping the declaration to the declaring library removes the hazard without removing the capability, so the blanket refusal pays a real cost for no additional safety.
+        would_have_served:
+          - gvp:V10
+          - gvp:V4
+        conflicts_with:
+          - gvp:V8
+          - personal:V7
+      consumer_opts_in_to_inherited_write_overrides:
+        rationale: |
+          Keep ancestor-wins, but require the consuming library to list which inherited write-affecting overrides it accepts, so nothing lands unrequested. Rejected under C1 and G8: it makes correctness depend on a consumer knowing in advance that an ancestor might declare such a thing and writing a config stanza about it, which is precisely the "a feature that must be discovered before it works" failure D43 was written against. The default for a consumer who does nothing must already be the safe one.
+        would_have_served:
+          - personal:V4
+        conflicts_with:
+          - gvp:C1
+          - gvp:G8
+    origin:
+      - date: '2026-09-25'
+        note: 'Authored against a measured hazard: meta.config_overrides is ancestor-wins (src/catalog/catalog.ts), so an inherited library carrying config_overrides.registry.enabled false silently disables the consumer''s whole registry. Surfaced while scoping issue #25; written to bind every future document-declared override with a write side effect, not only the registry one.'
+      - id: a5a96a81-65b6-4b0a-bb02-3afb294e4688
+        date: '2026-09-25T21:21:17.379Z'
+        note: Imported from patch-guidance.yaml
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+      - date: '2026-09-25'
+        note: 'Reclassified from rule gvp:R11 to decision gvp:D60 on maintainer review, before any dependant shipped. It describes what cairn DOES at runtime, observable by a user -- product behaviour -- rather than how this project operates while writing code; contrast gvp:R6, which constrains the code we write. By the source test it originated in the design phase, which makes it an architectural decision. The body is preserved as the decision''s rationale; `considered` alternatives were added on conversion, since a rule states a constraint while a decision must show what it was chosen over. R11 is retired and its id is never reused (R1).'
 constraints:
   - id: C1
     name: Agents optimize for minimal effort

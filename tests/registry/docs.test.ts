@@ -58,8 +58,8 @@ describe('registry documentation (D56)', () => {
     for (const spelling of SHIPPED_SPELLINGS) expect(r).toMatch(spelling);
 
     // `meta.registry.enabled` is ADMITTED by the D43 amendment (a
-    // library-scoped declaration, warranted under gvp:H11 and scoped by
-    // gvp:R11) but is NOT implemented — issue #25 carries that. Until it
+    // library-scoped declaration, warranted under gvp:P19 and scoped by
+    // gvp:D60) but is NOT implemented — issue #25 carries that. Until it
     // ships the README must not document it, for exactly the reason the env
     // var was removed. DELETE THIS ASSERTION in the change that implements
     // it, and move the pattern into SHIPPED_SPELLINGS above.
