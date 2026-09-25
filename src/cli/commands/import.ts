@@ -5,8 +5,7 @@ import * as yaml from 'js-yaml';
 import { randomUUID } from 'crypto';
 import { parseConfigOptions, buildCatalog, getLibraryOverride, getStoreOverride } from '../helpers.js';
 import type { Catalog } from '../../catalog/catalog.js';
-import type { CategoryDefinition } from '../../schema/category-definition.js';
-import type { FieldSchemaEntry } from '../../schema/field-schema.js';
+import { collectReferenceSites } from '../../schema/reference-sites.js';
 
 /** A candidate element from a patch file */
 interface PatchElement {
@@ -16,6 +15,17 @@ interface PatchElement {
   sourceFile: string;
   targetDocPath: string;
   pseudoId?: string; // The ?-prefixed ID, if candidate
+  /**
+   * Patch-only control field (#28): meta-rationale for an UPDATE to an existing
+   * element. Lands in the element's `updated_by` change record (DEC-4.7), never
+   * in the element's own `rationale` field. Stripped from `data` so it is never
+   * written into the document.
+   */
+  updateRationale?: string;
+  /** Patch-only control field (#28): per-element `skip_review: true` (DEC-4.6). */
+  skipReview?: boolean;
+  /** The `updated_by` entry to append at write time, if this is an update. */
+  updateEntry?: Record<string, unknown>;
 }
 
 /** Manifest file for directory-mode operations */
@@ -37,6 +47,7 @@ export function importCommand(): Command {
     .option('--dry-run', 'Show preview without writing')
     .option('-y, --yes', 'Skip confirmation prompt')
     .option('--confirm-delete', 'Confirm document deletions from _manifest.yaml')
+    .option('--skip-review', 'Mark every update in this patch as skip-review (DEC-4.6). Still writes an updated_by entry, flagged skip_review: true — it records the stance, it does not omit provenance')
     .action(async (source: string) => {
       try {
         const { config, preflight } = parseConfigOptions(cmd);
@@ -205,13 +216,20 @@ export function importCommand(): Command {
               const id = elementData.id as string | undefined;
               const pseudoId = (id && isPseudoId(id)) ? id : undefined;
 
+              const data_ = { ...elementData };
+              const control = takeControlFields(
+                data_,
+                `${path.basename(filePath)}: ${yamlKey} '${id ?? '(no id)'}'`,
+              );
+
               const pe: PatchElement = {
-                data: { ...elementData },
+                data: data_,
                 category: categoryName,
                 yamlKey,
                 sourceFile: filePath,
                 targetDocPath,
                 pseudoId,
+                ...control,
               };
 
               allPatchElements.push(pe);
@@ -246,13 +264,20 @@ export function importCommand(): Command {
               const id = elementData.id as string | undefined;
               const pseudoId = (id && isPseudoId(id)) ? id : undefined;
 
+              const data_ = { ...elementData };
+              const control = takeControlFields(
+                data_,
+                `${path.basename(sourceFile)}: ${yamlKey} '${id ?? '(no id)'}'`,
+              );
+
               const pe: PatchElement = {
-                data: { ...elementData },
+                data: data_,
                 category: categoryName,
                 yamlKey,
                 sourceFile,
                 targetDocPath,
                 pseudoId,
+                ...control,
               };
 
               allPatchElements.push(pe);
@@ -317,21 +342,83 @@ export function importCommand(): Command {
         }
 
         // === PASS 3: Rewrite references ===
+        // Every reference-bearing site is derived from the declared field schemas
+        // via the shared walker (#22) — element-level maps_to, top-level
+        // list<reference>, and the list<reference> sub-fields of both list<model>
+        // and dict<model> containers (procedure.steps[].maps_to,
+        // decision.considered[*].would_have_served / .conflicts_with). The importer
+        // keeps no field-name list of its own, so it cannot drift from the
+        // validator's view of what a reference is.
         for (const pe of allPatchElements) {
-          // Rewrite element-level maps_to
-          rewriteReferences(pe.data, 'maps_to', rewriteMap, pe.targetDocPath);
-
-          // Rewrite reference fields generically (R6-compliant)
-          const catDef = catalog.registry.getByName(pe.category);
-          if (catDef) {
-            const mergedSchemas = { ...catalog.registry.allFieldSchemas, ...(catDef.field_schemas ?? {}) };
-            rewriteFieldsGeneric(pe.data, mergedSchemas, rewriteMap, pe.targetDocPath);
+          for (const site of referenceSitesFor(pe, catalog)) {
+            site.owner[site.field] = site.refs.map(ref =>
+              typeof ref === 'string' ? rewriteRef(ref, rewriteMap, pe.targetDocPath) : ref
+            );
           }
         }
 
-        // Validate: check for unresolved pseudo-IDs in maps_to
+        // Validate: no `?`-reference may survive into the written library. This runs
+        // BEFORE the preview, so --dry-run reports the failure instead of printing a
+        // rewrite list that implies everything resolved (#22).
+        const unresolved: string[] = [];
         for (const pe of allPatchElements) {
-          checkUnresolvedPseudoIds(pe.data, pe.category, catalog, rewriteMap);
+          for (const site of referenceSitesFor(pe, catalog)) {
+            for (const ref of site.refs) {
+              if (typeof ref !== 'string') continue;
+              const pseudo = unresolvedPseudoId(ref, rewriteMap);
+              if (!pseudo) continue;
+              const via = pseudo === ref ? '' : ` (from reference '${ref}')`;
+              unresolved.push(
+                `  ${pe.targetDocPath}:${pe.data.id} ${site.location}: '${pseudo}'${via}`,
+              );
+            }
+          }
+        }
+        if (unresolved.length > 0) {
+          console.error('Unresolved pseudo-ID reference(s) — nothing was written:');
+          for (const line of unresolved) console.error(line);
+          console.error('');
+          console.error('Every ?-reference must name an element defined in this patch set.');
+          process.exit(1);
+        }
+
+        // === Partition: adds vs updates ===
+        // `updateElements` is exactly the set that must carry `update_rationale`
+        // (or `skip_review`) and exactly the set that receives an `updated_by`
+        // change record (#28).
+        const addElements = allPatchElements.filter(pe => pe.pseudoId || isNewElement(pe, catalog));
+        const updateElements = allPatchElements.filter(pe => !pe.pseudoId && !isNewElement(pe, catalog));
+
+        // === Review gate (#28) ===
+        // Mirrors `cairn edit --rationale`: an update to an existing element must
+        // say why, unless it is explicitly marked skip-review. Command-level
+        // --skip-review covers the whole patch; per-element `skip_review: true`
+        // covers one element, so a patch of mechanical updates plus one
+        // substantive change is not all-or-nothing.
+        if (!opts.skipReview) {
+          const missing = updateElements.filter(pe => !pe.skipReview && !pe.updateRationale);
+          if (missing.length > 0) {
+            console.error('Updates to existing elements require an update_rationale — nothing was written:');
+            for (const pe of missing) {
+              console.error(`  ${pe.targetDocPath}:${pe.data.id}  "${displayName(pe, catalog)}"  (${pe.category})`);
+            }
+            console.error('');
+            console.error('Add `update_rationale: <why this changed>` to each element above,');
+            console.error('or `skip_review: true` on the ones that need no review,');
+            console.error('or pass --skip-review to mark the whole patch skip-review.');
+            process.exit(1);
+          }
+        }
+
+        // `update_rationale` is meaningless on an element the import is creating —
+        // a new element records its provenance in `origin`. Surface rather than
+        // swallow: a real ID that silently became an "add" is usually a typo.
+        for (const pe of addElements) {
+          if (pe.updateRationale === undefined && pe.skipReview === undefined) continue;
+          console.error(
+            `Note: ${pe.targetDocPath}:${pe.data.id} is being ADDED, not updated — ` +
+            `its update_rationale/skip_review is ignored (new elements record provenance in origin).`,
+          );
         }
 
         // === Add provenance ===
@@ -340,8 +427,7 @@ export function importCommand(): Command {
         if (config.user?.name && config.user?.email) {
           userIdentity = config.user;
         }
-        for (const pe of allPatchElements) {
-          if (!pe.pseudoId && !isNewElement(pe, catalog)) continue; // Only add origin to new/candidate elements
+        for (const pe of addElements) {
           const originEntry: Record<string, unknown> = {
             id: randomUUID(),
             date: now,
@@ -359,9 +445,24 @@ export function importCommand(): Command {
           }
         }
 
+        // Updated elements get an `updated_by` change record (DEC-4.7), always —
+        // including under --skip-review, which records the stance `skip_review: true`
+        // rather than omitting provenance (DEC-4.6). Mirrors edit.ts:98-104.
+        for (const pe of updateElements) {
+          const skipReview = pe.skipReview === true || opts.skipReview === true;
+          const updateEntry: Record<string, unknown> = {
+            id: randomUUID(),
+            date: now,
+            rationale: pe.updateRationale ?? 'skip-review update',
+          };
+          if (userIdentity) {
+            updateEntry.by = userIdentity;
+          }
+          if (skipReview) updateEntry.skip_review = true;
+          pe.updateEntry = updateEntry;
+        }
+
         // === PREVIEW ===
-        const addElements = allPatchElements.filter(pe => pe.pseudoId || isNewElement(pe, catalog));
-        const updateElements = allPatchElements.filter(pe => !pe.pseudoId && !isNewElement(pe, catalog));
         const rewriteEntries = [...rewriteMap.entries()];
 
         console.error('');
@@ -376,7 +477,8 @@ export function importCommand(): Command {
         if (updateElements.length > 0) {
           console.error(`Updating ${updateElements.length} element(s):`);
           for (const pe of updateElements) {
-            console.error(`  ${pe.data.id}  "${pe.data.name}"  (${pe.category}) \u2192 ${pe.targetDocPath}`);
+            const skipLabel = pe.updateEntry?.skip_review === true ? ' [skip-review]' : '';
+            console.error(`  ${pe.data.id}  "${displayName(pe, catalog)}"  (${pe.category}) \u2192 ${pe.targetDocPath}${skipLabel}`);
           }
           console.error('');
         }
@@ -476,7 +578,18 @@ export function importCommand(): Command {
             const existingIdx = arr.findIndex(item => item.id === pe.data.id);
             if (existingIdx >= 0) {
               // Merge: patch fields overwrite, unmentioned fields preserved
-              arr[existingIdx] = { ...arr[existingIdx], ...pe.data };
+              const prior = arr[existingIdx]!;
+              const merged: Record<string, unknown> = { ...prior, ...pe.data };
+              if (pe.updateEntry) {
+                // Append to the history ON DISK (DEC-4.7 is append-only). A patch
+                // that carries its own `updated_by` replaces the list as any other
+                // field would; otherwise the document's existing entries are kept.
+                const base = Array.isArray(pe.data.updated_by)
+                  ? pe.data.updated_by
+                  : (Array.isArray(prior.updated_by) ? prior.updated_by : []);
+                merged.updated_by = [...base, pe.updateEntry];
+              }
+              arr[existingIdx] = merged;
             } else {
               // Append new element
               arr.push(pe.data);
@@ -539,20 +652,78 @@ export function importCommand(): Command {
 }
 
 /**
- * Rewrite pseudo-ID references in a maps_to array (or any string array field).
+ * Every reference-bearing array in a patch element, derived from its category's
+ * declared field schemas. Single source of truth shared with the validator's
+ * E001 walk — see src/schema/reference-sites.ts.
  */
-function rewriteReferences(
-  data: Record<string, unknown>,
-  fieldName: string,
+function referenceSitesFor(pe: PatchElement, catalog: Catalog) {
+  const catDef = catalog.registry.getByName(pe.category);
+  const mergedSchemas = {
+    ...catalog.registry.allFieldSchemas,
+    ...(catDef?.field_schemas ?? {}),
+  };
+  return collectReferenceSites(pe.data, mergedSchemas);
+}
+
+/**
+ * If `ref` still names an unresolved pseudo-ID, return that pseudo-ID.
+ * Handles the bare (`?g_streaks`) and qualified (`docpath:?g_streaks`) forms.
+ */
+function unresolvedPseudoId(
+  ref: string,
   rewriteMap: Map<string, { realId: string; targetDocPath: string }>,
-  currentDocPath: string,
-): void {
-  const arr = data[fieldName];
-  if (!Array.isArray(arr)) return;
-  data[fieldName] = arr.map(ref => {
-    if (typeof ref !== 'string') return ref;
-    return rewriteRef(ref, rewriteMap, currentDocPath);
-  });
+): string | undefined {
+  if (isPseudoId(ref) && !rewriteMap.has(ref)) return ref;
+  const colonIdx = ref.lastIndexOf(':');
+  if (colonIdx > 0) {
+    const elementPart = ref.substring(colonIdx + 1);
+    if (isPseudoId(elementPart) && !rewriteMap.has(elementPart)) return elementPart;
+  }
+  return undefined;
+}
+
+/**
+ * Patch-only control keys (#28). They configure the import's review gate and
+ * provenance write; they are never element fields, so they are lifted off the
+ * element data during the scan and never reach the document.
+ *
+ * `update_rationale` is deliberately NOT `rationale`: a decision's primary field
+ * is `rationale` (src/data/defaults.yaml), so the two would collide in the same
+ * mapping. `update_` also matches the existing provenance vocabulary
+ * (`updated_by`, updateEntry) rather than naming the field after whichever
+ * command happens to write it.
+ *
+ * Lifts them off an element's data (mutating it) and returns them. Exits on a
+ * wrong-typed value rather than silently ignoring it — a mistyped rationale
+ * must not be mistaken for an absent one.
+ */
+function takeControlFields(
+  data: Record<string, unknown>,
+  context: string,
+): { updateRationale?: string; skipReview?: boolean } {
+  const out: { updateRationale?: string; skipReview?: boolean } = {};
+
+  if ('update_rationale' in data) {
+    const value = data.update_rationale;
+    delete data.update_rationale;
+    if (typeof value !== 'string' || value.trim().length === 0) {
+      console.error(`${context}: 'update_rationale' must be a non-empty string.`);
+      process.exit(1);
+    }
+    out.updateRationale = value;
+  }
+
+  if ('skip_review' in data) {
+    const value = data.skip_review;
+    delete data.skip_review;
+    if (typeof value !== 'boolean') {
+      console.error(`${context}: 'skip_review' must be true or false.`);
+      process.exit(1);
+    }
+    out.skipReview = value;
+  }
+
+  return out;
 }
 
 /**
@@ -592,107 +763,16 @@ function rewriteRef(
 }
 
 /**
- * Generic R6-compliant rewrite of reference fields in an element's data.
- * Walks field_schemas looking for list<model> fields with maps_to sub-fields
- * and list<reference> fields.
+ * Name to show for a patch element. A partial update legitimately omits `name`
+ * (only the changed fields need to be listed), so fall back to the name the
+ * element already carries in the library rather than printing "undefined".
  */
-function rewriteFieldsGeneric(
-  data: Record<string, unknown>,
-  fieldSchemas: Record<string, FieldSchemaEntry>,
-  rewriteMap: Map<string, { realId: string; targetDocPath: string }>,
-  currentDocPath: string,
-): void {
-  for (const [fieldName, schema] of Object.entries(fieldSchemas)) {
-    if (fieldName === 'maps_to') continue; // Already handled at element level
-    if (schema.type === 'list' && schema.items) {
-      // list<model> -- rewrite maps_to and list<reference> sub-fields in each item
-      if (schema.items.type === 'model' && schema.items.fields) {
-        const items = data[fieldName];
-        if (!Array.isArray(items)) continue;
-        for (const item of items) {
-          if (!item || typeof item !== 'object') continue;
-          const itemData = item as Record<string, unknown>;
-          // Rewrite maps_to in model items
-          if (schema.items.fields.maps_to) {
-            rewriteReferences(itemData, 'maps_to', rewriteMap, currentDocPath);
-          }
-          // Recursively handle nested list<reference> fields in the model
-          for (const [subFieldName, subSchema] of Object.entries(schema.items.fields)) {
-            if (subSchema.type === 'list' && subSchema.items?.type === 'reference') {
-              rewriteReferences(itemData, subFieldName, rewriteMap, currentDocPath);
-            }
-          }
-        }
-      }
-      // list<reference> at element level
-      if (schema.items.type === 'reference') {
-        rewriteReferences(data, fieldName, rewriteMap, currentDocPath);
-      }
-    }
-  }
-}
-
-/**
- * Check for unresolved pseudo-IDs in an element's reference fields.
- * Throws if any ?-prefixed ID remains that wasn't in the rewrite map.
- */
-function checkUnresolvedPseudoIds(
-  data: Record<string, unknown>,
-  categoryName: string,
-  catalog: Catalog,
-  rewriteMap: Map<string, { realId: string; targetDocPath: string }>,
-): void {
-  const checkArray = (arr: unknown[], context: string) => {
-    for (const item of arr) {
-      if (typeof item !== 'string') continue;
-      // Check bare pseudo-ID
-      if (isPseudoId(item) && !rewriteMap.has(item)) {
-        console.error(`Unresolved pseudo-ID '${item}' in ${context}`);
-        process.exit(1);
-      }
-      // Check qualified pseudo-ID
-      const colonIdx = item.lastIndexOf(':');
-      if (colonIdx > 0) {
-        const elementPart = item.substring(colonIdx + 1);
-        if (isPseudoId(elementPart) && !rewriteMap.has(elementPart)) {
-          console.error(`Unresolved pseudo-ID '${elementPart}' in ${context} (from reference '${item}')`);
-          process.exit(1);
-        }
-      }
-    }
-  };
-
-  // Check element-level maps_to
-  if (Array.isArray(data.maps_to)) {
-    checkArray(data.maps_to as unknown[], `element ${data.id} maps_to`);
-  }
-
-  // Check fields generically
-  const catDef = catalog.registry.getByName(categoryName);
-  if (!catDef) return;
-  const mergedSchemas = { ...catalog.registry.allFieldSchemas, ...(catDef.field_schemas ?? {}) };
-  for (const [fieldName, schema] of Object.entries(mergedSchemas)) {
-    if (fieldName === 'maps_to') continue;
-    if (schema.type === 'list' && schema.items) {
-      if (schema.items.type === 'model' && schema.items.fields) {
-        const items = data[fieldName];
-        if (!Array.isArray(items)) continue;
-        for (const item of items) {
-          if (!item || typeof item !== 'object') continue;
-          const itemData = item as Record<string, unknown>;
-          if (Array.isArray(itemData.maps_to)) {
-            checkArray(itemData.maps_to as unknown[], `element ${data.id} ${fieldName} item maps_to`);
-          }
-        }
-      }
-      if (schema.items.type === 'reference') {
-        const refs = data[fieldName];
-        if (Array.isArray(refs)) {
-          checkArray(refs as unknown[], `element ${data.id} ${fieldName}`);
-        }
-      }
-    }
-  }
+function displayName(pe: PatchElement, catalog: Catalog): string {
+  if (typeof pe.data.name === 'string') return pe.data.name;
+  const existing = catalog.getAllElements().find(e =>
+    e.id === pe.data.id && e.documentPath === pe.targetDocPath
+  );
+  return existing?.name ?? '';
 }
 
 function isNewElement(pe: PatchElement, catalog: Catalog): boolean {
