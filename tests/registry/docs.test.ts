@@ -32,14 +32,42 @@ describe('registry documentation (D56)', () => {
     expect(readme()).toMatch(/--no-registry|registry\.enabled/);
   });
 
-  it('names both opt-out surfaces, and no third one', () => {
-    // D43 names exactly two. An env var was drafted and deliberately
-    // removed during planning; documenting a third surface would put the
-    // docs ahead of the decision.
+  it('documents one opt-out MECHANISM, and only spellings D43 admits', () => {
+    // This test used to assert "exactly two surfaces". D43's 2026-09-25
+    // amendment corrected the unit: there has only ever been ONE mechanism,
+    // `registry.enabled`, and each named surface is a SPELLING that sets it
+    // (a config layer sets it directly; `--no-registry` is applied by
+    // parseConfigOptions to the already-loaded config). Counting spellings
+    // meant the count had to be broken to admit any new one, including a
+    // spelling that strengthens the guarantee — so it now counts mechanisms
+    // and enumerates the admitted spellings.
+    //
+    // The original comment's intent is preserved verbatim in force: an env
+    // var was drafted and deliberately removed during planning, and
+    // documenting a spelling the decision has not admitted would still put
+    // the docs ahead of the decision. That is now enforced by an explicit
+    // allow-list rather than by a number.
     const r = readme();
-    expect(r).toMatch(/registry\.enabled: false/);
-    expect(r).toMatch(/--no-registry/);
-    expect(r).not.toMatch(/GVP_NO_REGISTRY/);
+
+    // Spellings D43 admits AND that have shipped — the README must carry
+    // each one, and each must reduce to `registry.enabled`.
+    const SHIPPED_SPELLINGS = [
+      /registry\.enabled: false/, // config layer
+      /--no-registry/, // single invocation
+    ];
+    for (const spelling of SHIPPED_SPELLINGS) expect(r).toMatch(spelling);
+
+    // `meta.registry.enabled` is ADMITTED by the D43 amendment (a
+    // library-scoped declaration, warranted under gvp:H11 and scoped by
+    // gvp:R11) but is NOT implemented — issue #25 carries that. Until it
+    // ships the README must not document it, for exactly the reason the env
+    // var was removed. DELETE THIS ASSERTION in the change that implements
+    // it, and move the pattern into SHIPPED_SPELLINGS above.
+    expect(r).not.toMatch(/meta\.registry\.enabled/);
+
+    // Spellings D43 has never admitted, in any form.
+    const UNADMITTED_SPELLINGS = [/GVP_NO_REGISTRY/, /GVP_REGISTRY_DISABLED/];
+    for (const spelling of UNADMITTED_SPELLINGS) expect(r).not.toMatch(spelling);
   });
 
   it('says search covers decision rationale, not just names and statements', () => {
