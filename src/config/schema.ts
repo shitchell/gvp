@@ -24,6 +24,47 @@ export const userIdentitySchema = z.object({
   email: z.string().email(),
 });
 
+/**
+ * How diagnostics originating from a given source are rendered (#29).
+ *
+ *   show  — print every diagnostic individually (today's only behaviour)
+ *   count — withhold the individual lines, print a one-line roll-up with
+ *           the totals and the per-code breakdown
+ *   hide  — withhold the lines AND the counts, but still emit a bare
+ *           "N sources fully hidden" trace
+ *
+ * There is deliberately no fourth state that renders NOTHING. gvp:P9 says
+ * "hide what is not actively needed, but never lose it" — a silent hide
+ * loses it. `suppress_diagnostics` is the mechanism that leaves no trace,
+ * and three months of unnoticed W003 accretion in gvp-docs is what that
+ * costs (see #29).
+ */
+export const diagnosticVisibilitySchema = z.enum(['show', 'count', 'hide']);
+export type DiagnosticVisibility = z.infer<typeof diagnosticVisibilitySchema>;
+
+/**
+ * Source-scoped diagnostic display (#29).
+ *
+ * Orthogonal to `suppress_diagnostics`, not redundant with it (gvp:P11 —
+ * purpose, not structural similarity, decides whether to merge):
+ *   suppress_diagnostics answers "I don't care about this kind of finding"
+ *   diagnostics.by_source answers "this isn't my code"
+ * They compose as per-code × per-source.
+ *
+ * `by_source` keys match the raw `inherits[].source` string, either in full
+ * (`@github:org/repo@v0.7.0`) or with the commit-ish dropped
+ * (`@github:org/repo`) so the setting survives a version bump. The local
+ * library is `show` unless `by_source` names it explicitly.
+ */
+export const diagnosticsSchema = z.object({
+  /** Blanket setting for every source that is not the local library. */
+  inherited: diagnosticVisibilitySchema.optional().default('count'),
+  /** Per-source overrides; beats `inherited`. */
+  by_source: z.record(z.string(), diagnosticVisibilitySchema).optional().default({}),
+});
+
+export type DiagnosticsConfig = z.infer<typeof diagnosticsSchema>;
+
 /** GVP config schema */
 export const configSchema = z.object({
   // Project identity (D21): stable UUID generated once at first cairn
@@ -39,6 +80,14 @@ export const configSchema = z.object({
   // Validation settings
   strict: z.boolean().optional().default(false),
   suppress_diagnostics: z.array(z.string()).optional().default([]),
+
+  // Source-scoped diagnostic display (#29). Same zod-4 short-circuit
+  // caveat as `registry` below: the OBJECT-level default must carry every
+  // inner key explicitly, because `.default({})` returns the literal
+  // without parsing it and the inner `.default(...)`s never run.
+  diagnostics: diagnosticsSchema
+    .optional()
+    .default({ inherited: 'count', by_source: {} }),
 
   // Display settings (DEC-8.3: magic numbers as config)
   display: z

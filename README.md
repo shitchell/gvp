@@ -90,6 +90,7 @@ cairn export --format markdown
 | `cairn validate` | Validate the GVP library |
 | `cairn validate --coverage` | Include coverage checks (orphan identifiers, decisions without refs) |
 | `cairn validate --scope staged` | Scope validation to staged git changes |
+| `cairn validate --include-inherited` | Show diagnostics on inherited elements (default: counted, not listed) |
 | `cairn export --format <fmt>` | Export catalog to json, csv, markdown, or dot |
 | `cairn add <category> <name>` | Add a new element with auto-assigned ID |
 | `cairn edit <element> --field key=value` | Modify an existing element |
@@ -171,6 +172,13 @@ strict: false
 suppress_diagnostics: []
 default_timezone: "America/New_York"
 
+# Scope diagnostic DISPLAY by source (see below). Inherited elements are
+# someone else's to fix; by default their diagnostics are counted, not listed.
+diagnostics:
+  inherited: count        # show | count | hide
+  by_source:
+    "@github:shitchell/gvp-docs": count
+
 priority:
   elements: ancestor      # ancestor-wins for elements
   definitions: descendant  # descendant-wins for definitions
@@ -183,6 +191,39 @@ coverage:
     - "**/*.test.ts"
     - "docs/**"
 ```
+
+### Diagnostics you cannot fix
+
+Inheriting a library means inheriting its diagnostics. They are the upstream author's
+defects, unfixable from your repo, and they bury your own signal -- 49 of this repo's
+148 warnings landed on upstream elements.
+
+`diagnostics` scopes display by source, in three states:
+
+- **`show`** -- print every diagnostic individually
+- **`count`** -- withhold the lines, print a one-line roll-up (**default for inherited sources**)
+- **`hide`** -- withhold the lines and the counts, print a bare `N sources fully hidden` trace
+
+```console
+$ cairn validate
+WARN  W005  gvp:D4   Element gvp:D4 maps only to elements within its own document
+...
+  49 further warnings from @github:shitchell/gvp-docs@v0.7.0 (W005 ×24, W003 ×23, W017 ×2)
+  → --include-inherited to show
+```
+
+There is deliberately no state that renders *nothing*. `gvp:P9` says "hide what is not
+actively needed, but never lose it" -- so even `hide` confesses that it is hiding
+something. That is the difference between this and `suppress_diagnostics`, which
+leaves no trace at all.
+
+The two are orthogonal, not redundant: `suppress_diagnostics` answers *"I don't care
+about this kind of finding"*; `diagnostics.by_source` answers *"this isn't my code."*
+They compose as per-code x per-source. Errors are never scoped -- an invalid catalog
+is your problem whoever authored it.
+
+See [docs/reference/validation.md](docs/reference/validation.md#source-scoped-diagnostics)
+for the full rules.
 
 ## Built-in Categories
 

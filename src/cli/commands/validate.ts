@@ -3,8 +3,16 @@ import { execSync } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
 import { parseConfigOptions, buildCatalog, resolveDocumentFilter, getLibraryOverride, getStoreOverride } from '../helpers.js';
-import { runValidation, hasErrors, builtinPasses, optionalPasses } from '../../validation/index.js';
+import {
+  runValidation,
+  hasErrors,
+  builtinPasses,
+  optionalPasses,
+  applySourceScope,
+  renderSourceScopeSummary,
+} from '../../validation/index.js';
 import type { Diagnostic, ValidationPass } from '../../validation/index.js';
+import { diagnosticVisibilitySchema, type DiagnosticsConfig } from '../../config/schema.js';
 
 /**
  * Find the git root by walking up from cwd.
@@ -75,6 +83,31 @@ function isDiagnosticInScope(d: Diagnostic, changedSet: Set<string>): boolean {
   return true;
 }
 
+/**
+ * Resolve the per-invocation override for `diagnostics` (#29), or undefined
+ * to use the config as loaded.
+ *
+ * A CLI override replaces the WHOLE block, `by_source` included. Layering a
+ * flag on top of per-source entries would mean `--include-inherited` still
+ * hid whatever `by_source` had pinned to `hide` — the opposite of what the
+ * flag says, and the flag is what the summary line tells you to reach for.
+ */
+function resolveDiagnosticsOverride(opts: Record<string, unknown>): DiagnosticsConfig | undefined {
+  if (opts.includeInherited) {
+    return { inherited: 'show', by_source: {} };
+  }
+  if (typeof opts.inherited === 'string') {
+    const parsed = diagnosticVisibilitySchema.safeParse(opts.inherited);
+    if (!parsed.success) {
+      throw new Error(
+        `--inherited must be one of: show, count, hide (got '${opts.inherited}')`,
+      );
+    }
+    return { inherited: parsed.data, by_source: {} };
+  }
+  return undefined;
+}
+
 export function validateCommand(): Command {
   const cmd = new Command('validate')
     .description('Validate the GVP library')
@@ -82,6 +115,8 @@ export function validateCommand(): Command {
     .option('-d, --document <name>', 'Restrict diagnostics to a single document (matched by meta.name or documentPath)')
     .option('--coverage', 'Enable the coverage pass (W012, W013)')
     .option('--passes <passes>', 'Comma-separated list of passes to run (e.g., schema,structural,semantic,coverage)')
+    .option('--include-inherited', 'Show every diagnostic on inherited elements, overriding `diagnostics` config (#29)')
+    .option('--inherited <mode>', 'Override `diagnostics.inherited` for this run: show | count | hide (#29)')
     .action(async () => {
       try {
         const { config, preflight } = parseConfigOptions(cmd);
@@ -133,8 +168,18 @@ export function validateCommand(): Command {
           });
         }
 
+        // Source-scoped display (#29): withhold diagnostics on elements this
+        // repo cannot edit, without losing them. Runs LAST so it composes
+        // with --scope and --document rather than competing with them.
+        const scoped = applySourceScope(
+          filteredDiagnostics,
+          catalog,
+          config,
+          resolveDiagnosticsOverride(opts),
+        );
+
         // Print diagnostics to stderr (DEC-5.12)
-        for (const d of filteredDiagnostics) {
+        for (const d of scoped.shown) {
           const prefix = d.severity === 'error' ? 'ERROR' : 'WARN';
           const location = d.context.elementId
             ? `${d.context.documentPath ?? ''}:${d.context.elementId}`
@@ -142,12 +187,21 @@ export function validateCommand(): Command {
           console.error(`${prefix}  ${d.code}  ${location}  ${d.description}`);
         }
 
-        if (filteredDiagnostics.length === 0) {
+        if (scoped.shown.length === 0) {
           console.error('Validation passed. Structural checks OK. Use `cairn export` for semantic review.');
         }
 
-        // Exit code (DEC-5.12): 0 for success/warnings, non-zero for errors
-        process.exit(hasErrors(filteredDiagnostics) ? 1 : 0);
+        // The summary always follows the detail, so a scoped-out finding is
+        // the last thing you read rather than something scrolled past.
+        for (const line of renderSourceScopeSummary(scoped)) {
+          console.error(line);
+        }
+
+        // Exit code (DEC-5.12): 0 for success/warnings, non-zero for errors.
+        // Genuine errors are never scoped out (applySourceScope), so scoping
+        // can only ever drop strict-promoted warnings here — never mask a
+        // real failure.
+        process.exit(hasErrors(scoped.shown) ? 1 : 0);
       } catch (e) {
         console.error(`Error: ${(e as Error).message}`);
         process.exit(1);

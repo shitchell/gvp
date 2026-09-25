@@ -3391,6 +3391,123 @@ decisions:
       - file: src/cli/commands/query.ts
         identifier: queryCommand
         role: implements
+  - id: D62
+    name: Diagnostic display is scoped by source, tri-state, and never silent
+    rationale: |
+      A project that inherits a library inherits its diagnostics. Measured in this repo after wiring `@github:shitchell/gvp-docs@v0.7.0`: 49 of 148 warnings landed on upstream `personal:*` / `code-*` elements (W005 x24, W003 x23, W017 x2). They are not this project's defects, they cannot be fixed from this repo, they grow with the library rather than with the project, and they bury the 99 local ones. Validating gvp-docs standalone emits the same set element for element, so inheritance did not generate them -- it only made pre-existing upstream findings visible somewhere nothing can act on them. The display, not the analysis, is what needed work.
+
+      WHAT SHIPS. A `diagnostics` config block scoping DISPLAY by source, tri-state per source: `show` prints every diagnostic individually, `count` withholds the lines and prints a one-line roll-up with totals and per-code counts, `hide` withholds the lines and the counts and prints a bare "N sources fully hidden" trace. Default is `show` for the local library and `count` for every inherited source. `by_source` overrides the blanket setting per source, matching the raw `inherits[].source` string either in full or with the commit-ish dropped so the setting survives a version bump. `--include-inherited` and `--inherited <mode>` override the whole block for one invocation. Source is resolved from `doc.source`, which already carried the local-vs-inherited distinction and was already used for exactly this purpose in `mv` (rewriteLibraryRefs refuses to rewrite inherited files) -- it was simply never wired into `validate`.
+
+      WHY TRI-STATE AND NOT A BOOLEAN. The interesting state is the middle one. A boolean forces the choice between 49 lines that bury the local 99 and no acknowledgement that 49 findings exist. `count` keeps the finding visible as a number, which is the whole of P9's "hide what is not actively needed, but never lose it" -- the number is what is not lost.
+
+      WHY `hide` STILL PRINTS. This is the load-bearing constraint, and it is grounded in evidence rather than in principle alone. `~/.gvp/config.yaml` has carried `suppress_diagnostics: [W003, W005]` since 2026-06-15, and `~/.gvp/library` IS the gvp-docs checkout, so gvp-docs validated clean to its own author the whole time. Most offending elements were authored AFTER that suppression went in (personal:P11 2026-06-20, code-common:CP15 2026-07-21, personal:P16 and P17 2026-07-22). The result was 23 instances of ONE authoring habit accreting unseen for three months -- not 23 individual slips. Blanket suppression is the obvious workaround and it is the thing that caused the problem this decision exists to fix. So there is deliberately no fourth state that renders nothing: `hide` is the quietest setting the mechanism offers and it still confesses that it is hiding something. The trace names no source, no code, and no count, so it costs one line; it only guarantees you cannot be unaware. V9 says data may be excluded from review cycles but never from the record, and a silent hide excludes it from the record.
+
+      The trace fires only when a diagnostic was ACTUALLY withheld. A `hide`-scoped source with nothing to report prints nothing -- there is no loss to confess to, and a standing line that means nothing is the noise P9 forbids.
+
+      SOURCE-SCOPING AND `suppress_diagnostics` ARE ORTHOGONAL, NOT REDUNDANT. Recorded explicitly so P11 is not invoked against this later. `suppress_diagnostics` answers "I do not care about this kind of finding"; `diagnostics.by_source` answers "this is not my code." Different purposes, so P11's own wording -- purpose, not structural similarity, determines whether to merge -- says keep them distinct. They compose as per-code x per-source: suppression runs first in runValidation and removes codes everywhere including locally, then source scoping partitions what remains. Neither can express the other: suppressing W003 to silence upstream also hides this project's own future W003s, and scoping a source to `hide` does not stop you caring about W003 in your own library.
+
+      ERRORS ARE NEVER SCOPED. Only warnings are scopable, including ones `--strict` promoted. An ERROR on an inherited element means the composed catalog you are actually consuming is invalid, which is your problem whoever authored it -- V10 requires the system's guarantees to be reliable or visibly absent, and a mechanism that could turn a failing `validate` green by configuration is neither. This also keeps exit-code semantics untouched and makes the no-inherits case provably unchanged.
+
+      WHY `strictPromoted` EXISTS. `runValidation` rewrites every warning to an error before `validate` sees it when `strict: true`. Scoping on the severity it finds would therefore go inert for exactly the users who opted into the loudest setting -- they would be left with `suppress_diagnostics`, the anti-pattern above. The promotion now stamps `strictPromoted: true` on what it rewrote, so scoping decides on the severity the PASS assigned and `strict` composes with source scoping instead of defeating it. Under `--strict`, `inherited: hide` means upstream authoring findings do not fail your build while genuine structural errors still do.
+
+      THE RESOLVER FAILS OPEN. A Diagnostic carries `context.documentPath` but not a source, and documentPath is not globally unique -- element identity is source:documentPath:id precisely because two libraries may both hold a `gvp` document. An unambiguous documentPath resolves directly; a collided one is disambiguated via `context.elementId` against the catalog; when neither settles it the diagnostic is SHOWN. Erring toward show is deliberate: a scoping bug that hid a local diagnostic would be this issue's own failure mode reintroduced by the fix.
+
+      IS UPSTREAM HEALTH `validate`'S JOB? Partly, and the split is the one above. `validate` answers "is the library I am consuming usable, and is my own authoring sound?" -- errors from any source, warnings from mine. It does not answer "is my upstream library well-authored?"; that belongs to the library's author, who gets it by running `validate` in the library's own repo. That makes this filter closer to clean than to a tradeoff, but not fully: a consumer who WANTS to audit an upstream has only `--include-inherited`, which is a stopgap rather than a home. A dedicated upstream-health check sitting near `cairn libs` -- which already enumerates every library resolved -- would be the proper home and is deliberately not built here. Building it would not change any part of this decision; it would give the concern somewhere to go.
+    tags:
+      - tooling
+      - usability
+      - integrity
+    maps_to:
+      - gvp:G7
+      - gvp:G8
+      - gvp:G11
+      - gvp:V6
+      - gvp:V8
+      - gvp:V9
+      - gvp:V10
+      - gvp:P9
+      - gvp:P11
+      - gvp:P14
+      - gvp:D16
+    considered:
+      blanket_suppress_diagnostics:
+        rationale: |
+          Adding W003 and W005 to `suppress_diagnostics` in this project's config. One line, needs no code, and silences all 49. Refused on measured evidence rather than on taste: this is precisely what `~/.gvp/config.yaml` has done since 2026-06-15, and it is how 23 instances of one authoring habit accreted in gvp-docs over three months without its own author seeing them. It is also strictly too coarse -- suppressing W003 project-wide to silence upstream would hide this project's own future W003s, of which it currently has zero. The failure mode is not that it hides too much; it is that it leaves no trace that it hid anything, so nobody is ever prompted to re-check.
+        would_have_served:
+          - gvp:P9
+        conflicts_with:
+          - gvp:V9
+          - gvp:V10
+          - gvp:P11
+      boolean_local_only:
+        rationale: |
+          A two-state `--local-only` / `diagnostics.inherited: false` boolean instead of a tri-state. Simpler surface and simpler config. Refused because it deletes the state that does the work: `count` is what keeps 49 findings present as a number while keeping 49 lines out of the way. A boolean forces the choice between drowning the local signal and pretending the findings do not exist, which is the same silent-loss shape as the blanket suppression above with better ergonomics.
+        would_have_served:
+          - gvp:V6
+        conflicts_with:
+          - gvp:P9
+          - gvp:V9
+      extend_document_filter_to_a_list:
+        rationale: |
+          Teaching `-d/--document` to accept a comma-separated list, so `-d gvp,v0` expresses "local only". Refused twice over. D16 settled that `--document` matches a single exact `meta.name` or `documentPath`, and a list reopens that without new evidence. More decisively, it does not answer the question asked: an enumeration of local documents rots the moment a document is added, and it expresses "these documents" rather than "not inherited" -- the wrong axis, so it would still be wrong after every rename. Source is the dimension the data already carries.
+        would_have_served:
+          - gvp:V6
+        conflicts_with:
+          - gvp:D16
+          - gvp:P14
+      extend_the_scope_flag:
+        rationale: |
+          Teaching `--scope` to suppress inherited diagnostics. Refused because `--scope` answers a different question and cannot structurally answer this one. It is git-diff based, and `isDiagnosticInScope` passes ALL schema, structural and traceability diagnostics through unfiltered -- W003 is emitted by the traceability pass and returns early on that branch, W005 falls through to the unconditional final return. Both behaviours are correct for "what did my diff touch?" and neither could be changed to mean "whose code is this?" without breaking the flag's own contract.
+        would_have_served:
+          - gvp:P11
+        conflicts_with:
+          - gvp:P11
+      scope_errors_as_well_as_warnings:
+        rationale: |
+          Letting `hide` and `count` apply to errors too, on the reasoning that an inherited error is no more fixable from here than an inherited warning. Refused: it is the one shape of this feature that could turn a failing `validate` green by configuration. An error means the composed catalog being consumed is invalid, and consuming it is this project's act whoever authored the library. Keeping errors unconditionally visible also means the exit code needs no special-casing at all, so there is no path by which a display setting reaches a build result.
+        would_have_served:
+          - gvp:V7
+        conflicts_with:
+          - gvp:V10
+      carry_source_on_every_diagnostic:
+        rationale: |
+          Adding `source` to DiagnosticContext and populating it at every emission site in every pass, rather than resolving documentPath back to a source in the display layer. This is the more direct representation and would remove the resolver's ambiguity case entirely. Deferred rather than refused: it touches every pass and every `createDiagnostic` call for a mapping the catalog already holds, and the resolver's fallback is fail-open -- an unresolvable diagnostic is shown, never hidden -- so the ambiguity case cannot cause the loss this decision exists to prevent. Worth doing if a second consumer ever needs a diagnostic's source.
+        would_have_served:
+          - gvp:P14
+      separate_upstream_health_check:
+        rationale: |
+          Answering "is my upstream library healthy?" with a dedicated check near `cairn libs` instead of, or as well as, filtering it out of `validate`. Not refused and not in conflict with what ships -- it is the missing home for the concern this filter displaces, and building it would change nothing here. Deferred because the immediate problem is that unfixable findings bury local signal, which the filter solves on its own; the audit path in the meantime is `--include-inherited`, or running `validate` in the library's own repo, which is where its author already works. Recorded so the filter is not later mistaken for a claim that the question does not matter.
+        would_have_served:
+          - gvp:G11
+          - gvp:V9
+    refs:
+      - file: src/validation/source-scope.ts
+        identifier: applySourceScope
+        role: implements
+      - file: src/validation/source-scope.ts
+        identifier: renderSourceScopeSummary
+        role: implements
+      - file: src/validation/source-scope.ts
+        identifier: buildDiagnosticSourceResolver
+        role: implements
+      - file: src/config/schema.ts
+        identifier: diagnosticsSchema
+        role: implements
+      - file: src/validation/runner.ts
+        identifier: runValidation
+        role: implements
+      - file: src/cli/commands/validate.ts
+        identifier: resolveDiagnosticsOverride
+        role: implements
+    origin:
+      - date: '2026-09-25'
+        note: 'Issue #29, filed after wiring `@github:shitchell/gvp-docs@v0.7.0` into this repo surfaced 49 unfixable inherited warnings against 99 local ones. The cautionary tale in the issue -- three months of unnoticed W003 accretion behind a blanket `suppress_diagnostics` in the library author''s own config -- is what forced the tri-state and the mandatory `hide` trace, and it was supplied as measured evidence rather than as a hypothetical.'
+      - id: 0a052f3b-4e49-49ab-a87b-5e1e9aac4aaa
+        date: '2026-09-25T22:46:11.858Z'
+        note: Imported from d-source-scope.yaml
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
 constraints:
   - id: C1
     name: Agents optimize for minimal effort
