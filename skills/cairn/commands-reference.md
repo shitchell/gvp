@@ -146,9 +146,11 @@ cairn analyze --threshold 0.5    # lower threshold, more results
 |------|-------------|
 | `--config <path>` | Load specific config file (replaces discovery) |
 | `--no-config` | Skip all config files |
-| `-c key=value` | Inline config override (highest precedence) |
+| `-c key=value` | Inline config override (highest precedence). Repeat the flag for more than one: `-c a=1 -c b=2`. |
 | `--strict` | Promote warnings to errors |
 | `-v` / `-vv` / `-vvv` | Verbose output |
+
+Global options work before or after the subcommand. Where a subcommand defines the same short flag, the subcommand wins after it — `-c` after `query` is `--category`, never `--override`.
 
 ## Validation Codes
 

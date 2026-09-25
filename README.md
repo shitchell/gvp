@@ -110,9 +110,11 @@ cairn export --format markdown
 |------|-------------|
 | `--config <path>` | Load specific config file |
 | `--no-config` | Skip all config files |
-| `-c key=value` | Inline config override |
+| `-c key=value` | Inline config override. Repeat the flag for more than one: `-c strict=true -c source=@local`. |
 | `--strict` | Promote warnings to errors |
 | `-v` / `-vv` / `-vvv` | Verbose output |
+
+Global options may be written before the subcommand or after it — `cairn -c strict=true query` and `cairn query --strict` are both accepted. Where a subcommand defines the same short flag, the subcommand wins in the trailing position: `cairn -c strict=true query -c decision` sets the config override `strict=true` and filters to the `decision` category, and `-c` after `query` is always `--category`.
 
 ## Validation Codes
 

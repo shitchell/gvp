@@ -17,10 +17,55 @@ import type { FieldSchemaEntry } from '../schema/field-schema.js';
 import { setVerbosity, logv } from '../utils/logger.js';
 // One definition of the YAML walker, shared with the registry recorder (P11).
 import { findYamlFiles } from '../utils/yaml-files.js';
-import type { Command } from 'commander';
+import { InvalidArgumentError, type Command } from 'commander';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
+
+/**
+ * Split one `--override` argument into its `[key, value]` pair, or throw
+ * if it isn't in `key=value` form (#21).
+ *
+ * This used to be a silent skip: anything without a `=` was dropped, so
+ * `cairn query -c garbagekey` printed the ENTIRE catalog and exited 0 —
+ * which reads as "the filter matched everything" and has already produced
+ * one false bug report. A malformed override is a typo, and a typo the
+ * tool can name is worth naming (gvp:V10).
+ *
+ * The key must be non-empty; the VALUE may be. `-c strict=` is a
+ * deliberate blank, not a mistake, and config values are strings.
+ *
+ * Throws InvalidArgumentError so that when this runs as a Commander
+ * `argParser` the message is attributed to the flag that carried it.
+ * One definition, shared by the CLI parse in src/cli/index.ts and by
+ * parseConfigOptions below (gvp:P11).
+ */
+export function parseOverrideEntry(entry: string): [string, string] {
+  const eqIdx = entry.indexOf('=');
+  if (eqIdx <= 0) {
+    throw new InvalidArgumentError(
+      `'${entry}' is not a config override. Expected key=value (for example: -c strict=true). ` +
+        `Repeat the flag to set more than one: -c strict=true -c source=@local.`,
+    );
+  }
+  return [entry.substring(0, eqIdx), entry.substring(eqIdx + 1)];
+}
+
+/**
+ * Commander `argParser` for the repeatable `--override` flag.
+ *
+ * `--override` was declared VARIADIC (`<key=value...>`) until #21. A
+ * variadic option consumes every following token until the next
+ * option-like one, which included the subcommand name — so
+ * `cairn -c strict=true query --category decision` ate `query` and then
+ * rejected `--category` as an unknown PROGRAM option. Collecting repeats
+ * instead is both the conventional shape for a repeated `key=value` flag
+ * and the thing that stops the subcommand being swallowed.
+ */
+export function collectOverride(value: string, previous: string[] | undefined): string[] {
+  parseOverrideEntry(value); // validate at parse time, where the flag is still in scope
+  return [...(previous ?? []), value];
+}
 
 /**
  * Parse global options from a Commander command into LoadConfigOptions.
@@ -67,13 +112,14 @@ export function parseConfigOptions(cmd: Command): {
   // config we're about to load. Target store path if set, otherwise CWD.
   const preflight = runProjectPreflight(storePath ?? process.cwd());
 
+  // Malformed entries throw rather than being dropped (#21). The CLI
+  // normally rejects them earlier, in the `--override` argParser; this
+  // path also covers callers that construct a Command programmatically.
   const inlineOverrides: Record<string, string> = {};
   if (opts.override) {
     for (const entry of opts.override as string[]) {
-      const eqIdx = entry.indexOf('=');
-      if (eqIdx > 0) {
-        inlineOverrides[entry.substring(0, eqIdx)] = entry.substring(eqIdx + 1);
-      }
+      const [key, value] = parseOverrideEntry(entry);
+      inlineOverrides[key] = value;
     }
   }
 
@@ -99,11 +145,15 @@ export function parseConfigOptions(cmd: Command): {
   // false only when the flag is present (true otherwise), matching how
   // --no-config is already read above.
   //
-  // Routed through the CONFIG rather than an env var: D43 names exactly
-  // two opt-out surfaces (`registry.enabled: false` and `--no-registry`),
-  // and an env var would be an undocumented third. Applying it AFTER
-  // loadConfig is what makes the flag survive --no-config and
-  // --config <other> — no config-discovery flag can bypass it.
+  // Routed through the CONFIG rather than an env var: D43's amendment
+  // counts opt-out MECHANISMS, not spellings. There is one mechanism —
+  // `registry.enabled` — and `--no-registry` is a spelling of it, which is
+  // exactly what the assignment below makes it. A spelling is admitted
+  // only when it delegates to that mechanism; the drafted env var would
+  // have been read independently of the config, so it remains undecided
+  // rather than admitted by implication. Applying this AFTER loadConfig is
+  // what makes the flag survive --no-config and --config <other> — no
+  // config-discovery flag can bypass it.
   if (opts.registry === false) {
     config = { ...config, registry: { ...config.registry, enabled: false } };
   }
