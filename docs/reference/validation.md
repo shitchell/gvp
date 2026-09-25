@@ -94,8 +94,8 @@ Warnings are printed to stderr but do not cause a non-zero exit code under norma
 | W001 | EMPTY_MAPS_TO | A non-root active element has no `maps_to` references at all. This is a weaker signal than a traceability violation: the element has no mappings rather than incorrect ones. |
 | W002 | EMPTY_DOCUMENT | A loaded document contains no elements. |
 | W003 | MAPPING_RULES_VIOLATION | A non-root element does not satisfy its category's mapping rules (see [Traceability Rules](#traceability-rules) above). |
-| W005 | SELF_DOCUMENT_MAPPING | An element in a document that has `inherits` maps only to elements in its own document, never tracing back to an inherited ancestor. Only checked when the element's document has an `inherits` chain. |
-| W006 | STALE_ELEMENT | An ancestor element (reachable through `maps_to`) has an `updated_by` date that is newer than this element's most recent `reviewed_by` date. Use `cairn review` to inspect and acknowledge. |
+| W005 | SELF_DOCUMENT_MAPPING | A non-root active element's `maps_to` targets all live in its own document -- nothing it maps to is outside the document. Fires unconditionally (DEC-5.5); the document does *not* need an `inherits` chain. See [W005 on self-contained libraries](#w005-on-self-contained-libraries). |
+| W006 | STALE_ELEMENT | The element has at least one of its own `updated_by` entries that no `reviewed_by` entry lists in `updates_reviewed` (updates marked `skip_review: true` are exempt). Per-element and per-update-id -- no ancestor traversal, no date comparison (DEC-4.6, DEC-4.7). Use `cairn review` to inspect and acknowledge. |
 | W007 | UNDEFINED_TAG | A tag on an element is not defined via `meta.definitions.tags` in any loaded document. |
 | W009 | ID_SEQUENCE_GAP | Element IDs within a category in a single document have gaps (e.g., P1 and P3 but no P2). |
 | W010 | REF_FILE_MISSING | A ref points to a file that does not exist on disk. |
@@ -105,6 +105,39 @@ Warnings are printed to stderr but do not cause a non-zero exit code under norma
 | W016 | UNRECOGNIZED_YAML_KEY | A top-level YAML key in a document is neither `meta` nor a known category `yaml_key` (structural pass). |
 | W017 | NO_VALUE_TRACE | A non-root element does not trace to any value transitively. Soft anchor: the acceptance value often lives upstream in an inherited library, so this warns rather than errors (promotable under `--strict`). |
 | W018 | ROOT_NO_DECISION | An actionable root -- a category declaring `requires_decision: true` (goal, constraint, user_requirement) -- has no Decision tracing to it (coverage pass only). `value` and `exclusion` are exempt. Ensures decreed drivers are explicitly actioned (accept/decline/defer). |
+
+### W005 on self-contained libraries
+
+W005 fires on every non-root element of a library that has no `inherits`. This is
+expected, not a defect.
+
+A document with no `inherits` chain has nothing outside itself to map to. By
+construction, every one of its `maps_to` targets is local, so every non-root element
+in it trips W005. The volume is a property of the shape of the library, not evidence
+that something is misconfigured. In a real self-contained personal library measured
+during the 3.x cycle, all 24 W005s came from the single root document with no
+`inherits`, and zero came from its child documents -- the children map up into the
+parent, so their mappings leave their own document and the warning never fires.
+
+The previous version of this reference described W005 as "only checked when the
+element's document has an `inherits` chain." That was the v0 rule, and
+[DEC-5.5](../plans/2026-03-02-v1-design-decisions.md) deliberately retired it: the
+conditional existed only to work around the lack of a suppression mechanism, and the
+typed diagnostic system (DEC-5.4) now provides that directly. The implementation has
+no `inherits` guard.
+
+So: if you are looking at a wall of W005s on a library that inherits nothing, that is
+the diagnostic working as designed. The intended response is to suppress it rather
+than to restructure the library:
+
+```yaml
+suppress_diagnostics:
+  - W005
+```
+
+W005 earns its keep on libraries that *do* inherit, where an element mapping only
+within its own document means it never traced back to the ancestor it was supposed to
+descend from.
 
 ### Suppressing Diagnostics
 
