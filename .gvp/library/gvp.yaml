@@ -3391,7 +3391,7 @@ decisions:
       - file: src/cli/commands/query.ts
         identifier: queryCommand
         role: implements
-  - id: D62
+  - id: D65
     name: The library-scoped registry opt-out is read at the write site, and both spellings are scoped there
     rationale: |
       A library can now say `meta.registry.enabled: false` about itself and stay out of the machine-wide registry however cairn is pointed at it -- `--store`, `--library`, or discovery from the current directory. It is the third spelling D43's amendment admits, and it delegates: `src/registry/record.ts` reduces it to the one `registry.enabled` switch and applies the same `!== false` gate `src/cli/helpers.ts` applies to the invocation's config. Nothing about recording suppression is reimplemented, which is the whole licence for a third spelling under P19 and the reason P11 stays satisfied rather than overridden.
