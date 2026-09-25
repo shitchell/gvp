@@ -46,6 +46,10 @@ top level of the file.
 | `defaults` | mapping | No | Default field values applied to every element unless explicitly overridden. See [Defaults](#defaults) below. |
 | `id_prefix` | string | No | Prefix for auto-generated element IDs (used by `cairn add`). |
 | `definitions` | mapping | No | Definitions for library-level constructs. Supports `definitions.tags` for tag definitions and `definitions.categories` for custom element category definitions. See [Tag Definitions](#tag-definitions) and [Element Category Definitions](#element-category-definitions). |
+| `description` | string | No | Human-readable "what is this document about" string. Surfaced by renderers and discoverable by hook indexers; not otherwise interpreted. |
+| `config_overrides` | mapping | No | Config keys this document sets for anything that reads it. Each entry is `{mode: replace\|additive, value: ...}`; resolution is ancestor-wins across the inheritance chain. `user` is excluded (identity is personal), and `registry` is read library-scoped rather than applied to the invocation -- see [Config Overrides](#config-overrides) below. |
+| `registry` | mapping | No | What this library says about its own recording in the machine-wide library registry. Only `registry.enabled` is recognized; `false` keeps this library out of the registry however cairn is pointed at it. See [Registry](#registry) below. |
+| `library_id` | string | No | Optional stable identifier for the library, recorded as a correlation field on registry entries. Read if present; cairn never generates one. |
 
 ### Inheritance
 
@@ -106,6 +110,82 @@ origin:
 The `origin` field is special-cased during defaults merging: if the default
 value is a single mapping (dict), it is automatically wrapped in a list to match
 the expected `list[mapping]` type.
+
+### Config Overrides
+
+`config_overrides` lets a document set configuration for anything that loads it.
+Each entry names a config key and carries a mode and a value:
+
+```yaml
+meta:
+  name: house-style
+  config_overrides:
+    priority:
+      mode: replace
+      value:
+        definitions: ancestor
+    suppress_diagnostics:
+      mode: additive
+      value: [W005]
+```
+
+`replace` sets the key outright; `additive` concatenates when both the existing
+value and the override are lists. Resolution is **ancestor-wins**: the first
+document in inheritance order to set a key keeps it, so an inherited library's
+override survives a descendant's.
+
+Two keys are not applied to the loading invocation:
+
+- **`user`** -- identity is personal and never inherited.
+- **`registry`** -- its effect is a *write* that lands in the consumer's
+  environment. It is read **library-scoped** instead: a `registry` override is a
+  statement about the library that declares it, and suppresses only that
+  library's own registry entries. See [Registry](#registry).
+
+### Registry
+
+`meta.registry.enabled: false` keeps a library out of the machine-wide library
+registry:
+
+```yaml
+meta:
+  name: scratch-repro
+  registry:
+    enabled: false
+```
+
+This is the library-scoped spelling of the same `registry.enabled` switch a
+config layer sets and `--no-registry` sets for one invocation. It is honored
+however cairn is pointed at the library -- `--store`, `--library`, or discovery
+from the current directory.
+
+It can only **suppress**, and only its own library:
+
+- A library that declares it is not recorded, but a project that *inherits* that
+  library still records its own documents normally. An upstream library has no
+  authority over its consumer's registry.
+- `enabled: true` does not re-enable recording that the invocation's config or
+  `--no-registry` turned off.
+- Any one document in a library opting out opts out the whole library; a
+  sibling's `enabled: true` does not overturn it.
+
+The older, more general spelling reaches the same switch and is scoped the same
+way:
+
+```yaml
+meta:
+  config_overrides:
+    registry:
+      mode: replace
+      value:
+        enabled: false
+```
+
+`registry` is a *recognized* namespace, so an unknown member of it -- a
+misspelled `meta.registry.enable`, say -- is reported as
+[W019 UNRECOGNIZED_META_KEY](validation.md#warnings) rather than accepted in
+silence. The same applies to unrecognized `meta` keys generally: they are
+preserved, and warned about.
 
 
 ## Element Categories

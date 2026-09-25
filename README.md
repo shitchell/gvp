@@ -343,10 +343,33 @@ rather than returning a quietly incomplete answer.
 libraries, so an ambiguous name lists its candidates and exits non-zero
 rather than picking one. All three commands take `--json`.
 
-Recording is on by default. Opt out with `registry.enabled: false` in any
-config layer, or `--no-registry` for a single invocation. Recording never
-changes a command's exit code or output; on failure it warns once to stderr
-and carries on.
+Recording is on by default. There is one switch, `registry.enabled`, and three
+ways to reach it:
+
+    registry.enabled: false      # in any config layer — the whole invocation
+    --no-registry                # one invocation
+    meta.registry.enabled: false # in a library document — that library only
+
+The third is for a library that should never be indexed — a scratch copy made
+to reproduce a bug, a throwaway experiment — and it holds however cairn is
+pointed at the library (`--store`, `--library`, or discovery from the current
+directory):
+
+```yaml
+meta:
+  name: scratch-repro
+  registry:
+    enabled: false
+```
+
+It governs the library that declares it and nothing else. A project that
+*inherits* an opted-out library still records its own documents: an upstream
+library has no say over its consumer's registry. For the same reason it can
+only suppress — `enabled: true` will not re-enable recording that a config
+layer or `--no-registry` turned off.
+
+Recording never changes a command's exit code or output; on failure it warns
+once to stderr and carries on.
 
 Recording happens when a command builds the catalog, so `cairn init` — which
 creates a library rather than loading one — does not itself register the
