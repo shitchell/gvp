@@ -17,6 +17,10 @@ npm install -g @principled/cairn
 ## Quick Start
 
 ```bash
+# Before authoring anything: check whether the guidance already exists.
+# Cairn registers every library it resolves, so you can inherit instead of re-deriving.
+cairn libs search "simplicity"
+
 # Initialize a GVP library
 mkdir -p .gvp/library
 cat > .gvp/library/project.yaml << 'EOF'
@@ -26,8 +30,10 @@ meta:
 
 goals:
   - id: G1
-    name: Ship reliable software
-    statement: Deliver software that works correctly.
+    name: Recoverable state
+    statement: >
+      A user who loses their machine can rebuild every byte of their data
+      from the files we wrote to their disk.
     tags: []
     maps_to: []
 
@@ -36,17 +42,30 @@ values:
     name: Simplicity
     statement: Complexity must earn its place.
     tags: []
-    maps_to: [my-project:G1]
+    maps_to: []
 
 decisions:
   - id: D1
-    name: Use TypeScript
-    rationale: Type safety and npm ecosystem.
+    name: Persist state as an append-only event log
+    disposition: accepted
+    rationale: >
+      "Anything with a mutable schema needs a migration story the first time
+      the schema changes. An append-only log only ever needs a reader for the
+      older shape, which is a test I can write today."
     tags: []
     maps_to: [my-project:G1, my-project:V1]
+    considered:
+      sqlite:
+        rationale: "Queryable and transactional, but adds a native dependency and a schema to migrate on every change."
+        would_have_served: [my-project:G1]
+        conflicts_with: [my-project:V1]
+      mutable_json_blob:
+        rationale: "Fewest moving parts, but a partial write destroys the whole history rather than the last record."
+        would_have_served: [my-project:V1]
+        conflicts_with: [my-project:G1]
     refs:
-      - file: src/index.ts
-        identifier: main
+      - file: src/store.ts
+        identifier: appendEvent
         role: implements
 EOF
 
@@ -57,6 +76,12 @@ cairn validate
 cairn export --format json
 cairn export --format markdown
 ```
+
+> Note what the example models: a goal stating a **checkable outcome** rather than
+> "software that works"; a decision whose `rationale` is a **verbatim quote**; and
+> `considered` alternatives that name what each one **would have served** and what
+> it **conflicts with**. A decision without its rejected alternatives records the
+> choice but loses the reasoning — which is the part you need when revisiting it.
 
 ## Commands
 

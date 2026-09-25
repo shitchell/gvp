@@ -107,6 +107,32 @@ cairn diff main HEAD             # changes since branching from main
 cairn diff --format json         # JSON for CI/CD
 ```
 
+### cairn libs \<subcommand\>
+Inspect the machine-wide registry of every library cairn has resolved
+(`~/.gvp/registry/`, override with `GVP_REGISTRY_ROOT`). **Use this before
+authoring elements** — it is how you find guidance that already exists instead
+of re-deriving it.
+```bash
+cairn libs list                      # everything cairn has seen
+cairn libs list --kind remote        # filter by local|remote
+cairn libs list --scope personal     # filter by meta.scope
+cairn libs search "simplicity"       # search across every known library
+cairn libs search "secrets" --fetch  # allow network (offline by default)
+cairn libs show personal             # detail + which projects have used it
+cairn libs forget <source>:<doc>     # drop one entry
+cairn libs prune --remote            # drop entries whose document is gone
+```
+`search` matches element names and each category's **primary field** (resolved
+from the schema), so a decision's `rationale` and a constraint's `impact` are
+searchable — not just `statement`. It never touches the network without
+`--fetch`, and names anything it skipped rather than returning a quietly
+incomplete answer. `show`/`forget` refuse to guess on an ambiguous `meta.name`:
+they list candidates and exit non-zero. All take `--json`.
+
+Recording happens when a command builds the catalog, so `cairn init` does not
+itself register a project — the first `validate`, `query`, or `export` does.
+Opt out with `registry.enabled: false` or `--no-registry`.
+
 ### cairn analyze [options]
 Detect unmapped relationships via embedding similarity.
 ```bash
@@ -127,7 +153,10 @@ cairn analyze --threshold 0.5    # lower threshold, more results
 ## Validation Codes
 
 **Errors** (exit non-zero):
-`E001` broken maps_to ref · `E002` duplicate element ID · `E003` broken inheritance · `E004` schema validation failure
+`E001` broken maps_to ref · `E002` duplicate element ID · `E003` broken inheritance · `E004` schema validation failure · `E005` duplicate step ID · `E006` duplicate document `meta.name` within a library
 
 **Warnings** (exit zero):
-`W001` empty maps_to · `W002` empty document · `W003` mapping rules violation · `W004` isolated element · `W005` self-document mapping · `W006` stale element · `W007` undefined tag · `W008` duplicate category def · `W009` ID gap · `W010` ref file missing · `W011` ref identifier missing · `W012` orphan identifier (coverage) · `W013` decision no refs (coverage) · `W014` no root trace
+`W001` empty maps_to · `W002` empty document · `W003` mapping rules violation · `W004` isolated element · `W005` self-document mapping · `W006` stale element · `W007` undefined tag · `W008` duplicate category def · `W009` ID gap · `W010` ref file missing · `W011` ref identifier missing · `W012` orphan identifier (coverage) · `W013` decision no refs (coverage) · `W014` no root trace · `W015` auto-assigned step ID · `W016` unrecognized YAML key · `W017` no value trace (soft anchor) · `W018` actionable root has no decision (coverage)
+
+`W013` applies only to `accepted` decisions — a `declined` or `deferred`
+decision has no implementation by definition, so its rationale is the record.
