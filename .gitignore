@@ -10,3 +10,4 @@ node_modules/
 
 # personal cairn identity/config (local)
 .gvp.yaml
+.claude/worktrees/
