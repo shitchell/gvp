@@ -3391,6 +3391,81 @@ decisions:
       - file: src/cli/commands/query.ts
         identifier: queryCommand
         role: implements
+  - id: D62
+    name: Global options bind by position, and are mirrored onto every subcommand
+    disposition: accepted
+    rationale: |
+      #21 reported that `cairn --library <lib> -c strict=true query --category decision` failed with `error: unknown option '--category'`. The cause was that `-c, --override` was declared VARIADIC (`<key=value...>`): a variadic option consumes every following token up to the next option-like one, so it ate the subcommand name `query`, and `--category` was then evaluated at PROGRAM level where it does not exist. The long form behaved identically, so the short flag was never the problem. Two further symptoms shared one root: `query` advertised `-c, --category` in its help while Commander's default mode let the program-level `-c` win from anywhere in argv, so `cairn query -c decision` returned every element; and an override with no `=` was dropped in silence, so `cairn query -c garbagekey` printed the whole catalog and exited 0 -- which reads as "the filter matched everything" and had already produced one false bug report from an agent.
+
+      The fix is three parts. `--override` collects repeats (`-c a=1 -c b=2`) rather than being variadic, which is both the conventional shape for a repeated key=value flag and the thing that stops the subcommand being swallowed. `.enablePositionalOptions()` makes program options recognized only before the subcommand and subcommand options only after it, so `-c` stays on BOTH flags and is disambiguated by position -- nothing is renamed or dropped, which matters because a flag is a committed surface (code-common:CP11). A malformed override is now an error naming the expected form, raised from the argParser so Commander attributes it to the flag that carried it; an empty VALUE is still accepted, because `-c strict=` is a deliberate blank rather than a typo.
+
+      The part the issue did not settle is the cost of `.enablePositionalOptions()`, and it is the reason this decision exists. Enabling it makes Commander stop parsing program options at the first operand, which by itself REJECTS every global option written after the subcommand. That form is not an incidental permissiveness of Commander's default mode that a bug fix is free to discard: `cairn validate --strict`, `cairn validate --library .gvp/`, `cairn query --library examples/small-business/ --category principle` and `cairn inspect --library X <id> --trace` appear roughly twenty-five times across README.md, docs/reference/config.md, docs/reference/validation.md, docs/guide/ai-integration.md, skills/cairn/commands-reference.md and both example READMEs, and the trailing form is what the existing CLI tests exercise. Fixing an option-parsing bug by invalidating the documented invocations would cost more than the bug it fixes.
+
+      So the global options are additionally MIRRORED onto each subcommand, and a short flag the subcommand already claims is not mirrored -- only the long form is. That asymmetry is the whole point for `query`: `-c` after `query` must remain `--category`, so `query` receives `--override <key=value>` without the `-c` alias, and `query --help` now describes what the parser actually does. Mirrored copies carry the original's argument parser, so an override is validated identically in either position, but deliberately NOT its default value: `optsWithGlobals()` resolves parent-over-child, so a mirrored `verbose: 0` would be indistinguishable from an explicit one. A `preAction` hook hoists only explicitly-supplied trailing values up to the program, gated on `getOptionValueSource(key) === 'cli'`. That gate is load-bearing rather than defensive -- Commander gives a negated flag such as `--no-registry` an implicit `true` default, and without the gate the parent's default would override an explicit trailing opt-out and silently re-enable the very registry write the user declined.
+
+      The mirror is generated from `program.options` in one loop rather than hand-written on thirteen commands (personal:V3, code-common:CP4): a global added later is accepted in both positions with no further edit, and there is no list to forget. `--version` is excluded because it is an action flag, not a setting, and mirroring it would advertise `cairn query --version` as a way to ask about `query`.
+
+      Accepted costs, recorded rather than glossed (gvp:V3). The mirror adds machinery to src/cli/index.ts that a reader will not expect from a bug fix, which is a real charge against gvp:V4 and personal:V1; it is paid down by the comments at the mechanism and by this decision, not by the code being self-evident. Each subcommand's `--help` now lists all eight globals, lengthening the help -- judged an improvement, since those options genuinely are accepted there and previously were not documented as such. Where a global is supplied in BOTH positions the trailing one wins (arrays concatenate), which is a choice rather than a necessity and is untested beyond the array case. And `cairn <subcommand> --version` now errors where the default mode silently printed the version; no documentation used that form.
+    tags:
+      - tooling
+      - usability
+      - framework
+    maps_to:
+      - gvp:G8
+      - gvp:V6
+      - gvp:V10
+      - code-common:CP11
+    refs:
+      - file: src/cli/index.ts
+        identifier: mirrorGlobalOptions
+        role: implements
+      - file: src/cli/helpers.ts
+        identifier: parseOverrideEntry
+        role: implements
+    considered:
+      positional_options_alone:
+        description: |
+          Call .enablePositionalOptions() and accept that global options must precede the subcommand, updating the documentation to match.
+        rationale: |
+          Rejected. It is the smallest possible change and leaves src/cli/index.ts obviously readable, which is why it was the first candidate. But it silently breaks roughly twenty-five documented invocations across README.md, docs/ and both example READMEs, plus the trailing form the existing CLI tests exercise -- `cairn validate --strict` among them. Removing a working, documented calling convention to fix a parsing bug inverts the cost of the fix, and a flag's accepted POSITION is part of the committed surface just as its name is.
+        would_have_served:
+          - gvp:V4
+        conflicts_with:
+          - code-common:CP11
+          - gvp:G8
+      drop_the_short_alias:
+        description: |
+          Remove `-c` from one of the two flags -- rename query's `-c, --category`, or make `--override` long-only.
+        rationale: |
+          Rejected on the maintainer's re-diagnosis in #21: "Renaming --category to -C, or dropping its shorthand, would not fix it." The collision is a symptom, not the cause -- the variadic ate the subcommand in a case where `-c` collided with nothing at all. Dropping either alias would leave the variadic bug intact while spending a committed surface to fix a symptom.
+        conflicts_with:
+          - code-common:CP11
+          - gvp:V10
+      fix_the_variadic_only:
+        description: |
+          Make --override repeatable and stop there, leaving Commander in its default mode where a program option is consumed from anywhere in argv.
+        rationale: |
+          Rejected. It does fix the reported failure, and it is the least invasive option. But it leaves `query --help` advertising `-c, --category` while the program-level `-c` still wins, so `cairn query -c decision` keeps returning every element with exit 0. Help that documents a flag the parser will never honor is precisely the trust failure gvp:V10 names, and it is how this defect was mis-reported in the first place.
+        would_have_served:
+          - gvp:V4
+        conflicts_with:
+          - gvp:V10
+          - gvp:V6
+      redeclare_globals_by_hand:
+        description: |
+          Write the global options out explicitly on each of the thirteen subcommand builders instead of generating the mirror from program.options.
+        rationale: |
+          Rejected. It reads more plainly at each call site, but it is the same eight options copy-pasted thirteen times across files this change has no other reason to touch, and a global added later would be accepted in some subcommands and not others with nothing to detect the gap. Generating the mirror from one list is the composable form and keeps the declaration in one place.
+        conflicts_with:
+          - personal:V3
+          - code-common:CP4
+    origin:
+      - id: 3dc1348c-f99a-4676-9cee-88d1f605e836
+        date: '2026-09-25T22:42:18.007Z'
+        note: Imported from d62.yaml
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
 constraints:
   - id: C1
     name: Agents optimize for minimal effort

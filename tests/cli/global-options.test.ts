@@ -43,6 +43,12 @@ describe('global option placement (#21)', () => {
    * returns 3 elements, `--category decision` returns 1. A filter that is
    * silently dropped is therefore visible as a count, not just as an exit
    * code.
+   *
+   * It validates clean but WARNS: being a single document, V1 and D1 map
+   * only within their own document (W005). That is deliberate — it gives
+   * `--strict` and `-c strict=true` an observable effect (exit 0 becomes
+   * exit 1), which is how the trailing-override test proves the override
+   * was applied rather than merely parsed.
    */
   function createLibrary(): string {
     const libDir = path.join(tmpDir, 'lib');
@@ -64,13 +70,18 @@ values:
     name: Care
     statement: Care about it.
     tags: []
-    maps_to: [G1]
+    maps_to: [main:G1]
 decisions:
   - id: D1
     name: Use YAML
-    statement: We use YAML.
+    rationale: We use YAML.
+    disposition: accepted
     tags: []
-    maps_to: [G1, V1]
+    maps_to: [main:G1, main:V1]
+    refs:
+      - file: README.md
+        identifier: main
+        role: implements
 `,
     );
     return libDir;
@@ -221,10 +232,12 @@ decisions:
       expect(compactCount(r.stdout)).toBe(1);
     });
 
-    it('cairn validate --library X --strict', () => {
+    it('cairn validate --library X --strict — and the flag takes effect', () => {
       const lib = createLibrary();
       const r = runCairn('validate', '--library', lib, '--strict');
       expect(r.stderr).not.toContain('unknown option');
+      // W005 promoted to an error, so a run that is otherwise clean fails.
+      expect(r.exitCode).not.toBe(0);
     });
 
     it('cairn validate --library X --no-registry (negated global after the subcommand)', () => {
@@ -256,6 +269,29 @@ decisions:
       const r = runCairn('inspect', '--library', lib, 'main:D1', '--trace');
       expect(r.stderr).not.toContain('unknown option');
       expect(r.exitCode).toBe(0);
+    });
+
+    it('APPLIES a trailing override, not merely parses it', () => {
+      // The sharpest check that hoisting works. `strict=true` promotes W005
+      // ("maps only to elements within its own document", which V1 and D1
+      // both trigger here) to an error, so the exit code flips. If the
+      // trailing value were dropped on the way to loadConfig, this would
+      // parse cleanly and exit 0 — indistinguishable from an override that
+      // never arrived.
+      const lib = createLibrary();
+      expect(runCairn('validate', '--library', lib).exitCode).toBe(0);
+      expect(runCairn('validate', '--library', lib, '--override', 'strict=true').exitCode).not.toBe(0);
+      expect(runCairn('--library', lib, '-c', 'strict=true', 'validate').exitCode).not.toBe(0);
+    });
+
+    it('counts -vv identically in either position', () => {
+      const lib = createLibrary();
+      const before = runCairn('-vv', '--library', lib, 'query', '--format', 'compact');
+      const after = runCairn('query', '--library', lib, '-vv', '--format', 'compact');
+      // The mirrored --verbose carries no default, so its counter starts
+      // from undefined rather than from the program's 0. Both must still
+      // reach level 2.
+      expect(after.stderr).toBe(before.stderr);
     });
 
     it('lists the mirrored globals in subcommand help, since they are accepted there', () => {
