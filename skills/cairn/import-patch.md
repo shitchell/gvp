@@ -72,12 +72,34 @@ Author new elements with placeholder IDs like `?p_enforce`, `?c_effort` and refe
 each other's `maps_to`. On import cairn:
 1. **assigns real sequential IDs** per `(category, target document)` — finds the max existing ID
    number for that category in the target doc and increments;
-2. **rewrites every reference** (`maps_to` and other reference fields, across documents) that
-   points at a pseudo-ID to the real, doc-qualified ID (`?c_effort` → `personal:C2`);
-3. **errors** on any unresolved `?`-reference or pseudo-ID collision.
+2. **rewrites every reference** that points at a pseudo-ID to the real, doc-qualified ID
+   (`?c_effort` → `personal:C2`);
+3. **errors** on any unresolved `?`-reference or pseudo-ID collision — before writing anything,
+   and before `--dry-run` prints its preview.
+
+"Every reference" is derived from the category's declared field schemas, not a fixed list, so it
+covers the element's own `maps_to`, any top-level reference list (`procedure.related`), and the
+reference sub-fields of nested models — `procedure.steps[].maps_to` and a decision's
+`considered.<alternative>.would_have_served` / `.conflicts_with`. A new reference field added to
+a schema is rewritten without any change to the importer.
 
 This lets a patch describe a whole decomposition chain (child → parent) without you knowing the
 final numbers. Pseudo-IDs must be unique per category within the patch set.
+
+```yaml
+decisions:
+  - id: "?d_streak"
+    name: Compute streaks at read time from the completion log
+    rationale: Recomputing from the log means the streak is always what the record supports.
+    disposition: accepted
+    maps_to: ["?g_streaks", "?v_honest"]
+    considered:
+      Stored streak counter:
+        description: Keep a current-streak integer per habit, bumped on mark-done.
+        rationale: Cheaper to read, but it drifts on any backfill or deletion.
+        would_have_served: ["?g_streaks"]   # rewritten, same as maps_to
+        conflicts_with: ["?v_honest"]       # rewritten, same as maps_to
+```
 
 ## Add vs update vs provenance
 
@@ -86,6 +108,55 @@ final numbers. Pseudo-IDs must be unique per category within the patch set.
 - **Pseudo-ID, or real ID not yet present** → **add**.
 - New/added elements get an `origin` provenance entry automatically (uuid, date,
   "Imported from <file>", + your `user` identity from config if set).
+- Updated elements get an `updated_by` change record — see below.
+
+### `update_rationale` — required on every update
+
+An update to an existing element must say **why it changed**, exactly as `cairn edit --rationale`
+requires. Put it on the element as `update_rationale`:
+
+```yaml
+goals:
+  - id: G1
+    statement: A user can see their current streak in one screen of output.
+    update_rationale: The old statement covered two outcomes at once; split them.
+```
+
+The import **fails and writes nothing** if any element being *updated* lacks it. Added elements
+are unaffected — a new element's provenance is its `origin` entry.
+
+`update_rationale` is meta-rationale *about the change*. It lands in the element's `updated_by`
+change record, never in the element's own fields. It is deliberately not called `rationale`: on a
+decision, `rationale` is the element's own primary field, and the two would collide in one
+mapping. `update_` matches the existing provenance vocabulary (`updated_by`).
+
+### Skipping review — recorded, not bypassed
+
+Some updates genuinely need no review (a typo, a reflow). Say so explicitly, two ways:
+
+| Scope | How |
+|-------|-----|
+| One element | `skip_review: true` on that element, in place of `update_rationale` |
+| The whole patch | `--skip-review` on the command |
+
+```yaml
+goals:
+  - id: G1
+    statement: Whitespace reflow only.
+    skip_review: true                      # mechanical — no review needed
+values:
+  - id: V1
+    statement: Narrowed to what we can actually honour.
+    update_rationale: It was claiming more than the tooling enforces.
+```
+
+Both forms **still write the `updated_by` entry**, flagged `skip_review: true` (DEC-4.6). Skipping
+review is a *recorded stance* — "this change needed no review" — not an omission of provenance.
+Nothing reaches an append-only record untraced. `cairn review` treats the flagged entries as
+already accounted for, so they do not raise `W006`.
+
+`update_rationale` and `skip_review` are **patch-only control keys**. They drive the import and
+are stripped before writing — they never appear as element fields in the library.
 
 ## Gotchas
 
@@ -110,6 +181,19 @@ final numbers. Pseudo-IDs must be unique per category within the patch set.
   then import elements into it. (Creating a meta-only skeleton is the one sanctioned bit of hand
   authoring — it's the document frontmatter, not an element.)
 - **Non-interactive runs require `--yes`** (piped stdin has no TTY to confirm at).
+- **`--skip-review` is not a way to avoid provenance.** It swaps a written rationale for the
+  recorded stance `skip_review: true`; the `updated_by` entry is written either way. If you find
+  yourself reaching for it on a substantive change, write the `update_rationale` instead.
+
+## Flags
+
+| Flag | Effect |
+|------|--------|
+| `--into <document>` | Target document. Required in single-file mode; rejected in the other two. |
+| `--dry-run` | Print the preview and exit without writing. Still runs every check. |
+| `-y`, `--yes` | Skip the confirmation prompt (required non-interactively). |
+| `--skip-review` | Mark every update in the patch skip-review (DEC-4.6). Still writes `updated_by`. |
+| `--confirm-delete` | Permit the document deletions listed in `_manifest.yaml`. |
 
 ## Recommended flow
 
@@ -124,4 +208,6 @@ cairn --store <store> validate                    # 5. confirm structural integr
 
 The `--dry-run` step is the empirical check: it prints every `?id → realId` assignment and every
 reference rewrite. Read it before writing — it catches prefix mistakes, collisions, and unresolved
-references with nothing committed.
+references with nothing committed. Every check runs before the preview is printed, so a dry run
+that prints a rewrite list is a dry run where everything resolved; a failure replaces the preview
+rather than appearing alongside it.
