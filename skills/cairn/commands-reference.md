@@ -83,6 +83,20 @@ cairn query --refs-file src/db.ts # elements referencing this file
 cairn query --refs-identifier Pool # elements referencing this identifier
 cairn query --format json         # JSON output
 ```
+`--list <type>` enumerates a kind of thing in the resolved catalog instead of
+its elements. `--format` still picks the rendering (`text` or `json`).
+```bash
+cairn query --list documents                # documents + element counts
+cairn query --list documents --format json  # stable schema; read this first
+```
+Rows: `name`, `document_path`, `source`, `description`, `scope`,
+`element_counts`, `element_total`. Element filters change the counts;
+`--document` changes which rows appear; a document with no matching elements
+is still listed at zero. `query --format json` elements carry `_document`,
+`_documentPath` and `_source` — the same row key, so the two join.
+
+This reads the **resolved catalog**. `cairn libs list` reads the machine-wide
+registry of every library cairn has ever seen — a different question.
 
 ### cairn diff [commitA] [commitB]
 Trace code changes back to decisions.

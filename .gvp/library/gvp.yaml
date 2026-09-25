@@ -3260,6 +3260,94 @@ decisions:
           email: shaun@shitchell.com
       - date: '2026-09-25'
         note: 'Reclassified from rule gvp:R11 to decision gvp:D60 on maintainer review, before any dependant shipped. It describes what cairn DOES at runtime, observable by a user -- product behaviour -- rather than how this project operates while writing code; contrast gvp:R6, which constrains the code we write. By the source test it originated in the design phase, which makes it an architectural decision. The body is preserved as the decision''s rationale; `considered` alternatives were added on conversion, since a rule states a constraint while a decision must show what it was chosen over. R11 is retired and its id is never reused (R1).'
+  - id: D61
+    name: Catalog enumerations get a --list <type> selector on query
+    rationale: |
+      A project needs to know which documents the library it will ACTUALLY USE contains, with element counts, so an agent can decide at session start which documents bear on its task (#24). That view ships as `cairn query --list documents`, with `--list <type>` reading its vocabulary from a listing registry and `--format` unchanged.
+
+      WHERE IT GOES is settled by H10 and not re-argued here: the question names the resolved catalog as its store, so it belongs on a catalog-building command. `libs` reads the machine-global registry, which cannot answer it -- `mergeUsageEdges` is a union that never prunes (src/registry/usage-edge.ts), so a `libs list --resolved` would mean "ever resolved", and D41 makes the registry a strict superset of what this invocation actually resolves. An answer that is merely usually right is the failure V10 names.
+
+      WHY A SELECTOR RATHER THAN A FORMAT. `--format documents` conflates the two axes: a format says HOW to render, a selector says WHAT to enumerate. personal:P3 ("separate what from how at every layer") forbids the merge, and the practical cost is immediate -- once `documents` is a format, there is no way to ask for the listing as JSON, because the slot that would have said so is already spent.
+
+      WHY ONE PARAMETERISED FLAG RATHER THAN A FLAG PER VIEW. `--list-documents`, `--list-tags`, `--list-sources` is the near-duplicate-entry-point shape personal:P8 exists to refuse. One flag whose argument is looked up in a registry (src/listings/registry.ts, shaped after createExporterRegistry per P15) means the next enumeration is a class plus one registration, with no change to the command and no new flag to document. It also composes by construction: `--list documents --format json` needs no special case, and the accepted vocabulary and the help text are the same data, so they cannot drift.
+
+      THE SHAPE OF THE ANSWER. Rows carry `name`, `document_path`, `source`, `description`, `scope`, `element_counts` and `element_total`, and the schema is additive only (code-common:CP11) because an agent-facing ruleset reads it (D54). `description` is `meta.description`, which D18 promoted to a first-class field for exactly this session-start-index use. Counts are keyed by the category's schema `yaml_key`, resolved through the registry rather than written out, mirroring src/registry/record.ts -- hard-coding the built-in names would silently report zero for a user-defined category (R6). Field names deliberately match `libs list --json` for the facts the two share, so the registry view and the catalog view can be joined rather than translated.
+
+      THE TRAP THIS DESIGN EXISTS TO AVOID. Rows are derived from `catalog.documents`, NEVER from the element output. A document that is tags-only, or whose elements are all deprecated, contributes no elements to any filtered view and would disappear entirely from an element-derived listing -- undercounting the catalog with nothing to say so. That is the silent-miss class D54 was written against, and both cases are pinned by tests.
+
+      FILTERS SPLIT ALONG THE SAME SEAM. `--document` selects documents, so it restricts which ROWS appear. The element filters (`--category`, `--tag`, `--status`, `--include-deprecated`, the ref filters) restrict which elements are COUNTED, and never remove a row. A filter that matches nothing yields every document at zero, which is an answer; a filter that made documents vanish would be the trap above by another route.
+
+      ALSO IN SCOPE: `query --format json` gains `_document`, `_documentPath` and `_source`. Issue #24 asked for a document field; three are needed because `_canonicalId` cannot be split back apart -- `source` may itself contain `:` (`@github:org/repo`), so string-splitting it is not a substitute (P14) -- and because document names are not unique across inherited libraries (D46), which makes the name alone an unsound join key. The three fields are exactly the row key `--list documents` emits, so element output and the listing join on equality.
+    tags:
+      - tooling
+      - usability
+      - extensibility
+    maps_to:
+      - gvp:G7
+      - gvp:G11
+      - gvp:V6
+      - gvp:V10
+      - gvp:H10
+      - gvp:D54
+      - gvp:D18
+      - personal:P3
+      - personal:P8
+      - code-common:CP11
+    considered:
+      libs_list_resolved:
+        rationale: |
+          A `--resolved` flag on `cairn libs list`, filtering the machine-global registry down to the entries this project resolved. Refused on the store test (H10) and on a verified mechanism, not on taste: the usage edge is a UNION that never prunes (mergeUsageEdges, src/registry/usage-edge.ts), so an entry a project resolved once stays attached to it forever -- a document deleted, renamed, or removed from `inherits:` still appears. D41 states the registry is a strict superset of what actually resolves. "Resolved" would therefore mean "ever resolved", and the answer would be right often enough to be trusted and wrong without warning, which is precisely the guarantee V10 requires to be reliable or visibly absent.
+        would_have_served:
+          - personal:P8
+        conflicts_with:
+          - gvp:V10
+          - gvp:H10
+          - gvp:D41
+      format_documents:
+        rationale: |
+          `cairn query --format documents`, reusing the existing format slot rather than adding a flag. Refused: a format is HOW output is rendered, not WHAT is selected, and merging the two violates personal:P3. The cost is concrete rather than theoretical -- spending the format slot on the selector leaves no way to ask for the listing as JSON, which is the one output D54 requires, and every future enumeration would have to be smuggled in as another pseudo-format.
+        would_have_served:
+          - personal:V1
+        conflicts_with:
+          - personal:P3
+          - gvp:D54
+      list_documents_boolean_flag:
+        rationale: |
+          A dedicated `--list-documents` boolean. Simplest possible change and correctly separates what from how. Refused because it does not survive its second instance: tags, sources and categories are all plausible enumerations over the same catalog, and each would arrive as another near-duplicate flag -- the shape personal:P8 refuses. The parameterised flag costs one registry lookup and makes the next view free.
+        would_have_served:
+          - personal:V1
+        conflicts_with:
+          - personal:P8
+      list_all_type_spelling:
+        rationale: |
+          Spelling the flag `--list-all <type>` rather than `--list <type>`; identical mechanism, different word. Set aside on readability: "all" invites the reading that it overrides the sibling filters, when in fact `--document` does restrict which rows appear, so the word would be making a promise the flag does not keep. `--list <type>` also parallels `--format <fmt>` -- flag names the axis, argument names the choice. Recorded because the maintainer floated the longer spelling; it is a one-word rename if preferred, with no design consequence either way.
+        would_have_served:
+          - gvp:V6
+      route_query_formats_through_the_exporter_registry:
+        rationale: |
+          Fixing the standing P15/R6 violation in query.ts first -- it imported createExporterRegistry without using it and hand-rolled its format switch -- by routing query's formats through the same registry `export` uses. Refused for this change after reading both paths: the format NAMES collide but the formats do not. `query --format json` emits a flat array of elements while JsonExporter emits `{documents, categories, tags}`; `query --format csv` emits five columns while CsvExporter emits the reserved set plus every dynamic field. Worse, `ExportOptions` carries only `includeDeprecated` and `documentFilter`, so an exporter handed this catalog would silently re-derive the unfiltered element set and ignore `--category`, `--tag`, `--status` and the ref filters. Unifying them means changing the Exporter contract and breaking two output shapes -- including the very output #24 extends. The dead import was deleted and the divergence is now documented at the switch, so the next reader does not mistake it for an abandoned refactor.
+        would_have_served:
+          - gvp:P15
+          - gvp:R6
+        conflicts_with:
+          - gvp:V10
+          - personal:V5
+    origin:
+      - date: '2026-09-25'
+        note: 'Issue #24, filed while defining how agents in the ~/wmd framework load GVP at session start. The issue deliberately left syntax to this project to settle against its own library; H10 (authored days earlier for exactly this question) settled the command, and personal:P3 and personal:P8 settled the flag shape.'
+    refs:
+      - file: src/listings/base.ts
+        identifier: Listing
+        role: defines
+      - file: src/listings/documents-listing.ts
+        identifier: DocumentsListing
+        role: implements
+      - file: src/listings/registry.ts
+        identifier: createListingRegistry
+        role: implements
+      - file: src/cli/commands/query.ts
+        identifier: queryCommand
+        role: implements
 constraints:
   - id: C1
     name: Agents optimize for minimal effort

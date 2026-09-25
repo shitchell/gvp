@@ -75,6 +75,7 @@ cairn export --format markdown
 | `cairn inspect --ref file::identifier --trace` | "Why does this code exist?" |
 | `cairn query --category decision` | Filter elements by category, tag, status |
 | `cairn query --refs-file src/foo.ts` | Find elements referencing a file |
+| `cairn query --list documents` | List the documents in the resolved library, with element counts |
 | `cairn diff <commitA> <commitB>` | Trace code changes back to decisions |
 | `cairn analyze` | Detect unmapped relationships via similarity |
 
@@ -223,6 +224,34 @@ decisions:
     name: Follow org coding standards
     maps_to: [org:values:V1, my-project:G1]   # org:<meta.name>:<id>
 ```
+
+## What's in the library I'm actually using?
+
+`cairn query --list <type>` enumerates a kind of thing in the **resolved
+catalog** — the library this project actually builds, root plus everything it
+inherits. Today the one type is `documents`:
+
+    cairn query --list documents                  # name, count, source
+    cairn query --list documents --format json    # stable schema for agents
+
+Each row carries `name`, `document_path`, `source`, `description` (from
+`meta.description`), `scope`, `element_counts` (keyed by category, e.g.
+`principles`) and `element_total`. It is the index to read at the start of a
+session to decide which documents bear on the task.
+
+`--list` selects **what** to enumerate; `--format` still selects **how** to
+render it, so the two compose. The element filters (`--category`, `--tag`,
+`--status`, `--include-deprecated`) change the **counts**; `--document`
+changes which **rows** appear. A document with no matching elements is still
+listed, at zero — it is never silently dropped.
+
+`query --format json` also tags every element with `_document`,
+`_documentPath` and `_source`, which are exactly the row key above, so element
+output and the document listing join on equality.
+
+This is **not** the same question as `cairn libs list` below. `--list
+documents` reads the catalog this invocation resolved; `libs` reads the
+machine-wide record of every library cairn has ever seen, on any project.
 
 ## Library registry
 
