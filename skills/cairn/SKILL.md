@@ -31,10 +31,13 @@ Elements are the building blocks of a GVP library. Each has an `id`, `name`, `ma
 | **Principle** | P | No | Soft, values-derived guideline — expresses a *preference/priority* where subjective judgment remains | `statement` |
 | **Heuristic** | H | No | Hard, near-deterministic `if X → do Y` rule for **how we choose** among options, or **how we operate within the project** (as close to executable code as language gets) | `statement` |
 | **Rule** | R | No | Unconditional, *value-derived* constraint on a class of decisions — a hard binary for **how we operate within the project** (contrast **User Requirement**, which is *decreed*, not derived) | `statement` |
+| **Procedure** | S | No | An ordered protocol for carrying out a recurring piece of work — *what to do, in what order*, once some condition holds | `description` |
 | **Decision** | D | No | Specific choices with rationale + alternatives; carries a `disposition` (`accepted` / `declined` / `deferred`) | `rationale` |
 | **Milestone** | M | No | Checkpoints tied to goals | `description` |
 
 **Root elements** (goals, values, constraints, user requirements, exclusions) are the top of the traceability chain — they don't need to map to anything. **Non-root elements** must anchor to at least one **non-value root** (a goal, constraint, user requirement, or exclusion); where a *goal* is the anchor, a *value* is required too. The value anchor is enforced **softly and transitively** (warning `W017` NO_VALUE_TRACE), not as a hard error — because the value that justifies a requirement/constraint-driven choice often lives upstream in an inherited org/personal library, and forcing a local stub just manufactures hollow values. (Pre-1.1.0 the rule was strictly "a goal AND a value"; the mapping model generalized — see `schema-reference.md`.)
+
+**Transitivity applies to the value anchor and the root trace, and to nothing else.** The `mapping_rules` check itself (`W003`) reads only an element's **direct** `maps_to` targets, so a decision that reaches a goal *through another decision* still raises `W003` even though `W014` and `W017` are satisfied. Do not read "softly and transitively" above as "transitive anchoring is fine" — see *Mapping rules are satisfied by DIRECT targets only* in `schema-reference.md`.
 
 #### Categories
 
@@ -89,6 +92,50 @@ So when you catch yourself unsure which document an element belongs in, ask who 
 **The hard/soft test.** A **heuristic** must reduce to a near-deterministic decision tree: given its inputs, two readers should reach the *same* action with little judgment ("if a future need is identified AND retrofit cost clearly exceeds build-now cost, build now; else defer"). If choosing still requires weighing soft preferences among two or three options — that's a **principle**, not a heuristic. When unsure: can you express it as `if/elif/else` with checkable, quantifiable conditions? Heuristic. Does it say "prefer X over Y, generally"? Principle. (Mis-filing a soft preference as a heuristic is a common error — when authoring, apply this test, and flag pre-existing elements that fail it for reclassification.)
 
 Notably: all principles are effectively vague heuristics. Ideally, all principles could graduate to heuristics, but we are careful to do so trying to ensure we do not create heuristics that fail under stress. Only if we are largely confident that a heuristic is valid in all feasible scenarios do we graduate a principle. Otherwise, we retain the principle so that judgment can be applied where helpful.
+
+##### Procedure vs Rule vs Heuristic
+
+All three are practice (they pass the product/practice test above), and they differ in **shape**, not in subject:
+
+- a **rule** is a *line* — one unconditional statement, no ordering, no branch;
+- a **heuristic** is a *choice* — `if X → do Y`, evaluated when you have options in front of you;
+- a **procedure** is a *sequence* — several ordered steps you carry out, where the value is in the order and the completeness, not in any one step.
+
+If you find yourself writing a rule whose statement contains "first… then… finally", it is a procedure. If a procedure has exactly one step, it is a rule or a heuristic. The test question: **would someone follow this, or check against it?** Followed in order ⇒ procedure. Checked against ⇒ rule. Consulted at a fork ⇒ heuristic.
+
+A procedure's fields:
+
+```yaml
+procedures:
+  - id: S1
+    name: Under parallel work, subagents contribute patches and one orchestrator imports them
+    description: |          # the primary field — what the protocol is and why it works
+      ...
+    when: |                 # the precondition. Outside it, the procedure is INERT
+      Parallel work has been invoked under gvp:P20 — two or more workers holding
+      write intent over the same GVP library at the same time.
+    steps:
+      - id: S1.1            # give every step an explicit id — see below
+        name: Author the contribution as a patch, never as a library edit
+        description: |
+          ...
+        example: |
+          # .gvp/patches/pending/i32-serial-work.yaml
+          decisions:
+            - id: "?d_i32_serial_work"
+        maps_to: [gvp:P18]   # a step may anchor individually
+    related: [gvp:P18, gvp:R1]   # elements that inform the procedure without being its anchor
+    maps_to: [gvp:P20, gvp:G5, gvp:V2]
+```
+
+Two things to get right:
+
+- **`when` is load-bearing.** A procedure whose precondition does not hold is *inert*, not merely unimportant — `gvp:S1` prescribes nothing at all while work is serial. Write `when` so a reader can tell, without judgment, whether they are inside it.
+- **Give every step an explicit `id`.** Steps without ids are auto-numbered by list position at load time and raise `W015` (AUTO_ASSIGNED_STEP_ID), because deleting step 2 silently renumbers every step after it — and anything that cited `S1.3` now points at different work. Persist `S1.1`, `S1.2`, … yourself.
+
+`related` is not `maps_to`: it is a sideways pointer to guidance a reader of the procedure should have in mind, and it does not satisfy the anchor requirement. A procedure's `mapping_rules` are `[goal, value] | [constraint] | [user_requirement] | [exclusion]` — note that, unlike a heuristic, a procedure may **not** anchor on a principle or a rule alone; it needs a root group of its own.
+
+`gvp:S1` is this project's worked example — read it with `cairn inspect gvp:S1` before authoring your first procedure.
 
 ##### Principle vs Value
 
@@ -274,6 +321,50 @@ Consequences worth internalising:
 
 When you do find the right upstream library, wire it in with `meta.inherits` (see *Cross-Repo Inheritance* below and `cross-repo-inheritance.md`) and map to its elements by their short address (`personal:V1`, `code-common:CR1`).
 
+## Discovery and the library registry
+
+*Inherit before authoring* works only if the registry it searches is trustworthy. Here is how discovery and recording actually behave, and how to avoid poisoning the thing you are about to rely on.
+
+**Cairn resolves exactly one library**: the first `.gvp/library` found walking up from the cwd. There is no user-level or system-level *fallback* library — if the walk-up finds nothing, there is no library and cairn says so rather than quietly loading something else. To read a library elsewhere, address it explicitly with `--library <dir>` or `--store <dir>` (see *Targeting a library* in `commands-reference.md`).
+
+**Config layers are discovered separately from the library, and one of them surprises people.** The project layer is the nearest `.gvp/config.yaml` walking up — so `~/.gvp/config.yaml` acts as the *project* config for every cwd under `$HOME` that has no closer `.gvp/`. Its `user:` block and its `suppress_diagnostics:` therefore apply to work done anywhere under the home directory, and stop applying the moment you run from `/tmp`. If a library's warning count changes when you change directory without changing the library, that is why. Check it before believing either number.
+
+**Cairn records every library it resolves** into a machine-wide registry (`~/.gvp/registry/`, override with `GVP_REGISTRY_ROOT`). That registry is what `cairn libs list` and `cairn libs search` read, and it is the entire mechanism behind *Inherit before authoring*. Recording happens when a command *builds the catalog*, so `cairn init` registers nothing — the first `validate`, `query`, `export`, `inspect`, `review`, `diff`, `analyze`, `add`, `edit`, `import` or `mv` does. If the registry cannot be written (a sandbox, a read-only home), cairn prints `could not update the library registry (continuing)` and exits normally: recording is never allowed to fail the command.
+
+### Keep the registry clean
+
+A registry full of throwaway copies is a registry nobody trusts; then nobody searches it; then guidance gets re-derived locally — the exact failure the previous section exists to prevent. There are four opt-outs and they are **not** interchangeable:
+
+| Opt-out | Where it lives | Survives `--library`? |
+|---|---|---|
+| `--no-registry` | the invocation | **yes** |
+| `GVP_REGISTRY_ROOT=<throwaway dir>` | the environment | yes — it redirects the registry rather than suppressing the write |
+| `registry.enabled: false` | a store or project `config.yaml` | **no** — `--library` loads the *cwd's* config, not the addressed library's |
+| `meta.registry.enabled: false` | any document inside the library | yes |
+
+**So: a scratch copy of a library is run with `--no-registry`.** It is the only opt-out that holds however the library is addressed. And if you made the copy with `cp -r`, also put `meta.registry.enabled: false` *in the copy* — a copy inherits nothing from the original's invocation, so that is the one fix available to the copier, in the copy itself.
+
+The library-level opt-out has two spellings. Either one, in **any single document** of the library, opts the **whole library** out; a sibling document's `true` does not overturn it. The named spelling wins if a document carries both.
+
+```yaml
+meta:
+  registry:
+    enabled: false          # the named affordance — prefer this
+```
+
+```yaml
+meta:
+  config_overrides:
+    registry:
+      mode: replace         # the general mechanism, same effect
+      value:
+        enabled: false
+```
+
+**The library-level flag is deliberately asymmetric (`gvp:D60`): a library can suppress its own recording and can never re-enable it.** `enabled: true` does not force recording — if the invocation or its config already opted out, nothing a document says brings it back. A library acquiring the right to write on its consumer's machine is precisely the authority D60 denies it.
+
+Do **not** reach for the library-level flag on a library you actually use. It makes that library undiscoverable to `cairn libs search`, which is the opposite of what you want; the flag means *"this library is throwaway."* Note also that a misspelling is no longer silent: `meta.registry.enable` raises `W019` (UNRECOGNIZED_META_KEY) rather than looking accepted and doing nothing.
+
 ## Choosing a Workflow
 
 **Two paths depending on your needs:**
@@ -293,6 +384,7 @@ For quick decision tracking after brainstorming sessions. Accumulate over time, 
 When you need schema details → `skills/cairn/schema-reference.md`
 When you need CLI commands → `skills/cairn/commands-reference.md`
 When you need to **find guidance that already exists** (before authoring any element) → `cairn libs list` / `cairn libs search "<concept>"` / `cairn libs show <name>`
+When you are about to **copy a library, or run against a scratch one** → *Discovery and the library registry* above, and `--no-registry`
 When you need to add/update many elements (patch files) → `skills/cairn/import-patch.md`
 When you need library organization advice → `skills/cairn/organization.md`
 When you need to know **who reviews what** (decisions vs guiding elements) → `skills/cairn/guiding-element-review.md`
