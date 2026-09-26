@@ -590,6 +590,42 @@ principles:
           email: shaun@shitchell.com
       - date: '2026-09-25'
         note: 'Reclassified from heuristic gvp:H11 to principle gvp:P19 on maintainer review, before any dependant shipped. The hard/soft test fails: the core step -- "enumerate the concepts the user must understand; if any is machinery orthogonal to the task, the generality has leaked" -- turns on judging a concept orthogonal, which is a weighing call rather than a checkable condition, so two readers can differ. Per the cairn skill a soft preference filed as a heuristic is a miscategorisation. Body text and mappings are preserved verbatim apart from the added closing paragraph recording this reasoning; H11 is retired and its id is never reused (R1). Graduation back to a heuristic stays available once the orthogonality test has survived real use.'
+  - id: P20
+    name: Prefer serial work; parallel execution is an owner-invoked exception
+    statement: |
+      Default to one unit of work at a time. In this project work is serial: one branch, one worker, one change in flight, merged before the next begins. Parallel execution is not forbidden, but it is an exception the project owner invokes deliberately for a pressing need -- never a throughput optimisation a worker or an orchestrator may elect for itself. Where it is invoked it is bounded rather than merely permitted: separate worktrees under an orchestrator, and every contribution to the GVP library routed through gvp:S1 (patches only, imported by one importer) instead of through concurrent writes.
+
+      The maintainer's position, verbatim: "i'm remembering now that, iirc, i think i had intended (dunno if this was written down anywhere) to generally avoid parallel work to ensure quality in this project. i'm happy to walk back from that sometimes if we have pressing issues, i think? i'm a little more trusting of claudes in separate worktrees with an orchestrator. i would say we tend towards that rule -- never do parallel work -- as part of the established GVP in this project"
+
+      WHY THIS IS A PRINCIPLE AND NOT A RULE. The phrasing settles it. "we tend towards" and "i'm happy to walk back from that sometimes if we have pressing issues" describe a preference that carries real weight together with a discretionary, owner-invoked exception. The exception test puts that on the principle side: a structured, enforced opt-out that is part of an element's own definition can belong to a rule, but "I will decide case by case whether the tradeoff is worth it" cannot. Filing it as a rule would also cost something specific. personal:P9 says do not silently break a rule for a one-off -- change the rule explicitly instead -- so a rule authored in the knowledge that it will sometimes be walked back teaches by example that this library's rules are breakable, and that lesson is inherited by every other rule in the library. A principle that is honoured is worth more than a rule that is not. If the exception is ever narrowed to a checkable condition ("parallel only when N independent issues touch disjoint files and none touches the library"), the graduation path to a heuristic is open; today the condition is "the owner judges the need pressing," which is a judgement, not a test.
+
+      WHAT ITS ABSENCE COST. Six agents worked concurrently in separate worktrees and all six independently minted gvp:D62 -- each of them correctly, because the next free id is computed against the worker's own base and nothing coordinates concurrent workers. They were renumbered by hand, which is the practice gvp:R1 exists to make unnecessary. The near-miss matters more than the collision: git's `ort` strategy hoisted the shared `- id: D62` line ABOVE the conflict markers, so taking both sides produced ONE element carrying TWO bodies -- duplicate `name:` and `rationale:` keys under a single id. `cairn validate` would not have reported a duplicate id, because there was only one id. It was caught by inspection, not by tooling. That is the shape of the risk this principle answers: concurrent work on a shared graph fails in ways the graph's own validator was not built to see, so the compensating control has to sit in how we work rather than in what we can check. G5 is the goal of making misalignment visible; serial work is what covers the span where G5's tooling cannot see.
+
+      SCOPE -- WHAT THIS DOES NOT SAY. It constrains two or more workers holding write intent over the same artifact at the same time. It does not constrain delegation: personal:P14 (delegate context-heavy work to subagents and return terse) and personal:H2 (the delegation test) are untouched, because one subagent doing one unit of work and returning a conclusion IS serial work, and a read-only exploration running alongside an edit session holds no write intent. personal:H4 (parallelize human attention with computation) is likewise untouched -- it parallelizes a human against a machine, not two writers against one graph.
+
+      IT ALSO DECIDES. Whether the maintainer workflow dispatches supervisors for several open issues at once or takes them one at a time. Whether a plan with independent tasks is executed by fan-out or worked through inline, task by task. Whether two workers may hold a release and its version bump in flight simultaneously. Whether an agent that finishes early may pick up the next issue before the current one has merged.
+    tags:
+      - integrity
+      - alignment
+    maps_to:
+      - gvp:G5
+      - gvp:V2
+      - gvp:V10
+      - gvp:C2
+      - personal:P9
+      - personal:P16
+      - ai-common:C1
+    origin:
+      - date: '2026-09-25'
+        note: |
+          Issue #32. Authored after six concurrent worktree agents each minted gvp:D62 and a first merge resolution nearly shipped one element with two bodies. Filed as a principle rather than a rule on the maintainer's own phrasing ("we tend towards", "i'm happy to walk back from that sometimes"), which is a discretionary owner-invoked exception and therefore fails the rule side of the exception test.
+          ai-common:C1 is the reason the response is a guiding element rather than a correction: every one of the six agents computed the right next-free id against the state it could see, so the gap was in the system, not in the agents.
+      - id: 043ca619-fd41-46e0-8013-cc89f450d713
+        date: '2026-09-26T00:13:10.824Z'
+        note: Imported from i32-serial-work-and-definition-resolution.yaml
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
 heuristics:
   - id: H1
     name: Core vs. example placement
@@ -1043,6 +1079,48 @@ rules:
       - id: d034801a-27fd-4d6f-b172-cf33c56afdbd
         date: '2026-09-25T22:21:29.172Z'
         note: Imported from patch-tombstones.yaml
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+  - id: R13
+    name: An element's definitions are read from the element's own library
+    statement: |
+      Any lookup keyed to an element resolves that element's definitions from the element's own library. A library-wide question with no owning element keeps reading the flat merged view.
+
+      This binds how every future check is written, unconditionally. Any new validation pass, exporter, query filter, or CLI check that resolves a definition-derived property OF A PARTICULAR ELEMENT -- `is_root`, `is_value_anchor`, `requires_decision`, `mapping_rules`, `id_prefix`, `field_schemas`, `display_label` -- resolves it through that element's source. Any check answering a question that has no owning element -- which categories a user may type at the CLI, which columns an export carries -- reads the merged view. Both views are legitimate; the defect is always using one where the other was meant, and it is the same defect every time. The line is drawn once, up front, for two reasons. The flat lookup is the shorter expression and therefore the one an author reaches for by default, so the wrong answer is the cheaper answer -- exactly the situation gvp:C1 says guidance has to pre-empt. And this is a library other libraries inherit, so the blast radius of getting it wrong scales with everything built on it (personal:P16): left as a per-pass judgement call it would be re-made, differently, by every author who adds a pass.
+
+      IN A TRANSITIVE WALK, EACH NODE ANSWERS FOR ITSELF. "Keyed to an element" means the element the question is being asked OF, not the element the walk started from. This is what made the two Set-building loops in the traceability pass wrong: each resolved `is_root` / `is_value_anchor` once for the whole catalog and then applied that single verdict to every node reached in a transitive walk, when those are per-node questions. Freezing the starting element's view over a walk reintroduces the same defect one hop later -- one library's definitions governing another library's elements.
+
+      THE IMPLICATION, STATED SO NOBODY REDISCOVERS IT AS A SURPRISE. The definitions visible to a library are its own layered over those of the libraries it inherits, transitively; descendants and siblings contribute nothing. A library that declares no category definitions of its own is therefore governed by its ancestors'. It follows that AN UPSTREAM LIBRARY CHANGING ITS CATEGORY DEFINITIONS RETROACTIVELY RE-JUDGES A DOWNSTREAM CONSUMER'S OWN ELEMENTS, for any consumer that declares none. Inheritance is pinned to an immutable tag or SHA, so the change arrives only when the consumer moves the pin -- but when it moves, the consumer's own elements are re-judged under definitions it did not write.
+
+      The maintainer accepted that implication deliberately, verbatim: "i can dig the rationale and the implication. if i'm working in a company and upstream (i.e.: department level or org level) definitions change, i believe that *should* impact how my own project's elements are interpreted."
+
+      That acceptance is what chooses definition reuse (gvp:G11) over consumer isolation. The rejected alternative -- an undeclared library falls back to the built-in defaults -- isolates a consumer completely, so nothing upstream can ever reinterpret its elements; it was rejected because it makes inheriting definitions a no-op unless every consumer re-declares them, which is the entire reason to put them upstream. gvp:D63 carries that alternative in full under `considered.defaults_for_undeclared_libraries`; it is not restated here.
+
+      COMPLIANCE IS NOT CLAIMED. This rule is the line the code is measured against, not a report that the code meets it. gvp:D63 applied it to the traceability, semantic, and coverage passes; `structural-pass.ts` is NOT yet compliant -- four lines still read the flat registry (the E001/E005 schema lookups and the W009 id-prefix scan), and gvp:D63 names them as unaudited rather than cleared. The exporters and CLI commands are in the same position: some of their flat lookups are correct as library-wide questions, others are this defect in a different file, and no one has sorted them. Separate work covers that. Stating the gap here rather than implying a completeness the codebase does not have is what gvp:V2, gvp:V10, and personal:R1 ask for -- verify or do not claim -- and a documented guarantee that is unenforced is worse than an absent one, which is the failure gvp:D63 was written to end.
+
+      IT ALSO DECIDES. Whether `cairn query --category <x>` matches an element against the merged category name or against its own library's name for that category (its own). Whether an exporter takes an element's column set and `display_label` from the merged registry or from the element's source (its source). Whether the W009 id-prefix scan compares an element's id against the merged `id_prefix` or the one its library declares (its library's). And, in the other direction, whether the set of categories `cairn add <category>` will accept is per-element -- it is not, because there is no element yet, so it reads the merged view.
+    tags:
+      - framework
+      - integrity
+      - tooling
+    maps_to:
+      - gvp:G5
+      - gvp:G11
+      - gvp:V2
+      - gvp:V10
+      - gvp:C1
+      - gvp:R6
+      - personal:P16
+      - personal:R1
+    origin:
+      - date: '2026-09-25'
+        note: |
+          Issue #27, the guiding half of the same proposal whose runtime semantics are recorded as gvp:D63. Authored as a rule rather than folded into that decision because it binds how every future element-keyed check is written, unconditionally, and outlives the passes D63 changed.
+          Maps to gvp:R6 because it is the same move one level up: R6 says code dispatches on the schema rather than on field names; this says the schema it dispatches on is the one the element's own library declares.
+      - id: 21f4f3f7-424f-4b2f-affe-a6842fc11828
+        date: '2026-09-26T00:13:10.824Z'
+        note: Imported from i32-serial-work-and-definition-resolution.yaml
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
@@ -3496,6 +3574,7 @@ decisions:
       - gvp:V10
       - gvp:V3
       - gvp:R6
+      - gvp:R13
       - personal:H5
       - personal:R2
     considered:
@@ -3566,6 +3645,14 @@ decisions:
       - file: src/validation/passes/coverage-pass.ts
         identifier: coveragePass
         role: implements
+    updated_by:
+      - id: 8daddbdb-b84b-4836-8d22-860a6854b0e4
+        date: '2026-09-26T00:13:10.824Z'
+        rationale: |
+          Wired to the guiding element authored from the same proposal. The rule half of #27 now exists as gvp:R13, so this decision maps up to it, the way it already maps up to gvp:R6. No field of the decision's own content changed -- only the maps_to link, which did not exist to be made when D63 was authored.
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
   - id: D64
     name: Diagnostic display is scoped by source, tri-state, and never silent
     rationale: |
@@ -4034,3 +4121,80 @@ constraints:
       - tooling
       - integrity
     maps_to: []
+procedures:
+  - id: S1
+    name: Under parallel work, subagents contribute library patches and one orchestrator imports them
+    description: |
+      When parallel work has been invoked, a worktree subagent never writes to `.gvp/library/`. It authors its GVP contribution as a patch file using pseudo-ids, commits only that file, and an orchestrator imports the pending patches one at a time on the integration branch. Real ids are therefore assigned at one point, by one assigner, against one base -- so an id collision is impossible rather than unlikely.
+
+      The maintainer's instruction, verbatim: "if we do find some pressing need for parallel work, to establish (also codified in GVP using the Procedure element) a protocol for worktree subagents only ever contributing patches that an orchestrator will import before merging into main"
+
+      gvp:P20 governs WHETHER to work in parallel and leaves that to the owner's judgement. This procedure governs HOW, and admits no judgement at all once parallel work has been chosen. The asymmetry is deliberate: the discretionary exception lives in exactly one place -- the owner's decision to go parallel -- and nothing downstream of it is discretionary. A worker cannot reason its way out of the patch protocol on the grounds that its change looks small.
+
+      Why it works, rather than merely reducing the odds: pseudo-ids (`?d_my_decision`) defer id assignment to import time, and importing serially into one branch means every import sees every prior import. This is gvp:P18's shape applied to process instead of to storage -- arrange the work so that contention cannot produce a wrong answer, rather than permitting the contention and then coordinating it. A correctness argument resting on the shape of the work has no failure mode to get wrong.
+
+      It also removes the hazard that nearly shipped in #32. Two workers writing separate patch FILES never conflict in the library at all, so git is never asked to merge two competing element bodies and cannot hoist a shared `- id:` line above the conflict markers.
+    when: |
+      Parallel work has been invoked under gvp:P20 -- two or more workers holding write intent over the same GVP library at the same time, typically separate worktrees under an orchestrator. Under the serial default this procedure is inert: a single worker may edit the library directly through `cairn add` / `cairn edit` / `cairn import`.
+    steps:
+      - id: S1.1
+        name: Author the contribution as a patch, never as a library edit
+        description: |
+          Write `.gvp/patches/pending/<issue-or-topic>.yaml` and put every new element in it with a pseudo-id. Prefix the pseudo-id slug with your issue or topic (`?d_i32_serial_work`) so two workers' patches cannot collide on a pseudo-id either. Reference upstream elements by their real library ids as normal. Do not run `cairn add` or `cairn edit` against the library on a worktree branch: both assign a real id against your own base, which is precisely the coordination the orchestrator exists to supply.
+        example: |
+          # .gvp/patches/pending/i32-serial-work.yaml
+          decisions:
+            - id: "?d_i32_serial_work"
+              name: ...
+              maps_to: [gvp:G5, gvp:V2]
+      - id: S1.2
+        name: Verify by importing locally, then revert
+        description: |
+          A worker that only emits a patch has no feedback loop -- you cannot `cairn validate` an element you have not applied. Apply it temporarily instead: `--dry-run` first and read every id assignment and reference rewrite, then apply, then validate, then discard the applied copy with `git checkout --`. Treat the ids you saw as throwaway: they were assigned against your base and will differ when the orchestrator imports into the integration branch. Nothing downstream of the patch may depend on them.
+        example: |
+          cairn import .gvp/patches/pending/i32-serial-work.yaml --into gvp --dry-run
+          cairn import .gvp/patches/pending/i32-serial-work.yaml --into gvp --yes
+          cairn validate
+          git checkout -- .gvp/library/
+      - id: S1.3
+        name: Commit the patch file only
+        description: |
+          The branch's diff contains your code and `.gvp/patches/pending/<file>.yaml`, and no change under `.gvp/library/`. This is the step that is checkable by inspection and is therefore the enforcement point: a library hunk in a worker's diff means the procedure was bypassed, and it is converted back into a patch before review rather than merged and renumbered afterwards.
+      - id: S1.4
+        name: The orchestrator imports on the integration branch, one file at a time
+        description: |
+          After the worker branches have merged, the orchestrator imports each pending patch in a fixed order, previewing with `--dry-run` before applying. Import files INDIVIDUALLY rather than pointing `cairn import` at the directory: pseudo-ids must be unique per category within a patch set, and one file per set keeps two workers' pseudo-ids from ever sharing a set. An import that UPDATES an existing element -- as against adding one -- must carry `update_rationale` on that element or the import writes nothing.
+        example: |
+          for f in .gvp/patches/pending/*.yaml; do
+            cairn import "$f" --into gvp --dry-run && cairn import "$f" --into gvp --yes
+          done
+      - id: S1.5
+        name: Validate once, then delete the imported patches
+        description: |
+          Validate after the last import, not after each one: the library is only coherent once every patch is in, and a patch whose `maps_to` points at an element another patch adds will fail until both have landed. Then `git rm` each imported patch. A clean tree has an empty `pending/`, so a non-empty `pending/` on the integration branch is itself the signal that a merge landed without its library contribution -- and the deleted files stay in history as the record of what each worker proposed.
+    related:
+      - gvp:P18
+      - gvp:R1
+    tags:
+      - integrity
+      - tooling
+    maps_to:
+      - gvp:P20
+      - gvp:G5
+      - gvp:V2
+      - gvp:V9
+      - gvp:V10
+      - gvp:C2
+      - personal:P7
+      - ai-common:P1
+    origin:
+      - date: '2026-09-25'
+        note: |
+          Issue #32, the second of the two guiding elements it asks for, and the first procedure element in this library. Two details were settled here rather than left to each agent to rediscover: that a patch-only worker verifies by importing locally and reverting (observed as working practice during #32), and that pending patches live at `.gvp/patches/pending/<issue-or-topic>.yaml`, tracked on the worker's branch and `git rm`'d by the orchestrator after import. No patch files were tracked in this repository before, so the location is a convention chosen here, not a pre-existing one.
+          personal:P7 is why the procedure names a checkable enforcement point (step 3: a library hunk in a worker's diff) rather than relying on each worker remembering the protocol.
+      - id: 025b4f1d-8b6d-4734-acfe-cf22018b166e
+        date: '2026-09-26T00:13:10.824Z'
+        note: Imported from i32-serial-work-and-definition-resolution.yaml
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
