@@ -6,9 +6,12 @@ import type { DocumentMeta } from '../../src/model/document-meta.js';
 import type { ResolvedInheritance } from '../../src/inheritance/inheritance-resolver.js';
 import type { GVPConfig } from '../../src/config/schema.js';
 import type { CategoryDefinition } from '../../src/schema/category-definition.js';
+import type { FieldSchemaEntry } from '../../src/schema/field-schema.js';
+import type { Diagnostic } from '../../src/validation/diagnostic.js';
 import { traceabilityPass } from '../../src/validation/passes/traceability-pass.js';
 import { semanticPass } from '../../src/validation/passes/semantic-pass.js';
 import { coveragePass } from '../../src/validation/passes/coverage-pass.js';
+import { structuralPass } from '../../src/validation/passes/structural-pass.js';
 
 /**
  * #27 / DEC-2.12 — "overriding a definition doesn't retroactively change the
@@ -498,6 +501,309 @@ describe('#27 is_value_anchor resolves per element source (DEC-2.12)', () => {
     ]), config);
 
     expect(ids(ds, 'W017')).not.toContain('D1');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// structural pass — field_schemas (E001, E005) and id_prefix (W009)
+// ---------------------------------------------------------------------------
+
+/**
+ * gvp:D63 left `structural-pass.ts` out of scope and said so: "SCOPE NOT COVERED.
+ * `structural-pass.ts` (E001/E005 schema lookups, W009 id-prefix scanning) ... still
+ * read the flat registry ... They were left alone because they were owned by other
+ * work in flight, not because they were audited and cleared." gvp:R13 repeats it
+ * under COMPLIANCE IS NOT CLAIMED. These fixtures close that gap.
+ *
+ * Same construction as the blocks above: an ancestor and a descendant declare
+ * DIFFERENT definitions, ordered so the flat descendant-wins registry returns the
+ * WRONG answer — so every assertion below fails against the unfixed pass.
+ *
+ * One wrinkle the earlier fixtures did not hit: a user category definition
+ * REPLACES the built-in one outright (`CategoryRegistry.merge` spreads at the
+ * category level, it does not deep-merge with defaults), while `field_schemas`
+ * merge key-wise BETWEEN user documents. So each definition here spells out the
+ * schema it wants, and "removing" a reference field downstream means overriding
+ * it with a non-reference type rather than omitting the key — the same shape the
+ * is_root fixtures above note for flags.
+ */
+
+const REF_LIST: FieldSchemaEntry = { type: 'list', required: false, items: { type: 'reference' } };
+const STR_LIST: FieldSchemaEntry = { type: 'list', required: false, items: { type: 'string' } };
+
+/** Diagnostics of one code, as messages (for W009, which carries no elementId). */
+const msgs = (ds: Diagnostic[], code: string): string[] =>
+  ds.filter(d => d.code === code).map(d => d.description);
+
+describe('#27 structural E001: field_schemas resolve per element source (gvp:R13)', () => {
+  /** The default `decision` but for the type of its `related` field. */
+  const decisionRelated = (related: FieldSchemaEntry): CategoryDefinition => ({
+    ...decisionWith(LOOSE),
+    field_schemas: { related },
+  });
+
+  it('descendant LOOSENS a reference field: the ancestor\'s broken ref is STILL reported', () => {
+    const ds = structuralPass(makeCatalog([
+      {
+        source: '@org',
+        name: 'org-lib',
+        definitions: { categories: { decision: decisionRelated(REF_LIST) } },
+        elements: [
+          { categoryName: 'decision', data: { id: 'OD1', name: 'Org decision', rationale: 'x', related: ['org-lib:GHOST'] } },
+        ],
+      },
+      {
+        source: '@local',
+        name: 'main',
+        inherits: ['@org'],
+        definitions: { categories: { decision: decisionRelated(STR_LIST) } },
+        elements: [
+          { categoryName: 'decision', data: { id: 'D1', name: 'Local decision', rationale: 'x', related: ['main:GHOST'] } },
+        ],
+      },
+    ]), config);
+
+    // @org calls `related` a reference list, so its dangling entry is a real E001.
+    // The flat registry says list<string> (descendant wins) and reports NOTHING —
+    // the silent direction gvp:D63 calls "the more dangerous, because it reports
+    // nothing". This is the assertion that fails against the unfixed pass.
+    expect(ids(ds, 'E001')).toContain('OD1');
+    // @local demoted it to plain strings; its own dangling entry is not a ref.
+    expect(ids(ds, 'E001')).not.toContain('D1');
+  });
+
+  it('descendant TIGHTENS a reference field: the ancestor is not retroactively in breach', () => {
+    const ds = structuralPass(makeCatalog([
+      {
+        source: '@org',
+        name: 'org-lib',
+        definitions: { categories: { decision: decisionRelated(STR_LIST) } },
+        elements: [
+          { categoryName: 'decision', data: { id: 'OD1', name: 'Org decision', rationale: 'x', related: ['org-lib:GHOST'] } },
+        ],
+      },
+      {
+        source: '@local',
+        name: 'main',
+        inherits: ['@org'],
+        definitions: { categories: { decision: decisionRelated(REF_LIST) } },
+        elements: [
+          { categoryName: 'decision', data: { id: 'D1', name: 'Local decision', rationale: 'x', related: ['main:GHOST'] } },
+        ],
+      },
+    ]), config);
+
+    // @org never declared `related` a reference, so nothing there is broken. The
+    // flat registry says list<reference> and invents an E001 the ancestor was
+    // never authored against — the assertion that fails against the unfixed pass.
+    expect(ids(ds, 'E001')).not.toContain('OD1');
+    expect(ids(ds, 'E001')).toContain('D1');
+  });
+
+  it('the dict<model> tradeoff links (#22\'s own shape) are judged under the element\'s library', () => {
+    // `considered` is the dict<model> container whose reference sub-fields the
+    // importer could not see (#22). It now reaches E001 through the SHARED walker,
+    // so this pins both halves at once: the walker finds the site, and the schema
+    // that says it is a reference site comes from the element's own library.
+    const decisionConsidered = (link: FieldSchemaEntry): CategoryDefinition => ({
+      ...decisionWith(LOOSE),
+      field_schemas: {
+        considered: {
+          type: 'dict',
+          required: false,
+          values: {
+            type: 'model',
+            fields: {
+              rationale: { type: 'string', required: true },
+              would_have_served: link,
+            },
+          },
+        },
+      },
+    });
+    const alt = { rationale: 'because' };
+
+    const ds = structuralPass(makeCatalog([
+      {
+        source: '@org',
+        name: 'org-lib',
+        definitions: { categories: { decision: decisionConsidered(REF_LIST) } },
+        elements: [
+          {
+            categoryName: 'decision',
+            data: {
+              id: 'OD1', name: 'Org decision', rationale: 'x',
+              considered: { 'Rolled our own': { ...alt, would_have_served: ['org-lib:GHOST'] } },
+            },
+          },
+        ],
+      },
+      {
+        source: '@local',
+        name: 'main',
+        inherits: ['@org'],
+        definitions: { categories: { decision: decisionConsidered(STR_LIST) } },
+        elements: [
+          {
+            categoryName: 'decision',
+            data: {
+              id: 'D1', name: 'Local decision', rationale: 'x',
+              considered: { 'Rolled our own': { ...alt, would_have_served: ['main:GHOST'] } },
+            },
+          },
+        ],
+      },
+    ]), config);
+
+    const orgE001 = ds.filter(d => d.code === 'E001' && d.context.elementId === 'OD1');
+    expect(orgE001).toHaveLength(1);
+    // Also pins the user-visible E001 wording and `details` locator across the
+    // switch to the shared walker — both are unchanged by it.
+    expect(orgE001[0]!.description).toBe(
+      "Element org-lib:OD1 references 'org-lib:GHOST' in considered.would_have_served ('Rolled our own'), but no matching element was found",
+    );
+    expect(orgE001[0]!.context.details).toBe('considered:Rolled our own');
+    expect(ids(ds, 'E001')).not.toContain('D1');
+  });
+});
+
+describe('#27 structural E005: the container `id` sub-field resolves per element source (gvp:R13)', () => {
+  const stepsWithId: FieldSchemaEntry = {
+    type: 'list',
+    required: false,
+    items: {
+      type: 'model',
+      fields: { id: { type: 'string', required: false }, action: { type: 'string', required: false } },
+    },
+  };
+  const stepsWithoutId: FieldSchemaEntry = {
+    type: 'list',
+    required: false,
+    items: { type: 'model', fields: { action: { type: 'string', required: false } } },
+  };
+  const decisionSteps = (steps: FieldSchemaEntry): CategoryDefinition => ({
+    ...decisionWith(LOOSE),
+    field_schemas: { steps },
+  });
+  /** Explicit duplicate item ids — E005's whole trigger. */
+  const dupSteps = [{ id: 'S1', action: 'first' }, { id: 'S1', action: 'second' }];
+
+  it('descendant drops the `id` sub-field: the ancestor\'s duplicate is STILL reported', () => {
+    const ds = structuralPass(makeCatalog([
+      {
+        source: '@org',
+        name: 'org-lib',
+        definitions: { categories: { decision: decisionSteps(stepsWithId) } },
+        elements: [
+          { categoryName: 'decision', data: { id: 'OD1', name: 'Org decision', rationale: 'x', steps: dupSteps } },
+        ],
+      },
+      {
+        source: '@local',
+        name: 'main',
+        inherits: ['@org'],
+        definitions: { categories: { decision: decisionSteps(stepsWithoutId) } },
+        elements: [
+          { categoryName: 'decision', data: { id: 'D1', name: 'Local decision', rationale: 'x', steps: dupSteps } },
+        ],
+      },
+    ]), config);
+
+    // Flat registry: `steps` has no modelled `id`, so E005 fires for nobody and
+    // @org's genuine duplicate goes unreported. Fails against the unfixed pass.
+    expect(ids(ds, 'E005')).toContain('OD1');
+    expect(ids(ds, 'E005')).not.toContain('D1');
+  });
+
+  it('descendant adds the `id` sub-field: the ancestor is not retroactively in breach', () => {
+    const ds = structuralPass(makeCatalog([
+      {
+        source: '@org',
+        name: 'org-lib',
+        definitions: { categories: { decision: decisionSteps(stepsWithoutId) } },
+        elements: [
+          { categoryName: 'decision', data: { id: 'OD1', name: 'Org decision', rationale: 'x', steps: dupSteps } },
+        ],
+      },
+      {
+        source: '@local',
+        name: 'main',
+        inherits: ['@org'],
+        definitions: { categories: { decision: decisionSteps(stepsWithId) } },
+        elements: [
+          { categoryName: 'decision', data: { id: 'D1', name: 'Local decision', rationale: 'x', steps: dupSteps } },
+        ],
+      },
+    ]), config);
+
+    // Flat registry: `steps` models an `id`, so @org's element is reported under a
+    // constraint its library never declared. Fails against the unfixed pass.
+    expect(ids(ds, 'E005')).not.toContain('OD1');
+    expect(ids(ds, 'E005')).toContain('D1');
+  });
+});
+
+describe('#27 structural W009: id_prefix resolves per element source (gvp:R13)', () => {
+  // gvp:R13 names this scan by hand under IT ALSO DECIDES: "whether the W009
+  // id-prefix scan compares an element's id against the merged `id_prefix` or the
+  // one its library declares (its library's)".
+  const goalPrefixed = (id_prefix: string): CategoryDefinition => ({
+    yaml_key: 'goals',
+    id_prefix,
+    primary_field: 'statement',
+    is_root: true,
+  });
+
+  /** Two goals one apart, so the document has exactly one gap under `prefix`. */
+  const gappedGoals = (prefix: string) => [
+    { categoryName: 'goal', data: { id: `${prefix}1`, name: 'first', statement: 'x' } },
+    { categoryName: 'goal', data: { id: `${prefix}3`, name: 'third', statement: 'x' } },
+  ];
+
+  it('descendant renames the prefix: the ancestor\'s gap is found under ITS prefix', () => {
+    const ds = structuralPass(makeCatalog([
+      {
+        source: '@org',
+        name: 'org-lib',
+        definitions: { categories: { goal: goalPrefixed('OBJ') } },
+        elements: gappedGoals('OBJ'),
+      },
+      {
+        source: '@local',
+        name: 'main',
+        inherits: ['@org'],
+        definitions: { categories: { goal: goalPrefixed('G') } },
+        elements: gappedGoals('G'),
+      },
+    ]), config);
+
+    // Flat registry says `G`, so @org's OBJ1/OBJ3 match no prefix at all, are never
+    // grouped, and the gap vanishes. Fails against the unfixed pass.
+    expect(msgs(ds, 'W009')).toContain("Document 'org-lib' has gap in goal IDs: missing OBJ2");
+    expect(msgs(ds, 'W009')).toContain("Document 'main' has gap in goal IDs: missing G2");
+  });
+
+  it('ancestor keeps the default prefix while the descendant renames: both gaps still found', () => {
+    // The mirror image — the flat view now hides the ANCESTOR's default-prefixed
+    // ids instead of its renamed ones, so neither merge direction is a lucky pass.
+    const ds = structuralPass(makeCatalog([
+      {
+        source: '@org',
+        name: 'org-lib',
+        definitions: { categories: { goal: goalPrefixed('G') } },
+        elements: gappedGoals('G'),
+      },
+      {
+        source: '@local',
+        name: 'main',
+        inherits: ['@org'],
+        definitions: { categories: { goal: goalPrefixed('OBJ') } },
+        elements: gappedGoals('OBJ'),
+      },
+    ]), config);
+
+    expect(msgs(ds, 'W009')).toContain("Document 'org-lib' has gap in goal IDs: missing G2");
+    expect(msgs(ds, 'W009')).toContain("Document 'main' has gap in goal IDs: missing OBJ2");
   });
 });
 
