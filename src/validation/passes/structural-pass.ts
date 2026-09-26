@@ -3,6 +3,7 @@ import type { GVPConfig } from '../../config/schema.js';
 import type { Diagnostic } from '../diagnostic.js';
 import { createDiagnostic } from '../diagnostic.js';
 import type { FieldSchemaEntry } from '../../schema/field-schema.js';
+import { collectReferenceSites } from '../../schema/reference-sites.js';
 
 const PASS_NAME = 'structural';
 
@@ -33,72 +34,43 @@ export function structuralPass(catalog: Catalog, _config: GVPConfig): Diagnostic
       ));
     };
 
-    for (const ref of element.maps_to) {
-      checkRef(ref, 'maps_to');
-    }
-
-    // E001 (generic): broken references in list<reference> fields, and in the
-    // list<reference> sub-fields of contained models — both list<model> (e.g.
-    // procedure.steps) and dict<model> (e.g. decision.considered) containers.
-    // Dispatches on the declared field type (R6): no field-name hard-coding, so it
-    // covers step maps_to, the considered.* tradeoff links, and any future reference
-    // sub-field in any container, uniformly.
-    const catDefE001 = catalog.registry.getByName(element.categoryName);
-    if (catDefE001) {
-      const mergedSchemas = { ...catalog.registry.allFieldSchemas, ...(catDefE001.field_schemas ?? {}) };
-
-      // Validate every list<reference> sub-field of one contained model instance.
-      // The details key is `${container}:${ownerLabel}` (stable locator, e.g.
-      // `steps:S1.2`); the human message names the exact sub-field.
-      const checkModelRefs = (
-        model: unknown,
-        modelSchema: FieldSchemaEntry,
-        containerField: string,
-        ownerLabel: string,
-      ): void => {
-        if (!model || typeof model !== 'object' || !modelSchema.fields) return;
-        const m = model as Record<string, unknown>;
-        for (const [subName, subSchema] of Object.entries(modelSchema.fields)) {
-          if (subSchema.type === 'list' && subSchema.items?.type === 'reference') {
-            const refs = m[subName];
-            if (!Array.isArray(refs)) continue;
-            for (const ref of refs) {
-              checkRef(ref, `${containerField}.${subName} ('${ownerLabel}')`, `${containerField}:${ownerLabel}`);
-            }
-          }
-        }
-      };
-
-      for (const [fieldName, schema] of Object.entries(mergedSchemas)) {
-        // Top-level list<reference>
-        if (schema.type === 'list' && schema.items?.type === 'reference') {
-          const refs = element.get(fieldName);
-          if (Array.isArray(refs)) for (const ref of refs) checkRef(ref, fieldName, fieldName);
-          continue;
-        }
-        // list<model> container → validate each item's list<reference> sub-fields
-        if (schema.type === 'list' && schema.items?.type === 'model') {
-          const items = element.get(fieldName);
-          if (Array.isArray(items)) {
-            items.forEach((item, i) => {
-              const rec = (item && typeof item === 'object') ? (item as Record<string, unknown>) : undefined;
-              const label = (rec?.id as string) ?? (rec?.name as string) ?? String(i + 1);
-              checkModelRefs(item, schema.items as FieldSchemaEntry, fieldName, label);
-            });
-          }
-          continue;
-        }
-        // dict<model> container → validate each value's list<reference> sub-fields,
-        // keyed by the dict key (e.g. the considered alternative name).
-        if (schema.type === 'dict' && schema.values && !Array.isArray(schema.values) && schema.values.type === 'model') {
-          const dict = element.get(fieldName);
-          if (dict && typeof dict === 'object' && !Array.isArray(dict)) {
-            for (const [key, val] of Object.entries(dict as Record<string, unknown>)) {
-              checkModelRefs(val, schema.values as FieldSchemaEntry, fieldName, key);
-            }
-          }
-          continue;
-        }
+    // Every reference-bearing array in the element — the reserved `maps_to`, any
+    // top-level list<reference>, and the list<reference> sub-fields of list<model>
+    // (procedure.steps) and dict<model> (decision.considered) containers — comes
+    // from ONE shared walker, `collectReferenceSites`. It derives the answer
+    // entirely from the declared field schemas (R6): no field-name list lives here.
+    //
+    // Sharing it with the importer is the point. #22 was this pass and the
+    // importer each maintaining their own walker: the validator learned about the
+    // `considered.*` tradeoff links, the importer never did (it walked list<model>
+    // but not dict<model>), and unresolved pseudo-IDs were written to disk. Fixing
+    // only the importer would have left the divergence that caused #22 intact, one
+    // adoption site away. `declaredReferencePaths` + the per-category test in
+    // tests/schema/reference-sites.test.ts guard the remaining risk: a container
+    // shape the walker does not understand now fails a test instead of shipping.
+    //
+    // R13: the schemas are the ones the ELEMENT'S OWN library declares
+    // (`getRegistryForSource(element.source)`), not the flat descendant-wins merge.
+    // "Which of my fields hold element references" is a definition-derived property
+    // of this element's category, so a descendant library redefining `field_schemas`
+    // must not change which fields an ancestor's elements are checked against —
+    // in either direction (a tightening descendant would invent E001s the ancestor
+    // never authored; a loosening one would silently stop checking refs the
+    // ancestor declared, which reports nothing at all).
+    //
+    // No `catDef` guard: the walker still finds the reserved `maps_to` and the
+    // library-global `_all` field schemas for an element whose category its own
+    // library does not define, which is the behaviour the previous hand-rolled
+    // walk had for `maps_to` and the behaviour R13 wants for the rest.
+    const elementRegistry = catalog.getRegistryForSource(element.source);
+    const catDefE001 = elementRegistry.getByName(element.categoryName);
+    const mergedSchemas: Record<string, FieldSchemaEntry> = {
+      ...elementRegistry.allFieldSchemas,
+      ...(catDefE001?.field_schemas ?? {}),
+    };
+    for (const site of collectReferenceSites(element.data, mergedSchemas)) {
+      for (const ref of site.refs) {
+        checkRef(ref, site.location, site.detailsKey);
       }
     }
   }
@@ -107,10 +79,16 @@ export function structuralPass(catalog: Catalog, _config: GVPConfig): Diagnostic
   // (R1 precondition — ids must be unique within their parent scope).
   // Only fires on explicit duplicates; auto-assigned ids are sequential
   // and unique by construction.
+  //
+  // R13: element-keyed. Whether a container models an `id` sub-field at all is a
+  // definition-derived property of THIS element's category, so it is read from the
+  // element's own library. A descendant that redefines the container without an
+  // `id` would otherwise stop E005 firing on an ancestor's genuine duplicates.
   for (const element of catalog.getAllElements()) {
-    const catDefE005 = catalog.registry.getByName(element.categoryName);
+    const registryE005 = catalog.getRegistryForSource(element.source);
+    const catDefE005 = registryE005.getByName(element.categoryName);
     if (!catDefE005) continue;
-    const mergedSchemasE005 = { ...catalog.registry.allFieldSchemas, ...(catDefE005.field_schemas ?? {}) };
+    const mergedSchemasE005 = { ...registryE005.allFieldSchemas, ...(catDefE005.field_schemas ?? {}) };
     for (const [fieldName, schema] of Object.entries(mergedSchemasE005)) {
       if (schema.type !== 'list' || !schema.items || schema.items.type !== 'model') continue;
       if (!schema.items.fields?.id) continue;
@@ -171,10 +149,19 @@ export function structuralPass(catalog: Catalog, _config: GVPConfig): Diagnostic
 
   // W009: ID sequence gaps within a category in a document
   for (const doc of catalog.documents) {
-    // Group elements by category within this document
+    // Group elements by category within this document.
+    //
+    // R13: `id_prefix` is element-keyed, and R13's own "IT ALSO DECIDES" names this
+    // scan explicitly — "whether the W009 id-prefix scan compares an element's id
+    // against the merged `id_prefix` or the one its library declares (its
+    // library's)". So the prefix comes from `catalog.categoryFor(element)`, and it is
+    // carried on the group rather than looked up a second time by category name:
+    // a name-keyed lookup has no owning element to resolve through, which is
+    // precisely where the flat registry would creep back in.
     const categoryElements = new Map<string, string[]>();
+    const prefixByCategory = new Map<string, string>();
     for (const element of doc.getAllElements()) {
-      const catDef = catalog.registry.getByName(element.categoryName);
+      const catDef = catalog.categoryFor(element);
       if (!catDef) continue;
 
       const prefix = catDef.id_prefix;
@@ -185,12 +172,12 @@ export function structuralPass(catalog: Catalog, _config: GVPConfig): Diagnostic
       const ids = categoryElements.get(element.categoryName) ?? [];
       ids.push(element.id);
       categoryElements.set(element.categoryName, ids);
+      prefixByCategory.set(element.categoryName, prefix);
     }
 
     for (const [categoryName, ids] of categoryElements) {
-      const catDef = catalog.registry.getByName(categoryName);
-      if (!catDef) continue;
-      const prefix = catDef.id_prefix;
+      // Set in lockstep with categoryElements above, so always present.
+      const prefix = prefixByCategory.get(categoryName)!;
 
       // Extract and sort numeric suffixes
       const nums = ids

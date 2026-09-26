@@ -4103,6 +4103,68 @@ decisions:
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
+  - id: D68
+    name: The structural pass shares the reference walker and resolves every definition per library
+    disposition: accepted
+    rationale: |
+      Two defects in one file, left by two earlier agents for the same reason — a different parallel agent held write intent over `structural-pass.ts` — and fixed together because they touch overlapping lines. gvp:P20 has since made that arrangement the exception rather than the default; this is the cleanup its absence cost.
+
+      DEFECT 1: THE PASS KEPT ITS OWN REFERENCE WALKER. #22 was the importer walking `list<model>` containers but not `dict<model>`, so pseudo-ids inside `decision.considered.*.would_have_served` / `conflicts_with` were written to disk unresolved. The fix introduced `collectReferenceSites(data, fieldSchemas)` and moved the importer onto it, but `structural-pass.ts` went on maintaining a second, hand-rolled walk of the same shapes. That reduces the divergence which CAUSED #22 to one adoption site instead of eliminating it: the next new container shape desynchronises the validator from the importer again, and the failure mode is the asymmetric one — the importer writes a reference the validator then reports, or worse, does not. The pass now calls the shared walker. `declaredReferencePaths` plus the per-category test in `tests/schema/reference-sites.test.ts` stay as the compensating guard, and they get stronger for it: a container shape the walker does not understand now fails one test rather than diverging two consumers silently.
+
+      THE E001 MESSAGES AND `details` KEYS DID NOT CHANGE, AND THAT WAS VERIFIED RATHER THAN TRUSTED. `reference-sites.ts` claims in its own comments that its `location` and `detailsKey` were phrased to match this pass's existing messages. Checked field by field: `maps_to` carries no `details` key in either; a top-level `list<reference>` uses the field name for both; a contained model uses `${container}.${sub} ('${label}')` and `${container}:${label}`; and the `list<model>` item label falls back id -> name -> 1-based index identically. Emission order is also preserved — `maps_to` first, then `Object.entries` over the same spread of `allFieldSchemas` layered with the category's own. Two behaviours differ only where nothing observable rides on them: the walker skips a `maps_to` entry in `field_schemas` (which `checkReservedFieldCollision` already forbids) so it can never be double-reported, and the old `if (catDef)` gate is gone, which keeps the reserved `maps_to` and the library-global `_all` schemas reachable for an element whose own library does not define its category — a state only per-library resolution can produce.
+
+      DEFECT 2: FLAT REGISTRY WHERE gvp:R13 REQUIRES THE ELEMENT'S OWN LIBRARY. gvp:D63 fixed nine element-keyed lookups in the traceability, semantic, and coverage passes and named this file as unaudited rather than cleared; gvp:R13's COMPLIANCE IS NOT CLAIMED section names it too, citing four lines. The audit found six definition lookups, not four. The two the four-line list missed are the `catalog.registry.allFieldSchemas` reads that sit beside the E001 and E005 category lookups: which fields an element even HAS is as much a per-element definitional question as what its category means, and reading the merged view there would have left half of each lookup wrong. All six are element-keyed and all six moved: E001's category definition and field schemas, E005's, and both W009 id-prefix reads.
+
+      NO LOOKUP IN THIS PASS IS LIBRARY-WIDE, AND THAT IS WORTH STATING RATHER THAN INFERRING. gvp:R13 makes the split the design — "a library-wide question with no owning element keeps reading the flat merged view" — so the absence of a survivor is a finding, not an oversight. Every diagnostic this pass emits is about a specific element (E001, E002, E005, W007) or about one document's own elements (W009, W008, W016, W019, E003, E006), and a document belongs to exactly one library. The pass's other lookups were already correctly per-library before this change and were left alone: W007 groups tag definitions by `doc.source`, and W008 groups category definitions the same way.
+
+      W009 NOW CARRIES THE PREFIX ON THE GROUP INSTEAD OF LOOKING IT UP TWICE. The scan resolved `id_prefix` once per element to match ids, then AGAIN by category name to format the gap message. The second lookup has no owning element to resolve through, so per gvp:R13 it has no correct flat-or-scoped answer — it is the shape the defect takes. The prefix each group was matched under is now recorded alongside the group and reused, which removes the second lookup rather than re-pointing it.
+
+      WHY THIS IS A NO-OP ON THIS REPOSITORY, AND WHY IT SHIPPED ANYWAY. No library in play declares `meta.definitions.categories` — not this repo's, not the six documents in gvp-docs@v0.7.0 — so every source resolves to `src/data/defaults.yaml` verbatim and the flat lookup returned the right answer by accident. `cairn validate` output is byte-identical before and after, in emission order and with `--include-inherited`, verified by stashing `src/`, rebuilding, and diffing. That is the same latent-not-benign situation gvp:D63 shipped against. Seven fixtures added to `tests/validation/per-source-definitions.test.ts` are the whole safety net: multi-library catalogs where an ancestor and a descendant declare different `field_schemas` and different `id_prefix`, ordered so the flat registry answers wrongly. All seven fail against the unfixed pass and cover both directions gvp:D63 names — a tightening descendant inventing violations an ancestor was never authored against, and a loosening one silently stopping enforcement, which reports nothing at all.
+
+      ONE ADJACENT GAP FOUND AND DELIBERATELY NOT FIXED. `meta.definitions._all.field_schemas` (DEC-2.8) is unreachable for user documents: `definitionsSchema` in `src/model/document-meta.ts` declares only `tags` and `categories` and is a plain zod object, so zod strips `_all` before the merger looks for it. `allFieldSchemas` is therefore always exactly the built-in `_all`, identical for every source, which is why moving those two reads to the per-source registry cannot change an answer today. Making them per-source is still what gvp:R13 requires, and it is what makes the fix correct the day `_all` starts working. Recorded here rather than fixed because it is a separate defect with a separate blast radius, and gvp:P20 asks for one change in flight.
+    tags:
+      - framework
+      - integrity
+      - tooling
+    maps_to:
+      - gvp:R13
+      - gvp:R6
+      - gvp:G5
+      - gvp:V2
+      - gvp:V10
+      - gvp:P20
+    considered:
+      fix_only_the_registry_defect:
+        description: Apply gvp:R13 to the six lookups and leave the pass's own hand-rolled reference walker in place.
+        rationale: |
+          Rejected. It is the narrower diff and it is what a literal reading of the second defect asks for. But the two defects sit on overlapping lines — the E001 category lookup is the first line of the block the walker replaces — so shipping them separately means writing the same region twice and reviewing it twice. More importantly it would leave #22's actual root cause, two consumers each maintaining a walker over the same schemas, intact and one adoption site from recurring under a different field name.
+        would_have_served:
+          - personal:V1
+        conflicts_with:
+          - gvp:V10
+      pass_the_catalog_into_the_walker:
+        description: Have `collectReferenceSites` take a Catalog and an Element and resolve the field schemas itself, so no caller can pick the wrong registry.
+        rationale: |
+          Rejected. It would make the gvp:R13 mistake unrepresentable at this call site, which is a real attraction. But it couples a pure schema-derived walker to the catalog, and the importer's caller has no Element at all — it walks a patch record before any element exists — so the signature would have to admit both shapes and the walker would end up branching on which world it is in. Keeping it `(data, fieldSchemas)` is what lets the importer and the validator share it in the first place.
+        would_have_served:
+          - gvp:V10
+        conflicts_with:
+          - gvp:R6
+      keep_the_second_w009_lookup_scoped_by_document_source:
+        description: Leave W009's second, name-keyed registry lookup in place and point it at `getRegistryForSource(doc.source)`.
+        rationale: |
+          Rejected. It gives the right answer — every element in a document shares that document's source — and it is a one-word change. But it keeps a definition lookup that is keyed by a category NAME with no owning element to resolve through, which is precisely the shape gvp:R13 says has no correct answer, sitting two lines from the element-keyed one that does. Carrying the prefix on the group deletes the question instead of answering it, and a future reader cannot reintroduce the flat view at a call site that no longer exists.
+        would_have_served:
+          - personal:V1
+        conflicts_with:
+          - gvp:R13
+    origin:
+      - id: c8f7092c-9c16-4b87-8f7b-75e0fca95719
+        date: '2026-09-26T01:12:51.298Z'
+        note: Imported from d68-structural-pass.yaml
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
 constraints:
   - id: C1
     name: Agents optimize for minimal effort
