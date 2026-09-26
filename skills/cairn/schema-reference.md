@@ -75,6 +75,30 @@ These fields exist on every element and cannot be redefined in `field_schemas`:
 | `updated_by` | provenance[] | — | Yes (on edit) |
 | `reviewed_by` | provenance[] | — | Yes (on review) |
 
+## Primary fields: only `decision` has a `rationale`
+
+Each category has one **primary field** — the field that carries its content, and
+the field `cairn libs search` searches:
+
+| Category | Primary field |
+|----------|---------------|
+| goal, value, user_requirement, exclusion, principle, rule, heuristic | `statement` |
+| constraint | `impact` |
+| milestone, procedure | `description` |
+| decision | `rationale` |
+
+**Guiding elements have no `rationale` field.** `rationale` belongs to `decision`
+(and to each entry of a decision's `considered` map) and to nothing else. A
+principle, rule, heuristic, or procedure carries its content in `statement` /
+`description`; its *"why"* is not a field at all — it lives in what the element
+`maps_to`.
+
+This is worth knowing because the failure is **silent**: `meta` and elements are
+passthrough, so `cairn add principle "..." -f rationale="..."` exits 0, validates
+clean with no warning, and the value is never rendered by `inspect` or by any
+exporter. You will not be told. If you want a guiding element's justification to
+be visible, put it in `statement` or map the element to what justifies it.
+
 ## Element References
 
 References use colon-separated segments:
@@ -114,6 +138,36 @@ mapping_rules:
   - [principle]             # OR just a principle
   - [rule]                  # OR just a rule
 ```
+
+### Mapping rules are satisfied by DIRECT targets only
+
+This is the trap. `mapping_rules` look at the categories of an element's **own
+`maps_to` entries** and nothing further. Reaching an anchor *through* another
+element does not satisfy them.
+
+```yaml
+# D1 maps to G1 and V1 — satisfies [goal, value].
+# D2 maps only to D1. D1's anchors are NOT inherited: W003.
+decisions:
+  - id: D1
+    maps_to: [proj:G1, proj:V1]
+  - id: D2
+    maps_to: [proj:D1]        # W003 MAPPING_RULES_VIOLATION
+```
+
+**W014** (no root trace) and **W017** (no value trace) are the *only* transitive
+checks. `D2` above raises neither — it does reach a root, and it does reach a
+value — but it still raises `W003`, because no *group* of its own direct targets
+matches a rule. Nothing about the transitivity of W014/W017 relaxes `W003`.
+
+Practically: **a decision chained through another decision still needs its own
+anchor group.** Write `maps_to: [proj:D1, proj:G1, proj:V1]` if `D1` is genuinely
+the thing it builds on — the link to `D1` is worth keeping, it just is not an
+anchor.
+
+(Note that the anchor groups differ per category — see the `mapping_rules` of each
+built-in category in `defaults.yaml`. A heuristic may anchor on `[principle]` or
+`[rule]` alone; a procedure may not.)
 
 ## Config
 

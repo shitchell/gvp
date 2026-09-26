@@ -4165,6 +4165,95 @@ decisions:
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
+  - id: D69
+    name: The shipped command reference is generated from `--help` and gated by a drift test
+    disposition: accepted
+    rationale: |
+      `skills/cairn/commands-reference.md` is rebuilt from `cairn <command> --help` for every
+      command the CLI exposes, and `tests/cli/commands-reference-drift.test.ts` fails the build
+      whenever the document and the binary disagree -- in either direction. It catches an
+      undocumented flag, a documented flag that does not exist, a command with no section at all,
+      and a flag the document claims is absent that the CLI has since grown. Each failure names
+      the specific flag and the specific command.
+
+      The file had drifted twice, and both drifts shipped to agents. This change folds in an
+      external measurement report, `CAIRN-SKILL-DELTA-2026-09-25`, produced by an independent
+      agent on a machine with heavy GVP use; it froze both skill copies, diffed them, and probed
+      the real binary in a scratch HOME with a cwd outside the user's home directory. Its verdict,
+      verbatim: "Upstream's `commands-reference.md` is the weakest file in the package. Its own
+      sync commit said so: *'commands-reference.md (live copy is larger but pins a stale `beta`
+      install channel)... NOT synced here'* (gvp `feacb475`). Three of its lines are wrong against
+      the 5.0.0 binary's own `--help`, and it omits flags that 5.0.0 has."
+
+      Confirmed against this build before acting: `cairn review` has no `--approve` (the document
+      advertised one, as did `workflow-full.md`); `export --format` is `json, csv, markdown,
+      compact` with no `dot`; and `-d/--document`, `edit --field-file`, `inspect --hops`,
+      `validate --include-inherited/--inherited`, `add --no-provenance`, the `import` section and
+      the whole `mv` command were documented nowhere.
+
+      Prose review does not close this. The two artifacts are only compared when somebody happens
+      to look, and the report's recommendation is the one adopted here: "A mechanical check (a test
+      that diffs documented flags against `--help`) would stop this file drifting a third time.
+      That is personal:P7: a process needs an enforcement mechanism."
+
+      Why the stakes are higher than for ordinary documentation: agents read the skill, not
+      `--help`. A wrong flag table does not produce a confused human who then checks the binary --
+      it produces a failed tool call inside an agent loop, which is precisely the failure the
+      shipped skill exists to prevent (gvp:G7).
+
+      Credit where it is due: the delta report is someone else's measurement work, and the
+      corrections folded in alongside this one are its findings, not ours -- the library-registry
+      discovery rules and the four non-equivalent opt-outs (SKILL.md), the `-f` list-field trap
+      (#23, re-reproduced here), the direct-`maps_to` mapping-rule trap (schema-reference.md,
+      re-measured here: `D2 -> D1 -> {G1,V1}` emits W003), `--store`/`--library` targeting, and
+      the hand-editing step in `workflow-full.md` that contradicted SKILL.md's own Key Principle
+      3. One of its claims was checked and rejected as stale: that element references must use the
+      documentPath rather than `meta.name`. `meta.name` resolution has worked since 2.0.0 and both
+      forms resolve today, so that section was deliberately not folded in.
+    tags:
+      - documentation
+      - tooling
+      - integrity
+    maps_to:
+      - gvp:G7
+      - gvp:V10
+      - gvp:V6
+      - personal:P7
+      - code-common:CP10
+    considered:
+      keep-reviewing-the-file-by-hand:
+        description: Leave the reference as prose and rely on maintainers noticing skew.
+        rationale: This is what had been happening, and it produced two drifts that shipped. A convention is a suggestion; a hook is a guarantee (code-common:CP10). Rejected on evidence, not on principle.
+        conflicts_with:
+          - gvp:V10
+      generate-the-whole-file-from-help:
+        description: Emit commands-reference.md mechanically from `--help` at build time.
+        rationale: Drift-proof by construction, and tempting. Rejected because the value of this file is the part `--help` cannot carry -- that list fields must be strict JSON, that `--library` bypasses config-level registry opt-outs, that there is no `--approve` and what to do instead. Generating the file would delete exactly the part worth keeping and leave a prettier `--help`.
+        would_have_served:
+          - gvp:V10
+        conflicts_with:
+          - gvp:V6
+      check-one-direction-only:
+        description: Assert only that every documented flag exists, not that every flag is documented.
+        rationale: 'Half the cost, and it would have caught `--approve`. It would not have caught `--hops`, `--field-file`, `-d/--document` or `mv`, which are the larger share of the measured gap: those are flags that shipped and were never written down. Both directions cost the same to implement once the help output is parsed.'
+        would_have_served:
+          - personal:V1
+        conflicts_with:
+          - gvp:V10
+    refs:
+      - file: tests/cli/commands-reference-drift.test.ts
+        identifier: parseOptions
+        role: implements
+      - file: skills/cairn/commands-reference.md
+        identifier: Flags this document asserts do not exist
+        role: defines
+    origin:
+      - id: 3bf4893e-8c07-4e2c-8035-83d8d89dc9c9
+        date: '2026-09-26T01:57:13.336Z'
+        note: Imported from d69-skill-drift-gate.yaml
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
 constraints:
   - id: C1
     name: Agents optimize for minimal effort
