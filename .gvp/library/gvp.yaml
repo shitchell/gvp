@@ -4173,8 +4173,8 @@ decisions:
       command the CLI exposes, and `tests/cli/commands-reference-drift.test.ts` fails the build
       whenever the document and the binary disagree -- in either direction. It catches an
       undocumented flag, a documented flag that does not exist, a command with no section at all,
-      and a flag the document claims is absent that the CLI has since grown. Each failure names
-      the specific flag and the specific command.
+      and a document that denies a flag the binary actually has. Each failure names the specific
+      flag and the specific command.
 
       The file had drifted twice, and both drifts shipped to agents. This change folds in an
       external measurement report, `CAIRN-SKILL-DELTA-2026-09-25`, produced by an independent
@@ -4185,11 +4185,19 @@ decisions:
       install channel)... NOT synced here'* (gvp `feacb475`). Three of its lines are wrong against
       the 5.0.0 binary's own `--help`, and it omits flags that 5.0.0 has."
 
-      Confirmed against this build before acting: `cairn review` has no `--approve` (the document
-      advertised one, as did `workflow-full.md`); `export --format` is `json, csv, markdown,
-      compact` with no `dot`; and `-d/--document`, `edit --field-file`, `inspect --hops`,
-      `validate --include-inherited/--inherited`, `add --no-provenance`, the `import` section and
-      the whole `mv` command were documented nowhere.
+      CORRECTION (see D70). This paragraph originally read: "Confirmed against this build before
+      acting: `cairn review` has no `--approve` (the document advertised one, as did
+      `workflow-full.md`); `export --format` is `json, csv, markdown, compact` with no `dot`".
+      Both halves are false, and the "confirmation" behind them was `--help` output. Measured by
+      invocation instead: `cairn review --approve` exists, is marked `hidden` in `review.ts`
+      (DEC-4.5), and is *required* to stamp a review -- `--token` on its own writes nothing and
+      exits 0. `cairn export --format dot` exists and emits Graphviz; the real format list is
+      `json, csv, markdown, compact, dot, sqlite`, which the binary will print for any
+      unrecognised format. So D69 deleted two working features from the shipped documentation on
+      the strength of a method that could not see them. What D69 got right stands: `-d/--document`,
+      `edit --field-file`, `inspect --hops`, `validate --include-inherited/--inherited`,
+      `add --no-provenance`, the `import` section and the whole `mv` command were documented
+      nowhere, and those additions were correct.
 
       Prose review does not close this. The two artifacts are only compared when somebody happens
       to look, and the report's recommendation is the one adopted here: "A mechanical check (a test
@@ -4207,9 +4215,11 @@ decisions:
       (#23, re-reproduced here), the direct-`maps_to` mapping-rule trap (schema-reference.md,
       re-measured here: `D2 -> D1 -> {G1,V1}` emits W003), `--store`/`--library` targeting, and
       the hand-editing step in `workflow-full.md` that contradicted SKILL.md's own Key Principle
-      3. One of its claims was checked and rejected as stale: that element references must use the
-      documentPath rather than `meta.name`. `meta.name` resolution has worked since 2.0.0 and both
-      forms resolve today, so that section was deliberately not folded in.
+      3. Two of its claims were checked and rejected. One as stale: that element references must
+      use the documentPath rather than `meta.name` -- `meta.name` resolution has worked since
+      2.0.0 and both forms resolve today, so that section was deliberately not folded in. The
+      other, the `--approve`/`dot` denials, was accepted at the time and should not have been;
+      see the CORRECTION above.
     tags:
       - documentation
       - tooling
@@ -4228,14 +4238,14 @@ decisions:
           - gvp:V10
       generate-the-whole-file-from-help:
         description: Emit commands-reference.md mechanically from `--help` at build time.
-        rationale: Drift-proof by construction, and tempting. Rejected because the value of this file is the part `--help` cannot carry -- that list fields must be strict JSON, that `--library` bypasses config-level registry opt-outs, that there is no `--approve` and what to do instead. Generating the file would delete exactly the part worth keeping and leave a prettier `--help`.
+        rationale: 'Drift-proof by construction, and tempting. Rejected because the value of this file is the part `--help` cannot carry -- that list fields must be strict JSON, that `--library` bypasses config-level registry opt-outs, and (as D70 established) that `--approve` is hidden from `--help` yet required to commit a review. Generating the file would delete exactly the part worth keeping and leave a prettier `--help`. The stronger form of this argument only became visible later: a file generated from `--help` cannot document a flag `--help` omits, so it would have made the hidden-flag blindness permanent rather than accidental.'
         would_have_served:
           - gvp:V10
         conflicts_with:
           - gvp:V6
       check-one-direction-only:
         description: Assert only that every documented flag exists, not that every flag is documented.
-        rationale: 'Half the cost, and it would have caught `--approve`. It would not have caught `--hops`, `--field-file`, `-d/--document` or `mv`, which are the larger share of the measured gap: those are flags that shipped and were never written down. Both directions cost the same to implement once the help output is parsed.'
+        rationale: 'Half the cost. It would not have caught `--hops`, `--field-file`, `-d/--document` or `mv`, which are the larger share of the measured gap: those are flags that shipped and were never written down. Both directions cost the same to implement once the help output is parsed. This entry originally claimed the one-directional check "would have caught `--approve`"; it would not have, and neither did the two-directional one, because both read `--help` and `--approve` is hidden from it. Direction was never the weakness -- the oracle was (D70).'
         would_have_served:
           - personal:V1
         conflicts_with:
@@ -4245,12 +4255,127 @@ decisions:
         identifier: parseOptions
         role: implements
       - file: skills/cairn/commands-reference.md
-        identifier: Flags this document asserts do not exist
+        identifier: Checking whether a flag exists
         role: defines
     origin:
       - id: 3bf4893e-8c07-4e2c-8035-83d8d89dc9c9
         date: '2026-09-26T01:57:13.336Z'
         note: Imported from d69-skill-drift-gate.yaml
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+    updated_by:
+      - id: e101bd15-2106-44e4-8e69-91a080d31002
+        date: '2026-09-26T16:15:28.379Z'
+        rationale: |
+          D69 recorded a verification that was invalid, and the elements it authored shipped the result. Two of its stated findings are false against the same binary it claimed to have measured: `cairn review --approve` exists and is the flag that commits a review, and `cairn export --format dot` exists and emits Graphviz. Both were "confirmed" by reading `--help`, which cannot see a hidden option or an under-reported `--format` description. The rationale is corrected here rather than left standing, because a library that records a false measurement as a confirmed one is worse than one that records nothing (gvp:V3). Its second ref is also repointed: the heading it named, "Flags this document asserts do not exist", has been removed from commands-reference.md along with the table under it, so the ref no longer resolved (W011).
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+  - id: D70
+    name: A flag's existence is settled by invoking it, never by its absence from `--help`
+    disposition: accepted
+    rationale: |
+      `tests/cli/commands-reference-drift.test.ts` decides whether a flag exists by RUNNING it,
+      not by looking for it in `--help`. A flag is `absent` only when cairn answers
+      `error: unknown option '<flag>'`; anything else means it exists, and `--help` is consulted
+      only to say whether it is additionally *documented*. Three states, not two: absent;
+      present and visible; present and hidden.
+
+      THE FAILURE THIS COMES FROM. An external report claimed cairn had no `review --approve`
+      flag. The claim was checked by running `cairn review --help`, seeing no `--approve`, and
+      accepting it. That check cannot work. `review.ts` sets `hidden = true` on `--approve`
+      (DEC-4.5, an anti-gaming measure -- the flag is meant to be discoverable only from the
+      command's own output and from the source), so the flag is deliberately invisible to
+      `--help` and completely functional. Measured by invocation on the same build:
+      `review <id> --approve --token <hash>` performs the review and exits 0; `review <id>
+      --approve` without a token exits 1 with "--approve requires --token <hash>"; and
+      `review <id> --token <hash>` WITHOUT `--approve` writes nothing at all and exits 0 -- so
+      `--approve` is not redundant, it is mandatory, and the documentation that replaced it told
+      readers to use a silent no-op. A genuinely fabricated flag (`--bogusflag`) errors with
+      `unknown option`. The same audit found a second instance: `export --format dot` was
+      likewise denied and likewise works, because the `--format` description string lists four of
+      the registry's six formats.
+
+      Absence from `--help` is not absence from the CLI. `--help` answers "what is advertised",
+      which is a different question from "what exists", and the two diverge exactly where a CLI
+      chooses to hide something. Any oracle built on advertised surface therefore reports a
+      hidden feature as nonexistent -- confidently, and with output that looks like evidence.
+
+      THE SAME UNSOUNDNESS RAN BOTH WAYS in the test. The absence check parsed `--help`, so it
+      CONFIRMED the false denial instead of catching it: the test and the document were wrong
+      together, each citing the other. The over-documented check had the mirror-image defect --
+      it would have failed a document that correctly described a hidden flag -- and was only
+      quiet because the denial table exempted the flag from it. One unsound oracle, two failure
+      directions, and a documentation table that existed to paper over the conflict. Both checks
+      now share one probe.
+
+      WHY PROBING IS SAFE HERE, which is the part that has to be got right: `review --approve`
+      performs a real review, and a careless probe would stamp `reviewed_by` on elements awaiting
+      the maintainer (personal:P15) -- damage done by "testing". Commander validates option names
+      while parsing argv, before the action body runs, so an unknown flag never reaches code that
+      can write. The probe runs in a fresh temp directory with no library in it or above it and
+      with HOME, the registry root and all four config layers redirected, so a flag that DOES
+      exist gets past parsing and then dies at library discovery. `--help` is deliberately not
+      appended to make the probe safer: it short-circuits the unknown-option error, which would
+      make every flag read as present.
+
+      The generalisable part is the method, not the flag. Two independent false denials came from
+      one habit: treating a tool's self-description as its specification. Protocols are tested by
+      running them, not by reasoning about them (personal:P2), and the advertised surface is a
+      harness view, not the runtime (personal:P13).
+
+      Scope note: the inconsistency that `cairn review`'s own output instructs you to use a flag
+      `--help` will not show is real and is NOT resolved here. It is gvp #17, it is still open,
+      and the command's behaviour and output are untouched. This decision only makes the
+      documentation and the test describe what exists today.
+    tags:
+      - documentation
+      - tooling
+      - integrity
+      - testing
+    maps_to:
+      - gvp:G7
+      - gvp:V3
+      - gvp:V10
+      - personal:P2
+      - personal:P13
+      - code-common:CP10
+    considered:
+      fix-the-one-wrong-row-and-keep-the-denial-table:
+        description: Delete the `--approve` row from the "Flags this document asserts do not exist" table and leave the table, and its help-parsing absence check, in place.
+        rationale: 'The smallest possible diff, and it would have left the mechanism that produced the error fully armed. The table was not wrong about one flag; it was wrong about both of the flags it ever contained, because the method that filled it could not see hidden ones. Keeping it would also have preserved the exemption that hid the over-documented check''s mirror defect. Rejected: repairing the output of an unsound procedure leaves the procedure.'
+        conflicts_with:
+          - gvp:V10
+          - personal:P2
+      unhide-approve-so-help-is-complete:
+        description: Remove `hidden = true` from `--approve` in `review.ts`, making `--help` a complete listing and the old oracle sound again.
+        rationale: 'Tempting, and it would make this specific bug impossible. Rejected on two counts. It is #17''s territory and a behaviour change this work was explicitly scoped out of. More importantly it fixes an instance and not the method: hiding an option is a legitimate thing for a CLI to do -- here it is a deliberate anti-gaming measure (DEC-4.5) -- so the next hidden flag would reproduce the failure exactly. A test should not require the program under test to stay simple enough for its oracle.'
+        would_have_served:
+          - gvp:V6
+        conflicts_with:
+          - personal:P2
+      read-the-commander-option-objects:
+        description: Import the Commander program and inspect `cmd.options[].hidden` directly instead of spawning the CLI.
+        rationale: 'Faster, and it can enumerate hidden flags rather than only confirming ones it already knows the name of -- a real advantage, since a probe needs a name to probe with. Rejected because it inspects an internal representation rather than observable behaviour: it would pass while the flag was wired to nothing, and it cannot see argument parsing, which is the mechanism the safety of the probe depends on. It also contradicts the existing reason this test shells out at all -- it checks what a maintainer would see, and `src/cli/index.ts` parses argv at import time. The enumeration gap is instead covered by a small explicit list of known-hidden flags, asserted to still be hidden.'
+        would_have_served:
+          - personal:V1
+        conflicts_with:
+          - personal:P13
+    refs:
+      - file: tests/cli/commands-reference-drift.test.ts
+        identifier: existence
+        role: implements
+      - file: tests/cli/commands-reference-drift.test.ts
+        identifier: rejectsAsUnknown
+        role: implements
+      - file: skills/cairn/commands-reference.md
+        identifier: Checking whether a flag exists
+        role: defines
+    origin:
+      - id: 9baadb98-c3a5-48de-b12d-d0b0cc4967f5
+        date: '2026-09-26T16:15:28.379Z'
+        note: Imported from patch.yaml
         by:
           name: shaun mitchell
           email: shaun@shitchell.com

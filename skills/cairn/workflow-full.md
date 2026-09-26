@@ -127,7 +127,7 @@ are rolled up to a count by default, so a clean-looking run may not be one.
 ### 11. Ongoing Maintenance
 - Git hook: `scripts/gvp-hook.sh` as pre-commit
 - PR checklist: `cairn diff main HEAD`, `cairn validate --coverage`
-- edit → `cairn review` → `cairn review <id> --token <hash>` for decision changes
+- edit → `cairn review` → `cairn review <id> --approve --token <hash>` for decision changes
 
 ## Making Changes Later
 
@@ -137,8 +137,17 @@ are rolled up to a count by default, so a clean-looking run may not be one.
 ### Changed decision
 1. `cairn edit D3 -f rationale="..." --rationale "Why changed"` → 2. Update code →
 3. `cairn review` (lists what is now stale) → 4. `cairn review D3` (shows the
-unreviewed updates and prints a hash token) → 5. `cairn review D3 --token <hash>`
+unreviewed updates and prints a hash token) → 5.
+`cairn review D3 --approve --token <hash>`
 
-There is **no `--approve` flag**. Re-running `review` with the token *is* the
-acknowledgement, and the token is what proves the reviewer saw those specific
-updates. Optional: `--note "<text>"` and `--by "<name>"`.
+Step 5 needs **both** flags. `--approve` is what commits the review, and it
+requires `--token`; passing `--token` alone is a silent no-op that re-prints the
+step-4 report and exits 0 without writing. The token proves the reviewer saw
+those specific updates; `--approve` commits them. Optional:
+`--note "<text>"` and `--by "<name>"`.
+
+`--approve` is hidden from `cairn review --help` even though the command's own
+output tells you to use it — see `commands-reference.md` under
+**cairn review** and [`shitchell/gvp` #17](https://github.com/shitchell/gvp/issues/17).
+A flag missing from `--help` may still exist; check by invoking it, not by
+reading help.

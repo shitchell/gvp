@@ -61,7 +61,7 @@ Export the GVP catalog to a format.
 
 | Flag | Description |
 |------|-------------|
-| `-f, --format <format>` | Output format: `json`, `csv`, `markdown`, `compact` (default: `json`) |
+| `-f, --format <format>` | Output format: `json`, `csv`, `markdown`, `compact`, `dot`, `sqlite` (default: `json`) |
 | `-o, --output <path>` | Output file path (default: stdout) |
 | `-d, --document <name>` | Restrict export to a single document (matched by `meta.name` or documentPath) |
 | `--include-deprecated` | Include deprecated/rejected elements |
@@ -76,8 +76,24 @@ cairn export -d project --format markdown      # one document only
 cairn export --include-deprecated              # include inactive elements
 ```
 
-The format list is exactly those four. **There is no `dot`/Graphviz format** — if
-you need a graph, render one from `--format json`.
+`cairn export --help` describes `--format` as "(json, csv, markdown, compact)",
+but the exporter registry holds **six**. Ask the binary rather than the help
+string: an unrecognised format prints the real list.
+
+```bash
+cairn export --format nope
+# Unknown format 'nope'. Available: json, csv, markdown, compact, dot, sqlite
+```
+
+- **`dot` exists and works.** It emits Graphviz (`digraph gvp { rankdir=BT; … }`),
+  ready to pipe through `dot -Tsvg`. Earlier copies of this skill claimed there
+  was no `dot`/Graphviz format; that claim was false, and it was reached by
+  reading the help text instead of running the command.
+- **`sqlite` exists** but needs an optional dependency. Without it the command
+  exits 1 with `SQLite export requires the "better-sqlite3" package`.
+
+A format missing from the help string is not a format missing from the binary —
+the same trap as `cairn review --approve` below.
 
 ### cairn add \<category\> \<name\>
 Add a new element to a GVP document, with an auto-assigned ID.
@@ -143,21 +159,46 @@ Review stale elements and stamp `reviewed_by`.
 
 | Flag | Description |
 |------|-------------|
+| `--approve` | Commit the review. **Hidden from `--help`**; requires `--token` |
 | `--token <hash>` | Review hash token from the `cairn review <id>` output |
 | `--note <text>` | Review note |
 | `--by <name>` | Reviewer name (overrides config) |
 
 ```bash
-cairn review                              # list all stale elements
-cairn review gvp:D1                       # show D1's unreviewed updates + the token
-cairn review gvp:D1 --token <hash>        # record the review
-cairn review gvp:D1 --token <hash> --note "Still correct" --by "Reviewer Name"
+cairn review                                              # list all stale elements
+cairn review gvp:D1                                       # show D1's unreviewed updates + the token
+cairn review gvp:D1 --approve --token <hash>              # record the review
+cairn review gvp:D1 --approve --token <hash> --note "Still correct" --by "Reviewer Name"
 ```
 
-**There is no `--approve` flag.** Reviewing *is* the acknowledgement: you run
-`cairn review <id>` to see what changed and to get the hash token, then re-run it
-with `--token <hash>`. The token is what proves the reviewer saw the specific
-updates being acknowledged.
+**`--approve` exists, and it is the flag that actually writes the review.** Use
+the `--approve --token <hash>` form above; it is the only one that records
+anything. Measured behaviour:
+
+| Invocation | Effect |
+|------------|--------|
+| `cairn review <id>` | Reports the unreviewed updates, prints a hash token. Writes nothing. Exit 0 |
+| `cairn review <id> --token <hash>` | **Writes nothing.** Without `--approve` the token is ignored and you get the same report again. Exit 0 — a silent no-op |
+| `cairn review <id> --approve --token <hash>` | Stamps `reviewed_by`. Exit 0 |
+| `cairn review <id> --approve` | Exit 1: `--approve requires --token <hash>` |
+
+The token proves the reviewer saw those specific updates; `--approve` is what
+commits them. Passing `--token` on its own looks like it worked — same exit 0,
+same output — which is why the no-op row above matters more than it looks.
+
+`--approve` is deliberately hidden from `cairn review --help` (DEC-4.5), yet the
+command's own output ends by telling you to run
+`gvp review <id> --approve --token <hash>`. So the help text and the tool's own
+instructions disagree; that inconsistency is tracked in
+[`shitchell/gvp` #17](https://github.com/shitchell/gvp/issues/17), which is still
+open. Follow the form the command prints.
+
+**Absence from `--help` is not absence from the CLI.** A hidden flag is invisible
+to `--help` and fully functional, so `--help` cannot tell you whether a flag
+exists. To settle that question, invoke it: cairn rejects a flag it does not have
+with an `error: unknown option` message, at argument-parse time and before doing
+any work, while a real flag gets past parsing and then fails (or succeeds) for
+some other reason.
 
 ### cairn inspect [element]
 Inspect a single element with full context.
@@ -427,16 +468,30 @@ cairn --store /tmp/scratch-store validate             # a whole throwaway store
 cairn --no-registry --library ~/.gvp/library libs list # read without recording
 ```
 
-## Flags this document asserts do not exist
+## Checking whether a flag exists
 
-Older copies of this skill — and older copies of `workflow-full.md` — documented
-flags cairn has never had, and agents dutifully tried to use them. The drift test
-asserts each of these is **absent** from the binary, so if cairn ever grows one,
-this claim fails loudly instead of quietly becoming true-by-accident.
+This document used to carry a table headed "Flags this document asserts do not
+exist". Both of its claims were **false**: `cairn review --approve` exists, and
+`cairn export --format dot` exists. Both were reached the same way — by reading
+`--help` and treating silence as proof. `--approve` is hidden from `--help`, and
+`dot` is simply missing from the `--format` description string. The table is
+gone, because the method that produced it was unsound.
 
-| Command | Flag | What to do instead |
-|---------|------|--------------------|
-| `review` | `--approve` | `cairn review <id> --token <hash>` — the token *is* the approval |
+Do not deny a flag on the strength of `--help`. Invoke it. cairn rejects a flag
+it does not have at argument-parse time, with an `error: unknown option` message
+and before it touches a library; a flag that exists gets past parsing and then
+behaves. Three states, not two:
+
+| State | `--help` lists it | Invoking it |
+|-------|-------------------|-------------|
+| absent | no | `error: unknown option`, exit 1 |
+| present, documented | yes | runs |
+| present, hidden | **no** | runs |
+
+Probe from a directory with no library: an unknown flag never reaches the command
+body, and a real flag fails harmlessly at library discovery, so the probe cannot
+write anything. `tests/cli/commands-reference-drift.test.ts` settles every flag
+in this document that way.
 
 ## Validation Codes
 
