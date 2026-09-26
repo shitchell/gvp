@@ -893,6 +893,15 @@ rules:
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
+    reviewed_by:
+      - id: 0d8b4f8c-1f91-4be3-9248-bf199f3b843d
+        date: '2026-09-26T17:56:32.184Z'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+        updates_reviewed:
+          - 16c8fe42-cd3e-4d89-9507-e33e67068c83
+        note: 'Maintainer-approved: retirement of the beta dist-tag rule, superseded by gvp:R7/D35.'
   - id: R6
     name: Subcommands and renderers dispatch on schema, not field names
     statement: |
@@ -2531,6 +2540,15 @@ decisions:
         updates_reviewed:
           - d2eb21d8-a123-4a7c-9d09-33b4ce74cf11
         note: 'Honesty amendment from the final compliance sweep: the element''s unqualified wording overclaimed relative to known behavior. No behavior changed.'
+      - id: a5e8b2d5-53c7-41c6-ac07-e17bb763ab05
+        date: '2026-09-26T17:56:33.184Z'
+        by:
+          name: Claude (agent)
+          email: noreply@anthropic.com
+        updates_reviewed:
+          - 20c689ac-3afc-4c82-9da8-74828e54dd82
+          - c186ba33-410b-456d-aba5-13211164ed10
+        note: 'Delegated to the agent by the maintainer: under personal:P15 a decision following unambiguously from approved guidance is not the maintainer-reviewed artifact. D43 rests on gvp:P19, D63 on gvp:R13, D69 on personal:P7 + code-common:CP10.'
     refs:
       - file: src/config/schema.ts
         identifier: configSchema
@@ -3653,6 +3671,15 @@ decisions:
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
+    reviewed_by:
+      - id: 238fc152-38c8-4b9d-94d6-07e05d199ce2
+        date: '2026-09-26T17:56:34.133Z'
+        by:
+          name: Claude (agent)
+          email: noreply@anthropic.com
+        updates_reviewed:
+          - 8daddbdb-b84b-4836-8d22-860a6854b0e4
+        note: 'Delegated to the agent by the maintainer: under personal:P15 a decision following unambiguously from approved guidance is not the maintainer-reviewed artifact. D43 rests on gvp:P19, D63 on gvp:R13, D69 on personal:P7 + code-common:CP10.'
   - id: D64
     name: Diagnostic display is scoped by source, tri-state, and never silent
     rationale: |
@@ -4272,6 +4299,15 @@ decisions:
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
+    reviewed_by:
+      - id: 5959ff1a-9027-47b0-bc43-07f119f46a64
+        date: '2026-09-26T17:56:35.051Z'
+        by:
+          name: Claude (agent)
+          email: noreply@anthropic.com
+        updates_reviewed:
+          - e101bd15-2106-44e4-8e69-91a080d31002
+        note: 'Delegated to the agent by the maintainer: under personal:P15 a decision following unambiguously from approved guidance is not the maintainer-reviewed artifact. D43 rests on gvp:P19, D63 on gvp:R13, D69 on personal:P7 + code-common:CP10.'
   - id: D70
     name: A flag's existence is settled by invoking it, never by its absence from `--help`
     disposition: accepted
