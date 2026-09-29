@@ -140,14 +140,16 @@ are rolled up to a count by default, so a clean-looking run may not be one.
 unreviewed updates and prints a hash token) → 5.
 `cairn review D3 --approve --token <hash>`
 
-Step 5 needs **both** flags. `--approve` is what commits the review, and it
-requires `--token`; passing `--token` alone is a silent no-op that re-prints the
-step-4 report and exits 0 without writing. The token proves the reviewer saw
-those specific updates; `--approve` commits them. Optional:
-`--note "<text>"` and `--by "<name>"`.
+Step 5 needs **both** flags, and the command refuses either one alone:
+`--approve` is what commits the review and it requires `--token`, while
+`--token` without `--approve` exits 1 rather than reporting again and writing
+nothing. The token proves the reviewer saw those specific updates; `--approve`
+commits them. Optional: `--note "<text>"` and `--by "Name <email>"`.
 
-`--approve` is hidden from `cairn review --help` even though the command's own
-output tells you to use it — see `commands-reference.md` under
-**cairn review** and [`shitchell/gvp` #17](https://github.com/shitchell/gvp/issues/17).
-A flag missing from `--help` may still exist; check by invoking it, not by
-reading help.
+Use `--by` when the reviewer is **not** the configured user — an agent
+reviewing on a maintainer's behalf, say. It takes a full identity because
+provenance stores a name and an email, and it is refused rather than
+half-applied if given a bare name. Without it the review is filed under
+`user:` from config, which is how a delegated review once ended up recorded
+against the person who delegated it
+([#40](https://github.com/shitchell/gvp/issues/40)).

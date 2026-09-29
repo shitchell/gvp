@@ -93,7 +93,9 @@ cairn export --format nope
   exits 1 with `SQLite export requires the "better-sqlite3" package`.
 
 A format missing from the help string is not a format missing from the binary —
-the same trap as `cairn review --approve` below.
+the same trap that once hid `cairn review --approve`, and the reason this
+document settles existence by invocation (see **Checking whether a flag
+exists**).
 
 ### cairn add \<category\> \<name\>
 Add a new element to a GVP document, with an auto-assigned ID.
@@ -159,46 +161,53 @@ Review stale elements and stamp `reviewed_by`.
 
 | Flag | Description |
 |------|-------------|
-| `--approve` | Commit the review. **Hidden from `--help`**; requires `--token` |
+| `--approve` | Commit the review, stamping `reviewed_by`. Requires `--token` |
 | `--token <hash>` | Review hash token from the `cairn review <id>` output |
 | `--note <text>` | Review note |
-| `--by <name>` | Reviewer name (overrides config) |
+| `--by <identity>` | Reviewer identity for this review as `"Name <email>"`, overriding the configured user |
 
 ```bash
 cairn review                                              # list all stale elements
 cairn review gvp:D1                                       # show D1's unreviewed updates + the token
 cairn review gvp:D1 --approve --token <hash>              # record the review
-cairn review gvp:D1 --approve --token <hash> --note "Still correct" --by "Reviewer Name"
+cairn review gvp:D1 --approve --token <hash> --note "Still correct"
+cairn review gvp:D1 --approve --token <hash> --by "Ada Lovelace <ada@example.com>"
 ```
 
-**`--approve` exists, and it is the flag that actually writes the review.** Use
-the `--approve --token <hash>` form above; it is the only one that records
-anything. Measured behaviour:
+**`--approve` is the flag that writes the review**; `--token` is the evidence it
+writes. The token proves the reviewer saw those specific updates, so a review
+cannot be committed without first running `cairn review <id>` and reading them.
+Measured behaviour:
 
 | Invocation | Effect |
 |------------|--------|
 | `cairn review <id>` | Reports the unreviewed updates, prints a hash token. Writes nothing. Exit 0 |
-| `cairn review <id> --token <hash>` | **Writes nothing.** Without `--approve` the token is ignored and you get the same report again. Exit 0 — a silent no-op |
 | `cairn review <id> --approve --token <hash>` | Stamps `reviewed_by`. Exit 0 |
 | `cairn review <id> --approve` | Exit 1: `--approve requires --token <hash>` |
+| `cairn review <id> --token <hash>` | Exit 1: `--token` applies only when committing a review |
+| `cairn review --approve --token <hash>` | Exit 1: `--approve` needs the element being reviewed |
 
-The token proves the reviewer saw those specific updates; `--approve` is what
-commits them. Passing `--token` on its own looks like it worked — same exit 0,
-same output — which is why the no-op row above matters more than it looks.
+`--token`, `--note` and `--by` all mean "record this", so each is refused
+outright when `--approve` is absent rather than accepted and dropped. Until
+[#40](https://github.com/shitchell/gvp/issues/40) that second-to-last row exited
+0 with the same output as the reporting form and wrote nothing, and this
+document recommended it.
 
-`--approve` is deliberately hidden from `cairn review --help` (DEC-4.5), yet the
-command's own output ends by telling you to run
-`gvp review <id> --approve --token <hash>`. So the help text and the tool's own
-instructions disagree; that inconsistency is tracked in
-[`shitchell/gvp` #17](https://github.com/shitchell/gvp/issues/17), which is still
-open. Follow the form the command prints.
+**`--by` carries a whole identity, not a name.** Provenance records
+`{name, email}`, so `--by "Claude (agent)"` is rejected: filling the email in
+from your config would file the review under someone else's address. It is the
+named form of `cairn -c user.name=… -c user.email=… review …`, which still
+works and sets the same field. Use `--by` when the reviewer is not the
+configured user — a delegated review — and note that with `--by` no configured
+identity is needed at all.
 
 **Absence from `--help` is not absence from the CLI.** A hidden flag is invisible
 to `--help` and fully functional, so `--help` cannot tell you whether a flag
 exists. To settle that question, invoke it: cairn rejects a flag it does not have
 with an `error: unknown option` message, at argument-parse time and before doing
 any work, while a real flag gets past parsing and then fails (or succeeds) for
-some other reason.
+some other reason. (No cairn flag is hidden today — `review --approve` was, until
+#17 — but the method is what matters, not the count.)
 
 ### cairn inspect [element]
 Inspect a single element with full context.
@@ -473,9 +482,11 @@ cairn --no-registry --library ~/.gvp/library libs list # read without recording
 This document used to carry a table headed "Flags this document asserts do not
 exist". Both of its claims were **false**: `cairn review --approve` exists, and
 `cairn export --format dot` exists. Both were reached the same way — by reading
-`--help` and treating silence as proof. `--approve` is hidden from `--help`, and
-`dot` is simply missing from the `--format` description string. The table is
-gone, because the method that produced it was unsound.
+`--help` and treating silence as proof. `--approve` was hidden from `--help` at
+the time (it is visible now, un-hidden for #17), and `dot` is simply missing
+from the `--format` description string. The table is gone, because the method
+that produced it was unsound — and it stays gone whether or not anything in the
+binary is hidden this week.
 
 Do not deny a flag on the strength of `--help`. Invoke it. cairn rejects a flag
 it does not have at argument-parse time, with an `error: unknown option` message

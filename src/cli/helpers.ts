@@ -1,5 +1,5 @@
 import { loadConfig, type LoadConfigOptions } from '../config/loader.js';
-import type { GVPConfig } from '../config/schema.js';
+import { userIdentitySchema, type GVPConfig } from '../config/schema.js';
 import { runProjectPreflight, type PreflightResult } from '../config/preflight.js';
 import { recordLibraries } from '../registry/record.js';
 import { loadDefaults } from '../schema/defaults-loader.js';
@@ -484,6 +484,45 @@ export function requireUserIdentity(config: GVPConfig): { name: string; email: s
     process.exit(1);
   }
   return config.user;
+}
+
+/**
+ * Commander `argParser` for a flag that carries a provenance identity on the
+ * command line, in the shape git uses for `commit --author`: `Name <email>`.
+ *
+ * WHY THE WHOLE IDENTITY AND NOT JUST A NAME (#40). Provenance identity is
+ * `{name, email}` and `userIdentitySchema` requires both, with the email
+ * format-checked. A flag carrying only a name cannot produce one — it would
+ * have to borrow the *configured* user's email, and a record reading
+ * "someone else's name at the config owner's address" is a provenance defect
+ * of the same kind as the one such a flag exists to prevent. So the flag
+ * carries the pair or it is refused.
+ *
+ * It DELEGATES rather than reimplements (gvp:P19): what it returns is the
+ * same `{name, email}` object `requireUserIdentity` returns from config, is
+ * validated by the same schema, and is consumed by the same code. One
+ * mechanism, two spellings — which is what keeps gvp:P11 satisfied.
+ *
+ * Throws InvalidArgumentError so Commander attributes the message to the flag
+ * that carried it, at argv-parse time, before anything can be written.
+ */
+export function parseIdentityArg(value: string): { name: string; email: string } {
+  const m = /^\s*(.+?)\s*<\s*([^<>\s]+)\s*>\s*$/.exec(value);
+  if (!m) {
+    throw new InvalidArgumentError(
+      `'${value}' is not a reviewer identity. Expected "Name <email>" ` +
+        `(for example: --by "Ada Lovelace <ada@example.com>"). ` +
+        `A bare name cannot be recorded: provenance carries a name AND an email, and ` +
+        `filling the email in from your config would attribute the review to the wrong address.`,
+    );
+  }
+  const parsed = userIdentitySchema.safeParse({ name: m[1], email: m[2] });
+  if (!parsed.success) {
+    throw new InvalidArgumentError(
+      `'${m[2]}' is not a valid email address (in "${value}"). Expected "Name <email>".`,
+    );
+  }
+  return parsed.data;
 }
 
 /**
