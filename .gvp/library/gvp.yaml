@@ -4415,6 +4415,155 @@ decisions:
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
+  - id: D71
+    name: Every flag `cairn review` accepts either changes the record or is refused, and `--help` shows the one that commits
+    disposition: accepted
+    rationale: |
+      `cairn review` had three defects in one surface, all of the same shape: a flag the command
+      accepted, and a silence where an effect or a diagnostic should have been. Measured on the
+      5.0.0 build before the change, against a throwaway copy of this library:
+
+        review <id> --token <hash>                     exit 0, output identical to the reporting
+                                                       form, NOTHING WRITTEN
+        review <id> --note "..."                       exit 0, note discarded
+        review <id> --by "Claude (agent)"               exit 0, flag never read
+        review <id> --approve --token <hash> --by "X"  stamps the CONFIGURED user, not X
+        review --approve --token <hash>   (no element) exit 0, lists stale elements, writes nothing
+        review --help                                  does not mention --approve, the only flag
+                                                       that commits anything
+
+      THREE DECISIONS, ONE STANCE.
+
+      (1) `--by` is WIRED, and its signature changes from `<name>` to `<identity>` --
+      `--by "Name <email>"`, the shape git uses for `commit --author`. It sets the reviewer
+      recorded in `reviewed_by[].by` and nothing else.
+
+      Why a named flag at all, when `-c user.name=... -c user.email=...` already reaches the same
+      field: P19's test is whether the general mechanism obliges the user to learn concepts
+      unrelated to the task. Reaching a delegated attribution through `-c` obliges the user to
+      know that provenance identity lives in *config*, that config is layered, and that `-c`
+      overrides a layer for one invocation -- three concepts about the configuration subsystem
+      and none about who reviewed this element. Delegated review is also not an edge case in this
+      project: personal:P15 and H5 make "the maintainer hands a review to an agent" a routine
+      operation, and the flag exists precisely for the case where the reviewer is not the config
+      owner. The affordance is earned. It DELEGATES rather than reimplements (the clause P19
+      treats as the whole licence): it produces the same `{name, email}` object
+      `requireUserIdentity` returns, validated by the same `userIdentitySchema`, consumed by the
+      same line of code. One mechanism, two spellings -- which is what keeps P11 satisfied rather
+      than overridden.
+
+      Why the whole identity and not a name: provenance records name AND email. A `--by <name>`
+      that wrote a name and inherited the configured email would file the review as "someone
+      else's name at the config owner's address" -- a provenance defect of exactly the kind this
+      flag exists to prevent, and one no reader of the YAML could distinguish from a correct
+      record. A bare name is therefore refused at argv-parse time with a message naming the form
+      wanted. With `--by`, no configured identity is needed at all, which is the delegated case
+      working end to end.
+
+      (2) `--token`, `--note` and `--by` without `--approve` are REFUSED (exit 1), as is
+      `--approve` with no element. Each of these meant "record this"; each was accepted and
+      dropped. The reverse direction was already guarded -- `--approve` without `--token` has
+      always exited 1 with "--approve requires --token" -- and the asymmetry was the whole
+      defect: one direction loud, the other silent. personal:R2 and code-common:CP12 decide this
+      directly, and gvp:R12's principle one level up is the same argument about a recognised
+      *flag* rather than a recognised key: passthrough preserves, it does not excuse silence. The
+      checks run before the library is opened, because they are answerable from argv alone.
+
+      (3) `--approve` is UN-HIDDEN, and `--help` now lists it. DEC-4.5 hid it as an anti-gaming
+      measure, discoverable only from source and from the command's own closing line. The
+      enforcement in DEC-4.5 is the hash, not the concealment: no review can be committed without
+      a token that only `cairn review <element>` will print, and printing it requires displaying
+      the updates. Hiding the flag adds nothing on top of that -- DEC-4.5's own rejected
+      alternative "output-based discovery only, no enforcement" was rejected for lacking the
+      hash, not for lacking the hiding. What the concealment did add is measured: gvp #17 (help
+      and the command's own instruction disagreeing), D69 (documentation that deleted a working
+      feature because `--help` could not see it), and D70 (a test oracle that confirmed the false
+      denial instead of catching it). Three shipped failures, no residual protection. The
+      maintainer's own suggested fix in #17 is this one: "add `--approve` to the option list, and
+      make `--token` without `--approve` say so explicitly."
+
+      WHY THIS IS WORTH A DECISION AND NOT A PATCH NOTE. From #40: "In a command whose entire
+      purpose is to record that a human looked at something, a silent no-op means the record can
+      be believed to exist when it does not." The `--by` case is not hypothetical -- three
+      decision reviews in this library were delegated to an agent, `--by` was passed, ignored,
+      and the library recorded the maintainer as having reviewed decisions he had explicitly
+      handed off. It was caught only by reading the written YAML.
+
+      D70's scope note said of this: "the inconsistency that `cairn review`'s own output
+      instructs you to use a flag `--help` will not show is real and is NOT resolved here. It is
+      gvp #17, it is still open". It is resolved here.
+    tags:
+      - tooling
+      - integrity
+      - usability
+      - documentation
+    maps_to:
+      - gvp:G3
+      - gvp:G7
+      - gvp:V6
+      - gvp:V9
+      - gvp:V10
+      - gvp:P19
+      - gvp:R12
+      - personal:R2
+      - code-common:CP12
+    considered:
+      remove-by-instead-of-wiring-it:
+        description: Delete `--by`, leaving `-c user.name=... -c user.email=...` as the only way to attribute a review to someone other than the config owner.
+        rationale: 'The honest minimum, and #40 explicitly allows it: "--by should either set the reviewer or be rejected." It satisfies personal:R2 -- Commander answers an unknown option loudly, at parse time. Rejected because the loudness stops at the error message. An agent that reaches for `--by`, is told `unknown option`, and is optimizing for minimal effort (gvp:C1) will drop the attribution and run the command without it -- which records the config owner, which is the exact failure #40 was filed about, reached through a different door. Keeping the flag is what lets the tool say the specific useful thing ("expected Name <email>") instead of the generic true thing.'
+        would_have_served:
+          - gvp:P11
+        conflicts_with:
+          - gvp:G7
+          - gvp:V9
+      wire-by-as-a-bare-name-over-the-configured-email:
+        description: Read `--by <name>` as declared, set `reviewed_by[].by.name`, and keep the configured `email`.
+        rationale: 'The smallest diff that makes the declared flag do something, and it was the first reading of "wire it". Rejected: it manufactures a record that is wrong in a way nobody can see. "Claude (agent) <shaun@shitchell.com>" is not a person, and a reader of the YAML has no way to tell it from a real identity -- gvp:V9 asks for a complete trace, not a plausible one. It would also have made the schema lie, since userIdentitySchema treats the pair as one thing.'
+        conflicts_with:
+          - gvp:V9
+          - gvp:V10
+      make-token-alone-perform-the-review:
+        description: Drop `--approve` entirely and let `--token <hash>` commit the review, since the token is the thing that proves the reviewer saw the specific updates.
+        rationale: 'Genuinely defensible, and #40 names it as an acceptable resolution ("should error the way `--approve` without `--token` already does, or should simply perform the review"). It would collapse two flags into one under P11. Rejected on two counts. The flags are not two spellings of one mechanism: `--token` is evidence and `--approve` is intent, and on an append-only provenance record the assent is worth stating rather than inferring from the presence of a hash. And the break is real -- `--approve --token` is the form the command prints, the form the skill documents, and the form every agent that has ever committed a review has learned. The defect was the silence, not the flag; removing the flag fixes the silence at a cost the silence did not justify.'
+        would_have_served:
+          - gvp:P11
+          - personal:V1
+        conflicts_with:
+          - gvp:V9
+      resolve-17-by-not-printing-approve:
+        description: Keep `--approve` hidden and make the command's closing line stop naming it, so help and output no longer disagree.
+        rationale: 'The other way to make two artifacts agree, and it was considered seriously because it preserves DEC-4.5 untouched. Rejected: the printed line is the ONLY discovery channel DEC-4.5 permits, so removing it leaves the write path reachable only by reading the source. That is not agreement, it is agreeing to say nothing -- and it would make the review queue uncommittable for anyone who had not read review.ts.'
+        conflicts_with:
+          - gvp:G7
+          - gvp:V6
+      disclose-in-help-that-a-hidden-step-exists:
+        description: Leave `--approve` hidden but add a line to the command description saying that committing a review needs a flag shown only in the command's own output.
+        rationale: 'A middle path that keeps DEC-4.5''s concealment while removing the contradiction. Rejected as the worst of both: the reader now knows a flag is being withheld from them and still cannot use it without a second command, which buys the anti-gaming measure nothing it did not already get from the token and costs a round trip. If the only defensible reason to hide it is gone, disclose the flag, not the fact of the hiding.'
+        conflicts_with:
+          - gvp:V6
+    refs:
+      - file: src/cli/commands/review.ts
+        identifier: reviewCommand
+        role: implements
+      - file: src/cli/commands/review.ts
+        identifier: STAMPING_FLAGS
+        role: implements
+      - file: src/cli/helpers.ts
+        identifier: parseIdentityArg
+        role: implements
+      - file: tests/cli/review.test.ts
+        identifier: reviewsOnDisk
+        role: implements
+      - file: skills/cairn/commands-reference.md
+        identifier: cairn review [element]
+        role: defines
+    origin:
+      - id: 50e0b0e0-6de9-4f54-8952-4d0dae99e179
+        date: '2026-09-29T03:48:01.029Z'
+        note: Imported from d71-review-flag-surface.yaml
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
 constraints:
   - id: C1
     name: Agents optimize for minimal effort

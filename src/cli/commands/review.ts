@@ -2,23 +2,65 @@ import { Command } from 'commander';
 import * as fs from 'fs';
 import * as yaml from 'js-yaml';
 import { randomUUID } from 'crypto';
-import { parseConfigOptions, buildCatalog, requireUserIdentity, getLibraryOverride, getStoreOverride } from '../helpers.js';
+import { parseConfigOptions, buildCatalog, requireUserIdentity, parseIdentityArg, getLibraryOverride, getStoreOverride } from '../helpers.js';
 import { isStale, getUnreviewedUpdates } from '../../provenance/staleness.js';
 import { computeReviewHash, validateReviewHash } from '../../provenance/review-hash.js';
+
+/**
+ * Flags that mean something only when a review is actually being committed.
+ * Given without `--approve`, each used to be accepted, ignored, and exit 0 —
+ * output indistinguishable from the reporting form (#40). They are now
+ * refused, in the same direction the `--approve`-without-`--token` guard
+ * already pointed (personal:R2, code-common:CP12).
+ */
+const STAMPING_FLAGS = ['token', 'note', 'by'] as const;
 
 export function reviewCommand(): Command {
   const cmd = new Command('review')
     .description('Review stale elements and stamp reviewed_by')
     .argument('[element]', 'Element qualified ID to review (e.g., gvp:P1)')
-    .option('--approve', 'Approve with review hash token (hidden)')
+    // Visible since #17. It was hidden under DEC-4.5 as an anti-gaming
+    // measure, but the enforcement is the token, not the concealment: no
+    // review can be committed without a hash that only `cairn review
+    // <element>` will print, so hiding the flag stopped nobody and left
+    // `--help` contradicting the command's own closing instruction.
+    .option('--approve', 'Commit the review, stamping reviewed_by (requires --token)')
     .option('--token <hash>', 'Review hash token from gvp review output')
     .option('--note <text>', 'Review note')
-    .option('--by <name>', 'Reviewer name (overrides config)')
+    .option(
+      '--by <identity>',
+      'Reviewer identity for this review as "Name <email>" (overrides the configured user)',
+      parseIdentityArg,
+    )
     .action(async (elementId?: string) => {
       try {
+        const opts = cmd.opts();
+
+        // Argument-shape checks run BEFORE the library is touched: they are
+        // answerable from argv alone, and a malformed invocation should not
+        // depend on finding a library to be reported.
+        const given = STAMPING_FLAGS.filter((f) => opts[f] !== undefined);
+        if (!opts.approve && given.length > 0) {
+          const names = given.map((f) => `--${f}`).join(', ');
+          console.error(
+            `${names} ${given.length > 1 ? 'apply' : 'applies'} only when committing a review, ` +
+              'and --approve was not given — nothing would be recorded.',
+          );
+          console.error('');
+          console.error('To commit the review:');
+          console.error(`  gvp review ${elementId ?? '<element>'} --approve --token <hash>`);
+          console.error(`To see the pending updates without recording anything, drop ${names}.`);
+          process.exit(1);
+        }
+        if (opts.approve && !elementId) {
+          console.error('--approve needs the element being reviewed:');
+          console.error('  gvp review <element> --approve --token <hash>');
+          console.error('Run `gvp review` with no arguments to list the stale elements.');
+          process.exit(1);
+        }
+
         const { config, preflight } = parseConfigOptions(cmd);
         const catalog = buildCatalog(config, process.cwd(), getLibraryOverride(cmd), getStoreOverride(cmd), preflight);
-        const opts = cmd.opts();
 
         if (!elementId) {
           // List all stale elements
@@ -64,8 +106,11 @@ export function reviewCommand(): Command {
             process.exit(1);
           }
 
-          // Stamp reviewed_by
-          const user = requireUserIdentity(config);
+          // Stamp reviewed_by. `--by` supplies the identity directly when the
+          // reviewer is not the configured user — a delegated review (#40).
+          // It is the same `{name, email}` shape config produces, so the
+          // configured identity is only required when `--by` is absent.
+          const user = (opts.by as { name: string; email: string } | undefined) ?? requireUserIdentity(config);
           const reviewEntry = {
             id: randomUUID(),
             date: new Date().toISOString(),
@@ -129,9 +174,6 @@ export function reviewCommand(): Command {
         process.exit(1);
       }
     });
-
-  // Hide --approve from help (DEC-4.5)
-  cmd.options.find(o => o.long === '--approve')!.hidden = true;
 
   return cmd;
 }

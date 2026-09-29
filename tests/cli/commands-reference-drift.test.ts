@@ -44,8 +44,11 @@ import * as path from 'path';
  * headed "Flags this document asserts do not exist", and this test asserted
  * those flags really were absent — by looking for them in `--help`. Both of the
  * table's claims were false. `cairn review --approve` is a real, working flag
- * that `review.ts` marks `hidden` (DEC-4.5), so it is absent from `--help` and
- * present in the binary; `cairn export --format dot` is a real, working format
+ * that `review.ts` marked `hidden` at the time (DEC-4.5), so it was absent from
+ * `--help` and present in the binary — it is visible today, un-hidden for gvp
+ * #17, but that changes nothing here: any flag CAN be hidden, and an oracle
+ * that reads `--help` cannot see one that is. `cairn export --format dot` is a
+ * real, working format
  * that the `--format` description string simply does not list. A help-parsing
  * absence check cannot see either, so instead of catching the false claims it
  * CONFIRMED them. The table is gone from the document and the check that read it
@@ -344,16 +347,24 @@ function parseSections(md: string): DocSection[] {
 const sections = parseSections(docText);
 
 /**
- * Flags `review.ts` and friends deliberately hide from `--help`, which is the
- * one state `--help` cannot report. Listed here so check 5 can require the
- * document to cover them, and so a flag being un-hidden or dropped upstream
- * fails loudly instead of silently relaxing that requirement.
+ * Flags a command deliberately hides from `--help`, which is the one state
+ * `--help` cannot report. Listed here so check 5 can require the document to
+ * cover them, and so a flag being un-hidden or dropped upstream fails loudly
+ * instead of silently relaxing that requirement.
  *
  * This is the only place the test needs a hand-maintained list, and it is
  * unavoidable: you cannot discover a hidden flag by probing, because probing
  * needs a name to probe with.
+ *
+ * EMPTY TODAY. `cairn review --approve` was the only entry and was un-hidden
+ * for gvp #17: `--help` omitted it while the command's own closing line told
+ * the reader to run it. The list stays — hiding a flag remains a legitimate
+ * thing for a CLI to do, and the checks that read this list are what make a
+ * hidden flag documentable — but nothing in the binary is hidden now. The
+ * three-state guard below therefore exercises the hidden verdict against the
+ * oracle rather than against the binary; see the comment there.
  */
-const KNOWN_HIDDEN: Array<{ command: string; flag: string }> = [{ command: 'review', flag: '--approve' }];
+const KNOWN_HIDDEN: Array<{ command: string; flag: string }> = [];
 
 /**
  * Every skill document that talks about flags. The denial check below reads all
@@ -614,27 +625,38 @@ describe('commands-reference.md matches `cairn <command> --help`', () => {
     ).toBe('absent');
     expect(existsAnywhere('--flag-that-cairn-does-not-have')).toBe(false);
 
-    // Visible: listed by `--help`, so no probe is needed.
+    // Visible: listed by `--help`, so no probe is needed. `--approve` is one
+    // of these now — it used to be the hidden example, and #17 un-hid it.
     expect(existence('review', '--token'), '`cairn review --help` lists --token').toBe('visible');
-
-    // Hidden — the state that fooled us. `--help` is silent, and the flag works.
     expect(
       help(['review']).includes('--approve'),
-      '`cairn review --help` is expected NOT to mention --approve (review.ts marks it hidden, DEC-4.5). ' +
-        'If it now does, --approve became a visible flag: update KNOWN_HIDDEN and gvp #17.',
-    ).toBe(false);
-    expect(
-      existence('review', '--approve'),
-      '`cairn review --approve` exists — it is the flag that commits a review — and it is hidden from ' +
-        '`--help`. If this reads `absent`, the probe has stopped working and the absence checks above are ' +
-        'no longer sound; if it reads `visible`, the flag was un-hidden.',
-    ).toBe('hidden');
+      '`cairn review --help` must list --approve. It is the flag that commits a review and the one the ' +
+        "command's own output tells you to run; hiding it was gvp #17.",
+    ).toBe(true);
+    expect(existence('review', '--approve')).toBe('visible');
 
-    // Hidden flags must be reached only through invocation, never help parsing.
-    expect(
-      surfaces.get('review')!.accepts.has('--approve'),
-      'help parsing must not report --approve; if it did, this test would pass for the wrong reason',
-    ).toBe(false);
+    // Hidden — the state that fooled us, and the reason `existence()` probes
+    // at all. No flag in the binary is hidden any more (KNOWN_HIDDEN is
+    // empty), so the verdict is exercised against the ORACLE instead: take a
+    // flag that demonstrably exists, remove it from the help-derived surface
+    // exactly as hiding it would, and require the probe to still find it. A
+    // test should not oblige the program under test to keep a hidden flag
+    // alive just so the test has an example of one.
+    const surface = surfaces.get('review')!;
+    const key = 'review --token';
+    surface.accepts.delete('--token');
+    existenceCache.delete(key);
+    try {
+      expect(
+        existence('review', '--token'),
+        'a flag the binary accepts but `--help` does not list must read `hidden`, not `absent`. If this ' +
+          'reads `absent`, the probe has stopped working and every absence check above is unsound.',
+      ).toBe('hidden');
+    } finally {
+      surface.accepts.add('--token');
+      existenceCache.delete(key);
+    }
+    expect(existence('review', '--token'), 'the oracle must be restored').toBe('visible');
   });
 
   it('documents every flag that is hidden from `--help`', () => {
