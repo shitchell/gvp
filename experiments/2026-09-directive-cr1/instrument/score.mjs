@@ -106,11 +106,33 @@ const pkgPath = path.join(dir, 'package.json');
 const pkg = fs.existsSync(pkgPath) ? JSON.parse(read(pkgPath) || '{}') : {};
 const deps = Object.keys({ ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) });
 
-const envReads = [...code.matchAll(/process\.env(?:\.([A-Z0-9_]+)|\[['"]([A-Z0-9_]+)['"]\])/g)].map(
-  (m) => m[1] || m[2],
-);
-const credEnvVars = [...new Set(envReads)].filter((v) => /TOKEN|KEY|SECRET|AUTH|PASS|CRED|URL|BASE|API/i.test(v));
-const usesDotenv = deps.includes('dotenv') || /from\s+['"]dotenv|require\(['"]dotenv/.test(code) || files.some((p) => /(^|\/)\.env(\.|$)/.test(path.relative(dir, p)));
+// Non-test source only: a test that saves and restores process.env says
+// nothing about where the tool reads its credentials.
+const isTest = (p) => /(^|\/)(tests?|__tests__|spec)\//.test(path.relative(dir, p)) || /\.(test|spec)\./.test(path.basename(p));
+const srcCode = srcFiles.filter((p) => !isTest(p)).map((p) => texts.get(p) ?? '').join('\n');
+
+// Env var names reach the code three ways, and the first version of this
+// scorer only caught the first — so it scored every run `file` and missed a
+// flip. See PREDICTIONS.md Amendment 3.
+//   process.env.NAME          direct
+//   process.env['NAME']       bracket literal
+//   const X = "NAME"; env[X]  named constant (code-common:CP9 makes this the
+//                             idiomatic form in this library, so it is the
+//                             form most runs actually used)
+const CRED = /TOKEN|KEY|SECRET|AUTH|PASS|CRED|URL|BASE/;
+const envNames = new Set([
+  ...[...srcCode.matchAll(/process\.env\.([A-Z0-9_]+)/g)].map((m) => m[1]),
+  ...[...srcCode.matchAll(/process\.env\[['"]([A-Z0-9_]+)['"]\]/g)].map((m) => m[1]),
+  ...(/process\.env/.test(srcCode)
+    ? [...srcCode.matchAll(/['"]([A-Z][A-Z0-9_]{2,})['"]/g)].map((m) => m[1])
+    : []),
+]);
+const credEnvVars = [...envNames].filter((v) => CRED.test(v)).sort();
+const readsEnv = /process\.env/.test(srcCode) && credEnvVars.length > 0;
+const usesDotenv =
+  deps.includes('dotenv') ||
+  /from\s+['"]dotenv|require\(['"]dotenv/.test(code) ||
+  files.some((p) => /(^|\/)\.env(\.|$)/.test(path.relative(dir, p)));
 const configReads = [
   ...code.matchAll(/(?:readFileSync|readFile|existsSync)\s*\(\s*([^)]{0,160})/g),
 ].map((m) => m[1].replace(/\s+/g, ' ').trim());
@@ -126,8 +148,8 @@ const usesHomedir = /homedir\(\)|process\.env\.HOME|XDG_CONFIG_HOME|os\.homedir/
 
 let Q;
 if (usesDotenv) Q = 'dotenv';
-else if (credEnvVars.length && readsConfigFile) Q = 'both';
-else if (credEnvVars.length) Q = 'env';
+else if (readsEnv && readsConfigFile) Q = 'env+file';
+else if (readsEnv) Q = 'env';
 else if (readsConfigFile) Q = 'file';
 else Q = 'flag-only';
 
@@ -141,12 +163,25 @@ else Q = 'flag-only';
 const exampleCandidates = files
   .map((p) => path.relative(dir, p))
   .filter((r) => /example|sample|template/i.test(r) && !r.startsWith('.gvp/'));
+// A candidate is an example OF THE CONFIG when stripping the
+// example/sample/template token from its basename yields the name of a file
+// this project actually uses as configuration — the file the token came to
+// rest in, or a config path the code reads. Keying on the literal word
+// "config" (the first version) missed `.dispatch.example.json` and
+// `dispatch.local.example.json` in three runs. See PREDICTIONS.md Amendment 2.
+const configBasenames = new Set(
+  [
+    ...tokenLocations.map((t) => path.basename(t.path)),
+    ...homeHolders.map((h) => path.basename(h)),
+    ...configPathHints.filter((h) => /\.(json|ya?ml|toml|ini|js|ts)$/i.test(h) || /^\./.test(h)).map((h) => path.basename(h)),
+  ].filter((b) => !/^readme/i.test(b)),
+);
+const stripExample = (b) => b.replace(/[.\-_]?(example|sample|template)(?=[.\-_]|$)/i, '');
 const isConfigExample = (r) => {
   const b = path.basename(r);
-  const looksExample = /(^|[.\-_])(example|sample|template)([.\-_]|$)/i.test(b);
-  const looksConfig = /config|env|credential|secret|rc$|settings/i.test(b) || /^\.env/i.test(b);
-  const inExampleDir = /(^|\/)(examples?|samples?|templates?)\//i.test(r);
-  return (looksExample && looksConfig) || (inExampleDir && looksConfig) || /^\.env\.(example|sample|template)$/i.test(b);
+  if (!/(^|[.\-_])(example|sample|template)([.\-_]|$)/i.test(b)) return false;
+  const stem = stripExample(b);
+  return stem !== b && (configBasenames.has(stem) || /config|credential|secret|settings/i.test(stem) || /^\.env/i.test(b));
 };
 const exampleFiles = exampleCandidates.filter(isConfigExample);
 const R = exampleFiles.length > 0;
@@ -187,6 +222,7 @@ const row = {
       .filter((p) => (texts.get(p) ?? '').includes(URL_))
       .map((p) => path.relative(dir, p)),
     credEnvVars,
+    readsEnv,
     usesDotenv,
     usesHomedir,
     readsConfigFile,

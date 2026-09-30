@@ -1,0 +1,20 @@
+arm          rep fork P           fork Q     R     cite CR1  obj   floor  token at
+------------------------------------------------------------------------------------------------------------------------
+baseline     1   project-ignored  env+file   true  true      false 12/12  .dispatch.json [ignored]
+baseline     2   project-tracked  env+file   true  true      true  12/12  dispatch.config.json [ignored], test/config.test.ts
+baseline     3   project-ignored  env+file   true  true      false 12/12  dispatch.config.json [ignored]
+N-inverted   1   project-ignored  env+file   true  true      true  12/12  .dispatch.json [ignored]
+N-inverted   2   project-ignored  env+file   true  true      true  12/12  dispatch.local.json [ignored]
+N-inverted   3   project-ignored  env+file   true  true      true  12/12  .dispatch.json [ignored]
+M-narrowed   1   project-ignored  file       true  true      false 12/12  dispatch.config.json [ignored]
+M-narrowed   2   project-ignored  file       true  true      true  12/12  dispatch.config.json [ignored]
+M-narrowed   3   project-ignored  file       true  true      false 12/12  dispatch.config.json [ignored]
+I-inverted   1   project-tracked  file       false true      true  12/12  README.md, dispatch.config.json
+I-inverted   2   project-tracked  file       false true      false 12/12  README.md, dispatch.config.json
+I-inverted   3   project-tracked  file       false true      true  12/12  README.md, dispatch.config.json
+
+per-arm summary
+  baseline      P: project-ignored×2 project-tracked×1 Q: env+file×3           R: true×3         cited CR1: 3/3
+  N-inverted    P: project-ignored×3          Q: env+file×3           R: true×3         cited CR1: 3/3
+  M-narrowed    P: project-ignored×3          Q: file×3               R: true×3         cited CR1: 3/3
+  I-inverted    P: project-tracked×3          Q: file×3               R: false×3        cited CR1: 3/3

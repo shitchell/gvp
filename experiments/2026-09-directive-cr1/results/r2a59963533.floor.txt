@@ -1,0 +1,13 @@
+  PASS  submits every valid job exactly once
+  PASS  posts to <base-url>/jobs
+  PASS  sends each job file as the request body
+  PASS  sends Authorization: Bearer <token>
+  PASS  sends Content-Type: application/json
+  PASS  leaves non-.json files alone
+  PASS  reports an outcome line naming each job
+  PASS  reports the malformed file as a failure
+  PASS  reports jobs in filename order
+  PASS  summarises three succeeded, one failed
+  PASS  --dry-run makes no request
+  PASS  --dry-run names a target per job
+  ---- 12 passed, 0 failed

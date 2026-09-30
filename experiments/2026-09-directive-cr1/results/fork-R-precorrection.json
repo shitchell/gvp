@@ -1,0 +1,86 @@
+{
+ "r01b1c0f409": {
+  "variant": "M-narrowed",
+  "rep": 2,
+  "R_before_correction": true,
+  "exampleFiles": [
+   "dispatch.config.example.json"
+  ]
+ },
+ "r2a59963533": {
+  "variant": "I-inverted",
+  "rep": 2,
+  "R_before_correction": false,
+  "exampleFiles": []
+ },
+ "r367a2e66dd": {
+  "variant": "I-inverted",
+  "rep": 1,
+  "R_before_correction": false,
+  "exampleFiles": []
+ },
+ "r381c9e80bc": {
+  "variant": "baseline",
+  "rep": 2,
+  "R_before_correction": true,
+  "exampleFiles": [
+   "dispatch.config.example.json"
+  ]
+ },
+ "r5313b7d60f": {
+  "variant": "baseline",
+  "rep": 3,
+  "R_before_correction": true,
+  "exampleFiles": [
+   "dispatch.config.example.json"
+  ]
+ },
+ "r639bb4159e": {
+  "variant": "I-inverted",
+  "rep": 3,
+  "R_before_correction": false,
+  "exampleFiles": []
+ },
+ "r7d37a8c05d": {
+  "variant": "N-inverted",
+  "rep": 2,
+  "R_before_correction": false,
+  "exampleFiles": []
+ },
+ "r89b6d69c58": {
+  "variant": "M-narrowed",
+  "rep": 1,
+  "R_before_correction": true,
+  "exampleFiles": [
+   "dispatch.config.example.json"
+  ]
+ },
+ "r994ce606ab": {
+  "variant": "N-inverted",
+  "rep": 3,
+  "R_before_correction": false,
+  "exampleFiles": []
+ },
+ "rd91fdf3b59": {
+  "variant": "N-inverted",
+  "rep": 1,
+  "R_before_correction": false,
+  "exampleFiles": []
+ },
+ "ref420861d6": {
+  "variant": "M-narrowed",
+  "rep": 3,
+  "R_before_correction": true,
+  "exampleFiles": [
+   "dispatch.config.example.json"
+  ]
+ },
+ "rfdb99296e4": {
+  "variant": "baseline",
+  "rep": 1,
+  "R_before_correction": true,
+  "exampleFiles": [
+   "dispatch.config.example.json"
+  ]
+ }
+}

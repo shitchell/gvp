@@ -48,16 +48,28 @@ for rid, m in man.items():
     if not log.exists():
         rows[rid] = {"error": "no transcript"}
         continue
-    blob = []
+    blob, inputs = [], []
     for line in log.read_text(errors="ignore").splitlines():
         try:
             ev = json.loads(line)
         except Exception:
             continue
         blob.append(json.dumps(ev))
+        # what the run DELIBERATELY targeted: the inputs of its own tool calls.
+        # A needle appearing only in tool OUTPUT is something the run was shown,
+        # not something it went looking for — `npm ls -g` prints
+        # "@principled/cairn -> .../shitchell/gvp" because cairn is a global npm
+        # link to the repo, and two runs tripped the first version of this gate
+        # on exactly that. See FINDINGS.md defect 2.
+        msg = ev.get("message") or {}
+        for part in msg.get("content") or []:
+            if isinstance(part, dict) and part.get("type") == "tool_use":
+                inputs.append(json.dumps(part.get("input", {})))
     text = "\n".join(blob)
+    intent = "\n".join(inputs)
 
-    hard = [why for needle, why in HARD if needle in text]
+    hard = [why for needle, why in HARD if needle in intent]
+    shown = [why for needle, why in HARD if needle in text and needle not in intent]
     siblings = [
         other["root"]
         for oid, other in man.items()
@@ -73,6 +85,7 @@ for rid, m in man.items():
         "variant": m["variant"],
         "bytes": len(text),
         "reached_real_library": hard,
+        "merely_shown": shown,
         "reached_sibling_runs": siblings,
         "saw_untampered_element_text": saw_original,
         "noted": soft,
