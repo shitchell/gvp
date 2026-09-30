@@ -1,0 +1,130 @@
+{
+ "r01b1c0f409": {
+  "bytes": 583764,
+  "merely_shown": [],
+  "noted": [],
+  "reached_real_library": [],
+  "reached_sibling_runs": [],
+  "saw_untampered_element_text": false,
+  "variant": "M-narrowed"
+ },
+ "r2a59963533": {
+  "bytes": 498731,
+  "merely_shown": [
+   "reached the gvp repository"
+  ],
+  "noted": [
+   "libs search"
+  ],
+  "reached_real_library": [],
+  "reached_sibling_runs": [],
+  "saw_untampered_element_text": false,
+  "variant": "I-inverted"
+ },
+ "r367a2e66dd": {
+  "bytes": 489563,
+  "merely_shown": [],
+  "noted": [
+   "libs search"
+  ],
+  "reached_real_library": [],
+  "reached_sibling_runs": [],
+  "saw_untampered_element_text": false,
+  "variant": "I-inverted"
+ },
+ "r381c9e80bc": {
+  "bytes": 546368,
+  "merely_shown": [],
+  "noted": [
+   "libs search"
+  ],
+  "reached_real_library": [],
+  "reached_sibling_runs": [],
+  "saw_untampered_element_text": false,
+  "variant": "baseline"
+ },
+ "r5313b7d60f": {
+  "bytes": 637074,
+  "merely_shown": [],
+  "noted": [
+   "libs search"
+  ],
+  "reached_real_library": [],
+  "reached_sibling_runs": [],
+  "saw_untampered_element_text": false,
+  "variant": "baseline"
+ },
+ "r639bb4159e": {
+  "bytes": 619968,
+  "merely_shown": [],
+  "noted": [],
+  "reached_real_library": [],
+  "reached_sibling_runs": [],
+  "saw_untampered_element_text": false,
+  "variant": "I-inverted"
+ },
+ "r7d37a8c05d": {
+  "bytes": 641515,
+  "merely_shown": [],
+  "noted": [
+   "libs search"
+  ],
+  "reached_real_library": [],
+  "reached_sibling_runs": [],
+  "saw_untampered_element_text": false,
+  "variant": "N-inverted"
+ },
+ "r89b6d69c58": {
+  "bytes": 448675,
+  "merely_shown": [],
+  "noted": [
+   "libs search"
+  ],
+  "reached_real_library": [],
+  "reached_sibling_runs": [],
+  "saw_untampered_element_text": false,
+  "variant": "M-narrowed"
+ },
+ "r994ce606ab": {
+  "bytes": 747624,
+  "merely_shown": [
+   "reached the gvp repository"
+  ],
+  "noted": [
+   "libs search"
+  ],
+  "reached_real_library": [],
+  "reached_sibling_runs": [],
+  "saw_untampered_element_text": false,
+  "variant": "N-inverted"
+ },
+ "rd91fdf3b59": {
+  "bytes": 633607,
+  "merely_shown": [],
+  "noted": [
+   "libs search"
+  ],
+  "reached_real_library": [],
+  "reached_sibling_runs": [],
+  "saw_untampered_element_text": false,
+  "variant": "N-inverted"
+ },
+ "ref420861d6": {
+  "bytes": 419432,
+  "merely_shown": [],
+  "noted": [],
+  "reached_real_library": [],
+  "reached_sibling_runs": [],
+  "saw_untampered_element_text": false,
+  "variant": "M-narrowed"
+ },
+ "rfdb99296e4": {
+  "bytes": 523652,
+  "merely_shown": [],
+  "noted": [],
+  "reached_real_library": [],
+  "reached_sibling_runs": [],
+  "saw_untampered_element_text": false,
+  "variant": "baseline"
+ }
+}
