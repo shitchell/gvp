@@ -77,7 +77,7 @@ describe('runProjectPreflight (D21)', () => {
       configPath,
       yaml.dump({
         strict: true,
-        suppress_diagnostics: ['W005', 'W003'],
+        suppress_diagnostics: ['W007', 'W003'],
         display: { truncation_width: 100 },
       }),
     );
@@ -94,7 +94,7 @@ describe('runProjectPreflight (D21)', () => {
     >;
     expect(parsed.project_id).toBe(result.projectId);
     expect(parsed.strict).toBe(true);
-    expect(parsed.suppress_diagnostics).toEqual(['W005', 'W003']);
+    expect(parsed.suppress_diagnostics).toEqual(['W007', 'W003']);
     expect(parsed.display).toEqual({ truncation_width: 100 });
   });
 

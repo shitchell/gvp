@@ -147,9 +147,9 @@ describe('resolveSourceVisibility', () => {
 
 describe('applySourceScope — the three states', () => {
   const diagnostics = [
-    warn('W005', 'gvp', 'G1'),
-    warn('W005', 'personal', 'P11'),
-    warn('W005', 'personal', 'P11'),
+    warn('W007', 'gvp', 'G1'),
+    warn('W007', 'personal', 'P11'),
+    warn('W007', 'personal', 'P11'),
     warn('W003', 'code/web', 'CW1'),
   ];
 
@@ -175,12 +175,12 @@ describe('applySourceScope — the three states', () => {
       errors: 0,
       warnings: 3,
       byCode: [
-        ['W005', 2],
+        ['W007', 2],
         ['W003', 1],
       ],
     });
     expect(renderSourceScopeSummary(r)).toEqual([
-      `  3 further warnings from ${UPSTREAM} (W005 ×2, W003 ×1)`,
+      `  3 further warnings from ${UPSTREAM} (W007 ×2, W003 ×1)`,
       '  → --include-inherited to show',
     ]);
   });
@@ -208,7 +208,7 @@ describe('applySourceScope — the three states', () => {
 
   it('hide leaves no trace when nothing was actually withheld', () => {
     const r = applySourceScope(
-      [warn('W005', 'gvp', 'G1')],
+      [warn('W007', 'gvp', 'G1')],
       inheritedFixture(),
       baseConfig({ diagnostics: { inherited: 'hide' } }),
     );
@@ -223,7 +223,7 @@ describe('applySourceScope — the three states', () => {
       makeDoc('other', OTHER, ['O1']),
     ]);
     const r = applySourceScope(
-      [warn('W005', 'personal', 'P11'), warn('W003', 'other', 'O1')],
+      [warn('W007', 'personal', 'P11'), warn('W003', 'other', 'O1')],
       catalog,
       baseConfig({ diagnostics: { inherited: 'hide' } }),
     );
@@ -239,8 +239,8 @@ describe('applySourceScope — the three states', () => {
     ]);
     const r = applySourceScope(
       [
-        warn('W005', 'gvp', 'G1'),
-        warn('W005', 'personal', 'P11'),
+        warn('W007', 'gvp', 'G1'),
+        warn('W007', 'personal', 'P11'),
         warn('W003', 'other', 'O1'),
       ],
       catalog,
@@ -252,7 +252,7 @@ describe('applySourceScope — the three states', () => {
     expect(r.counted.map((c) => c.source)).toEqual([UPSTREAM]);
     expect(r.hiddenSources).toEqual([OTHER]);
     expect(renderSourceScopeSummary(r)).toEqual([
-      `  1 further warning from ${UPSTREAM} (W005 ×1)`,
+      `  1 further warning from ${UPSTREAM} (W007 ×1)`,
       '  1 source fully hidden',
       '  → --include-inherited to show',
     ]);
@@ -262,7 +262,7 @@ describe('applySourceScope — the three states', () => {
 describe('applySourceScope — what is never scoped', () => {
   it('a local-only project is untouched in every state', () => {
     const catalog = makeCatalog([makeDoc('gvp', LOCAL, ['G1']), makeDoc('v0', LOCAL, ['V1'])]);
-    const ds = [warn('W005', 'gvp', 'G1'), warn('W003', 'v0', 'V1'), err('E001', 'gvp')];
+    const ds = [warn('W007', 'gvp', 'G1'), warn('W003', 'v0', 'V1'), err('E001', 'gvp')];
     for (const mode of ['show', 'count', 'hide'] as const) {
       const r = applySourceScope(ds, catalog, baseConfig({ diagnostics: { inherited: mode } }));
       expect(r.shown).toEqual(ds);
@@ -274,7 +274,7 @@ describe('applySourceScope — what is never scoped', () => {
 
   it('genuine errors on inherited elements are always shown', () => {
     const r = applySourceScope(
-      [err('E001', 'personal'), warn('W005', 'personal', 'P11')],
+      [err('E001', 'personal'), warn('W007', 'personal', 'P11')],
       inheritedFixture(),
       baseConfig({ diagnostics: { inherited: 'hide' } }),
     );
@@ -296,7 +296,7 @@ describe('applySourceScope — what is never scoped', () => {
 
   it('an unresolvable documentPath is shown rather than guessed at', () => {
     const r = applySourceScope(
-      [warn('W005', 'does-not-exist', 'X1')],
+      [warn('W007', 'does-not-exist', 'X1')],
       inheritedFixture(),
       baseConfig({ diagnostics: { inherited: 'hide' } }),
     );
@@ -318,7 +318,7 @@ describe('applySourceScope — documentPath collisions across sources', () => {
 
   it('disambiguates a collided documentPath via elementId', () => {
     const r = applySourceScope(
-      [warn('W005', 'shared', 'A1'), warn('W005', 'shared', 'B1')],
+      [warn('W007', 'shared', 'A1'), warn('W007', 'shared', 'B1')],
       catalog,
       cfg,
     );
@@ -328,7 +328,7 @@ describe('applySourceScope — documentPath collisions across sources', () => {
   });
 
   it('shows the diagnostic when elementId cannot settle it', () => {
-    const r = applySourceScope([warn('W005', 'shared')], catalog, cfg);
+    const r = applySourceScope([warn('W007', 'shared')], catalog, cfg);
     expect(r.shown).toHaveLength(1);
     expect(r.hiddenSources).toEqual([]);
   });
@@ -338,7 +338,7 @@ describe('applySourceScope — documentPath collisions across sources', () => {
       makeDoc('shared', LOCAL, ['X1']),
       makeDoc('shared', UPSTREAM, ['X1']),
     ]);
-    const r = applySourceScope([warn('W005', 'shared', 'X1')], clash, cfg);
+    const r = applySourceScope([warn('W007', 'shared', 'X1')], clash, cfg);
     expect(r.shown).toHaveLength(1);
     expect(r.hiddenSources).toEqual([]);
   });
@@ -353,7 +353,7 @@ describe('applySourceScope — strict mode', () => {
   const passes = new Map<string, ValidationPass>([
     [
       'p',
-      () => [warn('W005', 'gvp', 'G1'), warn('W005', 'personal', 'P11'), err('E001', 'personal')],
+      () => [warn('W007', 'gvp', 'G1'), warn('W007', 'personal', 'P11'), err('E001', 'personal')],
     ],
   ]);
 
@@ -364,12 +364,12 @@ describe('applySourceScope — strict mode', () => {
     expect(diagnostics.every((d) => d.severity === 'error')).toBe(true);
 
     const r = applySourceScope(diagnostics, catalog, config);
-    expect(r.shown.map((d) => d.code).sort()).toEqual(['E001', 'W005']);
-    expect(r.shown.find((d) => d.code === 'W005')!.context.documentPath).toBe('gvp');
+    expect(r.shown.map((d) => d.code).sort()).toEqual(['E001', 'W007']);
+    expect(r.shown.find((d) => d.code === 'W007')!.context.documentPath).toBe('gvp');
     expect(r.counted).toHaveLength(1);
     expect(r.counted[0]).toMatchObject({ source: UPSTREAM, errors: 1, warnings: 0 });
     expect(renderSourceScopeSummary(r)[0]).toBe(
-      `  1 further error from ${UPSTREAM} (W005 ×1)`,
+      `  1 further error from ${UPSTREAM} (W007 ×1)`,
     );
   });
 
@@ -392,7 +392,7 @@ describe('applySourceScope — override', () => {
       diagnostics: { inherited: 'count', by_source: { [UPSTREAM]: 'hide' } },
     });
     const r = applySourceScope(
-      [warn('W005', 'personal', 'P11')],
+      [warn('W007', 'personal', 'P11')],
       inheritedFixture(),
       config,
       { inherited: 'show', by_source: {} },

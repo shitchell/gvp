@@ -230,8 +230,9 @@ procedures:
   it('reassigns the local ID per DEC-9.5 on collision instead of overwriting', () => {
     const parentPath = path.join(tmpDir, '.gvp', 'library', 'parent.yaml');
     const doc = yaml.load(fs.readFileSync(parentPath, 'utf-8')) as Record<string, unknown>;
-    // status deprecated so it is exempt from W005 (self-document-only mapping)
-    // and W003/W014 traceability — we only need it to occupy the D1 slot.
+    // status deprecated so it is exempt from W003/W014 traceability — we only
+    // need it to occupy the D1 slot. (It was also exempt from W005 until #41
+    // retired that code.)
     doc.decisions = [
       { id: 'D1', name: 'Pre-existing parent decision', status: 'deprecated', statement: 'Do not overwrite me.', rationale: 'x', tags: [], maps_to: ['parent:G1', 'parent:V1'] },
     ];

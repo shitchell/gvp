@@ -115,7 +115,7 @@ goals:
   config_overrides:
     suppress_diagnostics:
       mode: additive
-      value: [W005]
+      value: [W007]
 `);
     expect(diagnostics).toEqual([]);
   });

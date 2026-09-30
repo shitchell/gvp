@@ -44,11 +44,13 @@ describe('global option placement (#21)', () => {
    * silently dropped is therefore visible as a count, not just as an exit
    * code.
    *
-   * It validates clean but WARNS: being a single document, V1 and D1 map
-   * only within their own document (W005). That is deliberate — it gives
-   * `--strict` and `-c strict=true` an observable effect (exit 0 becomes
-   * exit 1), which is how the trailing-override test proves the override
-   * was applied rather than merely parsed.
+   * It validates clean but WARNS: D1 carries a tag the library never defines
+   * (W007). That is deliberate — it gives `--strict` and `-c strict=true` an
+   * observable effect (exit 0 becomes exit 1), which is how the
+   * trailing-override test proves the override was applied rather than merely
+   * parsed. The warning used to be W005 on V1 and D1; #41 retired that code,
+   * so the fixture carries an undefined tag instead. Any warning would do —
+   * what these tests need is an observable exit-code flip under strict.
    */
   function createLibrary(): string {
     const libDir = path.join(tmpDir, 'lib');
@@ -76,7 +78,7 @@ decisions:
     name: Use YAML
     rationale: We use YAML.
     disposition: accepted
-    tags: []
+    tags: [undefined-tag]
     maps_to: [main:G1, main:V1]
     refs:
       - file: README.md
@@ -236,7 +238,7 @@ decisions:
       const lib = createLibrary();
       const r = runCairn('validate', '--library', lib, '--strict');
       expect(r.stderr).not.toContain('unknown option');
-      // W005 promoted to an error, so a run that is otherwise clean fails.
+      // W007 promoted to an error, so a run that is otherwise clean fails.
       expect(r.exitCode).not.toBe(0);
     });
 
@@ -272,9 +274,9 @@ decisions:
     });
 
     it('APPLIES a trailing override, not merely parses it', () => {
-      // The sharpest check that hoisting works. `strict=true` promotes W005
-      // ("maps only to elements within its own document", which V1 and D1
-      // both trigger here) to an error, so the exit code flips. If the
+      // The sharpest check that hoisting works. `strict=true` promotes W007
+      // ("uses a tag not defined in its library", which D1 triggers here) to
+      // an error, so the exit code flips. If the
       // trailing value were dropped on the way to loadConfig, this would
       // parse cleanly and exit 0 — indistinguishable from an override that
       // never arrived.

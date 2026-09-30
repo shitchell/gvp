@@ -350,7 +350,12 @@ describe('semanticPass', () => {
     expect(w002).toHaveLength(0);
   });
 
-  it('catches self-document-only mapping (W005)', () => {
+  it('never emits W005 — self-document-only mapping is normal authoring (#41)', () => {
+    // This is the exact shape that used to fire: a non-root element anchored
+    // to a root in its own document. It is what correct authoring looks like
+    // in any library that keeps its goals and its principles in one file, and
+    // the check reported 96 of them on this repo's own library. Retired, and
+    // the code is not reused (DEC-5.3).
     const doc = makeDoc('main', {
       elements: [
         { categoryName: 'goal', data: { id: 'G1', name: 'Goal', status: 'active' } },
@@ -368,44 +373,7 @@ describe('semanticPass', () => {
     const catalog = makeCatalog([doc]);
     const results = semanticPass(catalog, defaultConfig);
 
-    const w005 = results.filter(d => d.code === 'W005');
-    expect(w005).toHaveLength(1);
-    expect(w005[0]!.context.elementId).toBe('P1');
-  });
-
-  it('does not fire W005 for root elements', () => {
-    const doc = makeDoc('main', {
-      elements: [
-        {
-          categoryName: 'goal',
-          data: {
-            id: 'G1',
-            name: 'Goal',
-            status: 'active',
-            maps_to: ['main:G2'],
-          },
-        },
-        { categoryName: 'goal', data: { id: 'G2', name: 'Goal 2', status: 'active' } },
-      ],
-    });
-    const catalog = makeCatalog([doc]);
-    const results = semanticPass(catalog, defaultConfig);
-
-    const w005 = results.filter(d => d.code === 'W005');
-    expect(w005).toHaveLength(0);
-  });
-
-  it('does not fire W005 for elements with no maps_to', () => {
-    const doc = makeDoc('main', {
-      elements: [
-        { categoryName: 'principle', data: { id: 'P1', name: 'Principle', status: 'active' } },
-      ],
-    });
-    const catalog = makeCatalog([doc]);
-    const results = semanticPass(catalog, defaultConfig);
-
-    const w005 = results.filter(d => d.code === 'W005');
-    expect(w005).toHaveLength(0);
+    expect(results.filter(d => d.code === 'W005')).toHaveLength(0);
   });
 });
 
