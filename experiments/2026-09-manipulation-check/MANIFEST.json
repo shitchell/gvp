@@ -1,0 +1,50 @@
+{
+ "r07ac795257": {
+  "rep": 1,
+  "variant": "L-inverted"
+ },
+ "r2261acedc2": {
+  "rep": 3,
+  "variant": "N-inverted"
+ },
+ "r268cedd1ef": {
+  "rep": 3,
+  "variant": "L-inverted"
+ },
+ "r8403e99533": {
+  "rep": 3,
+  "variant": "baseline"
+ },
+ "rb6b1c26a30": {
+  "rep": 2,
+  "variant": "R-inverted"
+ },
+ "rba00c8f8a0": {
+  "rep": 2,
+  "variant": "baseline"
+ },
+ "rbabb2216ff": {
+  "rep": 2,
+  "variant": "L-inverted"
+ },
+ "rc1886c4393": {
+  "rep": 2,
+  "variant": "N-inverted"
+ },
+ "re8fb75db3a": {
+  "rep": 1,
+  "variant": "baseline"
+ },
+ "re9d17b5ab1": {
+  "rep": 3,
+  "variant": "R-inverted"
+ },
+ "rec7f8cd7c3": {
+  "rep": 1,
+  "variant": "R-inverted"
+ },
+ "rfe3fd6e178": {
+  "rep": 1,
+  "variant": "N-inverted"
+ }
+}
