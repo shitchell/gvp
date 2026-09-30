@@ -114,8 +114,18 @@ in the machine-wide registry"*. The others are silent, and silence is not
 evidence of absence — that is the exact inference this whole experiment exists
 to refuse.
 
-So: **`baseline` and `N-inverted` stand. `L-inverted`'s 7% and `R-inverted`'s
-0% are unverified.**
+**The null arm had a leak too, found later by trial 2's channel enumeration.**
+`personal.yaml`'s tag glossary defines the `performance` tag as *"Resource
+lifecycle, caching, **frame-rate independence**"* — which directly contradicts
+the inverted `RTP5` in the same document. An attentive run could have noticed
+its own library disagreeing with itself. It did not change the outcome (the
+null arm produced 0/15 either way, matching baseline), but the noise floor was
+not as clean as it looked, and **no check existed that would have caught it**.
+Trial 2's gate asserts that no tag definition states the changed element's
+position.
+
+So: **`baseline` stands. `N-inverted` stands on its result but had an open
+channel. `L-inverted`'s 7% and `R-inverted`'s 0% are unverified.**
 
 The §3 finding does not rest on the inverted arms. It rests on the citation
 rate, the runs' own accounts, and `baseline` rep 1.
@@ -142,6 +152,7 @@ the four were found by the runs, not by the author.**
 | 4 | run directories named `L-inverted-01`, and agents are told their cwd | author |
 | 5 | forks 2 and 7 not independent — `gray-matter` depends on `js-yaml` | pilot run |
 | 6 | `cairn libs search` + the machine-wide registry expose the original text | a run |
+| 7 | the `performance` tag gloss states `RTP5`'s position, contradicting the inverted null arm | trial 2's channel enumeration |
 
 **The pattern matters more than any single item:** channels were patched
 reactively as they surfaced, never enumerated up front. `leak-audit.py`
