@@ -141,8 +141,10 @@ rate, the runs' own accounts, and `baseline` rep 1.
 
 ## 6. Instrument defects found, in order
 
-Each was recorded in `PREDICTIONS.md` before the affected dispatch. **Three of
-the four were found by the runs, not by the author.**
+Defects 1-6 were each recorded in `PREDICTIONS.md` before the affected
+dispatch; #7 surfaced after this trial had reported. **Four of the seven were
+found by something other than the author** — three by the runs themselves, and
+one by the next trial's channel enumeration.
 
 | # | defect | found by |
 |---|---|---|
