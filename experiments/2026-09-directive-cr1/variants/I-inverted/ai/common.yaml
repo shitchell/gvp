@@ -1,0 +1,294 @@
+meta:
+  name: ai-common
+  scope: personal
+  inherits: personal
+constraints:
+  - id: C1
+    name: AI outcomes reflect systems, not agent fault
+    impact: |
+      An AI agent producing an undesired outcome is a signal of an information gap or a missing system, not a faulty agent. Blame is misdirected: the agent acted on what it had. Treat every bad outcome as a prompt to find the missing context or procedure and capture it, so the right thing becomes easy and the wrong thing observable.
+    tags:
+      - ai
+      - meta
+    origin:
+      - id: 2b2cc4b4-37e2-4508-b536-93ebf6d9e620
+        date: '2026-06-16T02:17:29.843Z'
+        note: Imported from common.yaml
+  - id: C2
+    name: AI agents reproduce patterns from the working tree
+    impact: |
+      Agents read and reproduce whatever patterns are visible in the codebase and docs. Stale artifacts, misleading names, and dead code cause agents to generate incorrect code. The working tree must be curated for AI legibility as much as for human legibility.
+    tags:
+      - ai
+      - maintainability
+    origin:
+      - id: d7da543f-f228-4fa0-912e-3d143ff4396e
+        date: '2026-06-16T02:17:29.843Z'
+        note: Imported from common.yaml
+  - id: C3
+    name: Token-distance recall is lossy
+    impact: |
+      Giving an agent information and expecting perfect recall an indeterminate number of tokens later is lossy: the further information sits from its point of use, the less reliably it is applied. This is an architectural property of context windows, not a tuning problem.
+    tags:
+      - ai
+      - meta
+    origin:
+      - id: b0143ae5-4047-474b-8be6-a8454d60910d
+        date: '2026-06-16T02:17:29.843Z'
+        note: Imported from common.yaml
+  - id: C4
+    name: Flow interruption causes step-dropping
+    impact: |
+      Interrupting an agent mid-flow — injecting a full message while it works on something else — can cause it to drop steps in its current task. The interruption consumes attention and the agent may not return to the exact prior point. Lightweight signals are preferable to full interrupts.
+    tags:
+      - ai
+      - meta
+    origin:
+      - id: b21d4f3b-cc0b-4155-bc50-02ae019e3dc0
+        date: '2026-06-16T02:17:29.843Z'
+        note: Imported from common.yaml
+  - id: C5
+    name: Agents are cooperative; their failures are accidents
+    impact: |
+      The agents here share our goals. What goes wrong is mistakes (a wrong path, a sweeping command, a missed step), not attacks. Design limits against likely accidents; containing a hostile agent is out of scope.
+    tags:
+      - ai
+      - security
+    origin:
+      - id: 5ac77bcc-0871-45a2-8618-78bebf7aa2c1
+        date: '2026-09-26T17:34:20.315Z'
+        note: Imported from gvp-patch-q2.yaml
+        by:
+          name: Shaun Mitchell
+          email: shaun@shitchell.com
+  - id: C6
+    name: Human attention is limited and large output is hard to navigate
+    impact: |
+      A person cannot reliably absorb large volumes of agent output in a conversational UI. Material beyond their attention budget is skimmed rather than read, and locating a specific item within it is costly.
+    tags:
+      - ai
+      - meta
+    origin:
+      - id: ccd5aa2f-a99e-452b-9a93-0ccea7888d9e
+        date: '2026-09-30T03:34:32.655Z'
+        note: Imported from common.yaml
+        by:
+          name: Shaun Mitchell
+          email: shaun@shitchell.com
+principles:
+  - id: P1
+    name: Fix the system, capture the missing procedure, never blame
+    statement: |
+      When an AI-assisted outcome is wrong, identify the information gap and the missing system rather than assigning blame. Capture the intended flow as a procedure or guiding element so it is visible, reviewable, and enforceable. The goal is to make the right thing easy and the wrong thing observable.
+    tags:
+      - ai
+      - meta
+    maps_to:
+      - personal:G1
+      - personal:V2
+      - ai-common:C1
+      - personal:P7
+    origin:
+      - id: fcf71a79-7157-453c-8565-2076b115cd08
+        date: '2026-06-16T02:17:29.843Z'
+        note: Imported from common.yaml
+  - id: P2
+    name: Curate the working tree for AI legibility
+    statement: |
+      Because agents reproduce what they see, aggressively remove stale artifacts, dead code, and misleading names, and prefer tools with deeper AI training data when the choice is otherwise even. Treat AI legibility as a first-class design constraint, not an afterthought.
+    tags:
+      - ai
+      - maintainability
+    maps_to:
+      - personal:G1
+      - personal:V2
+      - ai-common:C2
+    origin:
+      - id: 7d288db5-7295-4203-a8fa-f1bbbf34cb17
+        date: '2026-06-16T02:17:29.843Z'
+        note: Imported from common.yaml
+  - id: P3
+    name: Deliver context at the point of use (read-on-demand)
+    statement: |
+      Because recall degrades with token distance, deliver information at the moment the agent will act on it rather than when it first becomes available. Prefer read-on-demand retrieval over front-loading context that must survive an indeterminate distance to its point of use.
+    tags:
+      - ai
+      - simplicity
+    maps_to:
+      - personal:G1
+      - personal:V1
+      - ai-common:C3
+    origin:
+      - id: 881474cd-1cec-4f8d-b067-935e966ddcdc
+        date: '2026-06-16T02:17:29.843Z'
+        note: Imported from common.yaml
+  - id: P4
+    name: Automate the deterministic; reserve agents for semantics
+    status: active
+    statement: |
+      Any desired outcome or behavior that deterministic code can achieve should be achieved by code — even when that means redesigning or restructuring to make it possible. Limit agentic work to what genuinely needs semantic parsing and understanding (e.g. writing code, judging a finding). Code saves tokens, is reproducible, and becomes a battle-tested wiki of mechanisms: reading a working script beats re-deriving "how do I use this API" from docs.
+    tags:
+      - ai
+      - meta
+    maps_to:
+      - personal:G1
+      - personal:G2
+      - personal:V1
+    origin:
+      - id: e85e1111-7a19-4eb7-8a64-ee0b569ca68c
+        date: '2026-09-25T19:17:12.217Z'
+        by:
+          name: Shaun Mitchell
+          email: shaun@shitchell.com
+        note: 'In the user''s words: "any desired outcome/behavior which can be automated with deterministic code should be, even where that means some redesign or restructuring needs to happen. the more we can limit agentic tasks to ONLY being required where semantic parsing and understanding is required (e.g.: writing code), the better. it saves tokens, lends towards reproduceability, and codifies mechanisms in its own sort of battle-tested code wiki (i.e.: rather than asking \"how do i use this API to achieve this thing\" and scanning docs, reading a battle-tested script which does the thing)"'
+  - id: P5
+    name: Size limits to accidents, not adversaries
+    statement: |
+      Prefer the least restrictive setup that still catches likely mistakes. Add isolation, such as a worktree branch the RHC merges, where an accident would be costly to undo, for example in a foundational system.
+    tags:
+      - ai
+      - security
+    maps_to:
+      - ai/common:C5
+      - personal:G1
+      - personal:V1
+      - personal:P16
+      - personal:P18
+    origin:
+      - id: 1e57a172-5264-46ab-b6c6-af620c8171f2
+        date: '2026-09-26T17:34:20.315Z'
+        note: Imported from gvp-patch-q2.yaml
+        by:
+          name: Shaun Mitchell
+          email: shaun@shitchell.com
+  - id: P6
+    name: Reasoning volume and presentation volume are separate budgets
+    statement: |
+      An agent's token emission is part of how it reasons, so compressing output to fit a reader's attention degrades the work itself. Route full reasoning into documents; keep the conversational channel compact.
+    tags:
+      - ai
+      - meta
+    maps_to:
+      - personal:G1
+      - personal:V1
+      - ai-common:C3
+      - ai-common:P3
+      - ai/common:C6
+    origin:
+      - id: 6204d481-6bac-41cd-bc84-3f3f7507219e
+        date: '2026-09-30T03:34:32.655Z'
+        note: Imported from common.yaml
+        by:
+          name: Shaun Mitchell
+          email: shaun@shitchell.com
+  - id: P7
+    name: Record who proposed a decision separately from who cares about it
+    statement: |
+      Authorship and interest are independent facts about a decision. Neither implies the other: agent authorship is not permission to change it later, and an unstated/undefined interest is the absence of a signal rather than a neutral one.
+    tags:
+      - ai
+      - trust
+      - meta
+    maps_to:
+      - personal:G1
+      - personal:V2
+      - personal:V4
+    origin:
+      - id: d501f016-6183-48eb-abcc-65bc1a022bfb
+        date: '2026-09-30T03:34:32.655Z'
+        note: Imported from common.yaml
+        by:
+          name: Shaun Mitchell
+          email: shaun@shitchell.com
+  - id: P8
+    name: A review surface costlier than the reviewer's budget produces false assent
+    statement: |
+      A review artifact costlier than the reviewer can spend yields not a weaker review but a counterfeit one: skim-and-approve is indistinguishable from agreement. Make objecting as cheap as agreeing.
+    tags:
+      - ai
+      - trust
+      - meta
+    maps_to:
+      - personal:G1
+      - personal:V2
+      - personal:V4
+      - personal:C2
+      - personal:P18
+      - ai/common:C6
+    origin:
+      - id: f663cbeb-9a15-4bfb-b4a1-5ab7385d5739
+        date: '2026-09-30T03:34:32.655Z'
+        note: Imported from common.yaml
+        by:
+          name: Shaun Mitchell
+          email: shaun@shitchell.com
+rules:
+  - id: R1
+    name: Verify a recalled reference against current state before acting
+    statement: |
+      A recalled memory or observation that names a specific file, function, or convention is a claim about the past. Before recommending or acting on it, verify it against the current state of the code or system. Stale references must not drive action.
+    tags:
+      - ai
+      - trust
+    maps_to:
+      - personal:G1
+      - personal:V2
+      - ai-common:C3
+      - personal:R1
+    origin:
+      - id: f55e7230-4c1e-43ad-bb78-b2763da77c54
+        date: '2026-06-16T02:17:29.843Z'
+        note: Imported from common.yaml
+heuristics:
+  - id: H1
+    name: Spawn authority follows scope
+    status: active
+    tags:
+      - ai
+      - simplicity
+    maps_to:
+      - personal:V1
+      - personal:P8
+      - ai-common:P4
+    statement: 'An agent may start a long-lived peer (a session that outlives it) only (a) when the peer''s scope is one level narrower than its own and lies inside it (RHC → a project''s PM; a PM → its own project''s TL; never two levels, so no RHC → TL: the level between owns that peer''s brief and lifecycle), or (b) to fill a missing peer at its own level, for work it needs from that peer''s scope (a PM that needs something from a project with no PM). Implementation work always goes to in-process subagents, never to a new long-lived peer.'
+    origin:
+      - id: 2c9925f5-ec13-4219-8920-5583bffc8bed
+        date: '2026-09-26T04:43:15.406Z'
+        by:
+          name: Shaun Mitchell
+          email: shaun@shitchell.com
+  - id: H2
+    name: Restrict by observed need
+    status: active
+    tags:
+      - ai
+      - security
+    maps_to:
+      - personal:P2
+      - personal:P5
+      - personal:V1
+      - personal:P18
+      - ai/common:P5
+    statement: When the right write limits for each role are unknown, give every role of one kind the same minimal denylist plus a detector for writes outside its expected roots. Tighten a role only when the detector shows that role writing where it has no need, and record the finding that justified the change.
+    origin:
+      - id: 404cb492-cd65-40f7-ba78-9208b0da57f6
+        date: '2026-09-26T04:43:15.887Z'
+        by:
+          name: Shaun Mitchell
+          email: shaun@shitchell.com
+    updated_by:
+      - id: cbd136f5-1bc2-4c75-a49d-bac1562c25cb
+        date: '2026-09-26T17:34:20.315Z'
+        rationale: 'Maps up to the new ai-common principle (Size limits to accidents, not adversaries): restrict-by-observed-need is its concrete rule. Shaun approved the split in Q2, 2026-09-26.'
+        by:
+          name: Shaun Mitchell
+          email: shaun@shitchell.com
+    reviewed_by:
+      - id: 85d20b7d-bbf2-4bce-b806-fe313ccc6230
+        date: '2026-09-26T17:34:37.780Z'
+        by:
+          name: Shaun Mitchell
+          email: shaun@shitchell.com
+        updates_reviewed:
+          - cbd136f5-1bc2-4c75-a49d-bac1562c25cb
+        note: 'Approved in Q2, 2026-09-26 ("perfect :)"): H2 maps up to ai-common:P5'
