@@ -141,7 +141,6 @@ Global options may be written before the subcommand or after it — `cairn -c st
 | W002 | EMPTY_DOCUMENT | Document has no active elements |
 | W003 | MAPPING_RULES_VIOLATION | Element doesn't satisfy category mapping rules |
 | W004 | ORPHAN_ELEMENT | Isolated element (no incoming or outgoing edges) |
-| W005 | SELF_DOCUMENT_MAPPING | Element maps only within its own document |
 | W006 | STALE_ELEMENT | Element has unreviewed updates |
 | W007 | UNDEFINED_TAG | Element uses tag not in definitions |
 | W008 | DUPLICATE_CATEGORY_DEF | Duplicate category definition within library siblings |
@@ -211,9 +210,9 @@ defects, unfixable from your repo, and they bury your own signal -- 49 of this r
 
 ```console
 $ cairn validate
-WARN  W005  gvp:D4   Element gvp:D4 maps only to elements within its own document
+WARN  W011  gvp:D19  Element gvp:D19 ref identifier not found in src/model/document-parser.ts: maybeAutoAssignStepIds
 ...
-  49 further warnings from @github:shitchell/gvp-docs@v0.7.0 (W005 ×24, W003 ×23, W017 ×2)
+  25 further warnings from @github:shitchell/gvp-docs@v0.7.0 (W003 ×23, W017 ×2)
   → --include-inherited to show
 ```
 

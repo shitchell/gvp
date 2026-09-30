@@ -1055,7 +1055,9 @@ v0 validation is split across the loader (schema validation via Pydantic), valid
 **DEC-5.5: W005 always fires — suppress via diagnostic system**
 
 - **Timestamp**: 2026-03-19 ~3:20 PM EST
-- **Status**: Decided
+- **Status**: Superseded by [#41](https://github.com/shitchell/gvp/issues/41) (5.1.0) — W005 is retired
+  entirely rather than made conditional. The record below stands as written; what it got wrong was not
+  the `inherits` guard but the premise that self-document mapping indicates a defect at all.
 - **Decision**: W005 (self-document-only mapping) fires unconditionally for any element that maps only within its own document, regardless of whether the document inherits from other documents. The v0 conditional logic (only fire when `doc.inherits` is non-empty) is removed. Users who don't want this diagnostic suppress it via the typed diagnostic system (DEC-5.4).
 - **Rationale**: "yeah, i think my hesitance is that i would feel meh implementing it that way... but to be fair, i won't be implementing it lmao. i can afford to be lazy + robust here :p those are in fact all of the attributes we care about, so it makes sense."
 - **Rejected alternatives**:

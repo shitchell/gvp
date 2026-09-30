@@ -11,8 +11,12 @@ import * as path from 'path';
  * library and picks up diagnostics on elements it cannot edit. The external
  * source is a local filesystem path, so nothing here touches the network.
  *
- * W005 (MAPS_ONLY_WITHIN_DOCUMENT) is the vehicle — it is the code that
- * produced 24 of the 47 unfixable warnings in the issue.
+ * W007 (UNDEFINED_TAG) is the vehicle. It was W005 until #41 retired that
+ * code; W007 replaces it because it fires exactly once per element carrying
+ * an undefined tag and drags in no traceability side effects, so the counts
+ * below stay exact. Source scoping itself is pass-agnostic — it keys only on
+ * severity, `context.documentPath` and `context.elementId` — so which code
+ * carries the fixture is immaterial to what these tests assert.
  */
 describe('cairn validate — source-scoped diagnostics (#29)', () => {
   let srcRoot: string;
@@ -43,13 +47,13 @@ values:
 decisions:
   - id: UD1
     name: Upstream decision one
-    rationale: Maps only within its own document, so it earns a W005.
-    tags: []
+    rationale: Carries a tag its library never defines, so it earns a W007.
+    tags: [undefined-upstream-tag]
     maps_to: [personal:G1, personal:V1]
   - id: UD2
     name: Upstream decision two
-    rationale: Also maps only within its own document.
-    tags: []
+    rationale: Also carries an undefined tag.
+    tags: [undefined-upstream-tag]
     maps_to: [personal:G1, personal:V1]
 `,
     );
@@ -81,8 +85,8 @@ values:
 decisions:
   - id: D1
     name: Local decision
-    rationale: Maps only within its own document, so it earns a local W005.
-    tags: []
+    rationale: Carries an undefined tag, so it earns a local W007.
+    tags: [undefined-local-tag]
     maps_to: [main:G1, main:V1]
 `,
     );
@@ -121,7 +125,7 @@ values:
 decisions:
   - id: D1
     name: Local decision
-    rationale: Maps across documents, so no local W005.
+    rationale: Defines no tags at all, so no local W007.
     tags: []
     maps_to: [main:G1, personal:V1]
 `,
@@ -155,8 +159,8 @@ values:
 decisions:
   - id: D1
     name: Local decision
-    rationale: Maps only within its own document, so it earns a local W005.
-    tags: []
+    rationale: Carries an undefined tag, so it earns a local W007.
+    tags: [undefined-local-tag]
     maps_to: [main:G1, main:V1]
 `,
     );
@@ -207,7 +211,7 @@ decisions:
 
     expect(r.stderr).toContain('2 further warnings from');
     expect(r.stderr).toContain(srcRoot);
-    expect(r.stderr).toContain('W005 ×2');
+    expect(r.stderr).toContain('W007 ×2');
     expect(r.stderr).toContain('--include-inherited to show');
     expect(r.exitCode).toBe(0);
   });
@@ -299,11 +303,11 @@ decisions:
 
   it('suppress_diagnostics and source scoping compose as per-code × per-source', () => {
     // Orthogonal, not redundant (gvp:P11 — purpose, not structural
-    // similarity, decides whether to merge). Suppressing W005 globally
+    // similarity, decides whether to merge). Suppressing W007 globally
     // removes it everywhere INCLUDING locally; source scoping would have
     // kept the local one.
     writeUpstream();
-    writeProject('suppress_diagnostics:\n  - W005\n');
+    writeProject('suppress_diagnostics:\n  - W007\n');
     const r = runCairn('validate');
     expect(diagLines(r.stderr)).toHaveLength(0);
     expect(r.stderr).toContain('Validation passed');
@@ -340,7 +344,7 @@ decisions:
     // Only the local one is printed, and it is an ERROR (strict).
     const shown = diagLines(scoped.stderr);
     expect(shown).toHaveLength(1);
-    expect(shown[0]).toMatch(/^ERROR\s+W005\s+main:D1/);
+    expect(shown[0]).toMatch(/^ERROR\s+W007\s+main:D1/);
     // The inherited pair is counted, reported with its promoted severity.
     expect(scoped.stderr).toContain('2 further errors from');
     // Local error still fails the build.

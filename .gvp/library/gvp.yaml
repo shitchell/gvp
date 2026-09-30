@@ -4564,6 +4564,115 @@ decisions:
         by:
           name: shaun mitchell
           email: shaun@shitchell.com
+  - id: D72
+    name: Retire W005 — self-document mapping is a fact about file layout, not a traceability defect
+    status: active
+    tags:
+      - framework
+      - tooling
+    maps_to:
+      - gvp:G8
+      - gvp:V6
+      - gvp:V3
+      - gvp:P9
+      - gvp:P4
+      - personal:P2
+      - personal:P9
+    disposition: accepted
+    rationale: |
+      W005 (SELF_DOCUMENT_MAPPING) fired on any non-root active element whose `maps_to` targets all
+      resolved inside its own document. DEC-5.5 had made it unconditional in v1, removing v0's guard
+      that only fired it for documents declaring `inherits`. This retires the check outright. The code
+      is not reused (DEC-5.3).
+
+      WHAT THE MEASUREMENT SHOWED. `docs/reference/validation.md` defended the check in these words:
+      "W005 earns its keep on libraries that *do* inherit, where an element mapping only within its own
+      document means it never traced back to the ancestor it was supposed to descend from." This
+      library inherits -- `@github:shitchell/gvp-docs@v0.7.0 as me` -- and on the 5.0.0 build emitted:
+
+        96 W005  gvp        (local)
+        24 W005  personal   (inherited, rolled up behind --include-inherited)
+
+      96 local instances against 116 non-root elements (20 principles, 11 heuristics, 13 rules,
+      71 decisions, 1 procedure) and 23 roots (11 goals, 10 values, 2 constraints). Nearly every
+      non-root element in this library anchors to a local goal or a local value, which is exactly what
+      R3 requires of it, and W005 called each one a finding. So the inheriting case is not a narrower,
+      higher-signal case that the no-`inherits` case dilutes -- it is the same wall, and the reference
+      doc's own justification did not survive contact with the library shipping in the same repository.
+      That is why restoring the v0 `inherits` guard was rejected rather than adopted: it would have
+      silenced the no-import libraries and left all 96 of these standing.
+
+      THE DIAGNOSTIC DID NOT IDENTIFY THE CONDITION IT NAMED. "Maps only within its own document" is a
+      statement about file layout, not about traceability. A library that keeps its goals, values and
+      principles in one file trips it on essentially every element it has; the same library split
+      across two files trips it on none. Nothing about the quality of the anchoring differs between
+      those two arrangements. gvp:P4 -- enforce standards through appropriate friction -- is the test it failed,
+      and gvp:P9 is the value it cost: 96 lines of noise around 6 real findings (W003 x1, W007 x1,
+      W009 x1, W011 x3) that had been buried underneath them the whole time.
+
+      RATIONALE FOR STOPPING HERE RATHER THAN REPLACING IT. The retirement was originally paired with
+      an opt-in, upstream-declared anchoring requirement: an org publishing a library could demand that
+      consumers anchor into it, erroring if they did not, off by default. That half was cut, in the
+      maintainer's words:
+
+        "i don't see a pressing need for an org to say 'you must map all of your elements to ours', nor
+        do i think it would be helpful to have such a rule except for a very mature org-level GVP
+        library that provides enough explicitly declared values/principles to support all future
+        project decisions.
+
+        because i could see it useful in some mature organization structures, i would genuinely like to
+        revisit it. but it doesn't seem a priority at the moment"
+
+      So the deferral is conditional rather than a rejection, and the condition is named: a sufficiently
+      mature org-level library, one whose declared values and principles are complete enough that
+      "every downstream decision must anchor here" is a satisfiable demand rather than a trap. Absent
+      that, the rule forces a downstream author either to mis-anchor or to invent upstream elements
+      that do not exist. Tracked in #43, deliberately left open as a reminder rather than scheduled as
+      work.
+
+      NOTHING BREAKS, FOR A REASON WORTH RECORDING. `suppress_diagnostics` performs no code validation
+      -- `src/config/schema.ts` types it `z.array(z.string())`. DEC-5.4 states "Every suppressed code is
+      validated at config load -- unknown or invalid codes are errors", and that was never implemented.
+      Existing configs naming W005, including `~/.gvp/config.yaml`, keep loading; the entry simply goes
+      inert. Convenient here, but it is the same silent-inertness failure that #29 documented in
+      another guise, and it is recorded in #43 rather than fixed under this decision.
+
+      WHAT THE TEST SUITE REVEALED. W005 was the vehicle for the source-scoping tests (#29), for the
+      `--strict` exit-code flip in the global-options tests, and for three `--store` config-discovery
+      tests. Re-vehicling onto W007 (undefined tag -- one diagnostic per element, no traceability side
+      effects, and source scoping is pass-agnostic so the carrier is immaterial) exposed that the three
+      `--store` assertions had been vacuous since they were written: the fixture is a single root goal,
+      W005 never fired on roots, so `expect(stderr).not.toContain('W005')` was true whether or not the
+      store's config was ever read. They now assert a control case first, so the suppression they claim
+      to prove is load-bearing.
+    origin:
+      - id: d9c9121d-4a2d-4dc4-abd4-f71d614f5b5b
+        date: '2026-09-30T08:09:00.516Z'
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+    updated_by:
+      - id: b44c8498-d5b5-4501-a740-5ec25d38ee1f
+        date: '2026-09-30T08:09:29.105Z'
+        rationale: skip-review update
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+        skip_review: true
+      - id: 1c068973-d0d5-4719-87dd-d433e4a814a5
+        date: '2026-09-30T08:10:25.032Z'
+        rationale: skip-review update
+        by:
+          name: shaun mitchell
+          email: shaun@shitchell.com
+        skip_review: true
+    refs:
+      - file: src/validation/passes/semantic-pass.ts
+        identifier: semanticPass
+        role: implements
+      - file: docs/reference/validation.md
+        identifier: Retired codes
+        role: defines
 constraints:
   - id: C1
     name: Agents optimize for minimal effort

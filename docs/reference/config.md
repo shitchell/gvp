@@ -61,7 +61,7 @@ strict: false
 # Silence specific diagnostic codes
 suppress_diagnostics:
   - W001
-  - W005
+  - W009
 
 # Default timezone for provenance dates
 default_timezone: "America/New_York"
@@ -89,7 +89,7 @@ validation_rules:
 | `user.email` | string | — | User email for provenance entries. |
 | `libraries` | list[string] | `[]` | Additional library paths. `~` is expanded. |
 | `strict` | bool | `false` | Promote warnings to errors. Also settable via `--strict`. |
-| `suppress_diagnostics` | list[string] | `[]` | Diagnostic codes to silence (e.g., `["W001", "W005"]`). |
+| `suppress_diagnostics` | list[string] | `[]` | Diagnostic codes to silence (e.g., `["W001", "W009"]`). |
 | `default_timezone` | string | — | Default timezone for provenance date handling. |
 | `priority.elements` | string | `"ancestor"` | Merge priority for elements: `"ancestor"` or `"descendant"`. |
 | `priority.definitions` | string | `"descendant"` | Merge priority for definitions: `"ancestor"` or `"descendant"`. |

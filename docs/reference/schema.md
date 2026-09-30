@@ -126,7 +126,7 @@ meta:
         definitions: ancestor
     suppress_diagnostics:
       mode: additive
-      value: [W005]
+      value: [W009]
 ```
 
 `replace` sets the key outright; `additive` concatenates when both the existing

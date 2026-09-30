@@ -179,7 +179,7 @@ user:
   name: "Your Name"
   email: "you@example.com"
 strict: false
-suppress_diagnostics: ["W005"]
+suppress_diagnostics: ["W009"]
 default_timezone: "America/New_York"
 coverage:
   exclude: [".gvp/**", "**/*.test.ts"]
