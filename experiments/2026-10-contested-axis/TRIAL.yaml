@@ -1,0 +1,225 @@
+id: 2026-10-contested-axis
+hypothesis: >
+  A library that contradicts itself on an axis cannot be steered by editing one
+  voice on that axis, because the other voices still speak. It may still be
+  steerable by adding an explicit tie-break — a clause that names the conflict
+  and resolves it. Trials 1 and 2 both manipulated elements whose axis
+  ownership was never checked; this trial checks what happens when ownership is
+  absent.
+
+# ---------------------------------------------------------------------------
+# The axis, not the element. This is the field protocol section 5 requires and
+# that trials 1 and 2 did not have. Nine elements bear on the deferral /
+# flex-point axis, in three groups. Enumerated with:
+#   cairn --library ~/.gvp/library query --format compact
+# ---------------------------------------------------------------------------
+axis:
+  name: whether to build an extension seam for a feature with no concrete use case
+  voices_toward_seams:
+    - id: personal:V7
+      name: Flexibility / optionality
+      bears: "swappable seams over hard couplings, extensible abstractions over fixed ones"
+    - id: personal:P21
+      name: Build flex points early to discover the best use
+      bears: "favor creating MANY flex points in early builds, exposed as config options"
+    - id: personal:P17
+      name: Build, don't defer, a tentative flex point when the seam is uncertain
+      bears: "build rather than defer when the seam is uncertain and rework is costly"
+    - id: personal:H3
+      name: Build now when a known future need has clear cost asymmetry
+      bears: "self-describes as 'the complement to the deferral tree' — the library knows CH2 has a counterpart"
+    - id: code-common:CP15
+      name: Swappable persistence behind an abstraction
+      bears: "favor the SEAM, not any particular tool"
+  voices_toward_deferral:
+    - id: personal:V1
+      name: Simplicity
+      bears: "every abstraction should solve a real problem, not a hypothetical one"
+    - id: personal:P5
+      name: Plans informed by reality
+      bears: "do not plan speculatively"
+    - id: personal:H1
+      name: Extraction timing
+      bears: "do not create shared abstractions before a real shared need exists"
+    - id: code-common:CH2
+      name: Deferral decision tree
+      bears: "speculative with no concrete use case: defer entirely with no flex points"
+  mediating:
+    - id: personal:P1
+      name: Design around flex points
+      bears: "shape the architecture so the change is not painful — but do not implement the change early"
+  # Trial 1's defect 7 was a tag gloss stating an element's position. Checking
+  # for it here found something sharper: the contest is not only between
+  # elements, it is inside CH2's own two-tag set.
+  voices_in_the_tag_glossary:
+    - tag: simplicity
+      gloss: "Reducing complexity, preferring minimal solutions"
+      bears: toward deferral
+      carried_by: [code-common:CH2]
+    - tag: maintainability
+      gloss: "Naming, structure, extensibility, testability"
+      bears: toward seams
+      carried_by: [code-common:CH2]
+    - tag: autonomy
+      gloss: "User control, opt-in, meaningful choices"
+      bears: weakly toward seams — config options are meaningful choices
+      carried_by: [personal:P21]
+  tag_gloss_is_not_a_channel: >
+    The glosses are byte-identical across all four arms, and no arm inverts an
+    element, so no arm's library contradicts its own glossary. That is what
+    made trial 1's defect 7 a leak and keeps this one merely a confound: it is
+    part of the axis being measured, not a tell for which arm a run is in.
+    Asserted by the gate rather than argued.
+
+# Why the element the queue named is not under test on its own terms.
+withdrawn_candidate:
+  id: code-common:CH2
+  reason: >
+    The protocol's queue listed CH2 as "a second evaluative element", to test
+    whether trial 1's result generalises past CH1. Two grounds withdraw that.
+    (1) Shape: CH2 is a hybrid, not CH1's shape — the classification is
+    evaluative but all three consequents are definite actions, so CH1's
+    mechanism (inverting the conclusion leaves the questions intact) has
+    nothing to act on. (2) Ownership: personal:P21 already states the content
+    any pro-seam manipulation of CH2 would introduce, so such a manipulation is
+    redundant by construction and a flip could not be attributed to CH2. See
+    protocol section 4's last row and section 9 item 2.
+
+task: ../tasks/csv-tally.md    # behaviour-only, and specifies ZERO flags
+task_design_note: >
+  The task names no command-line flag at all, so every flag a run adds is a
+  feature the task never asked for. That is what makes the seam observable
+  mechanically rather than by judgement: the fork is "does an affordance exist
+  for something the spec never required", not "is this abstraction justified".
+  Requirements 6 and 7 exist to give the deferral tree a genuine branch-1
+  ("needed for correctness") item to classify, so the tree is exercised rather
+  than merely present.
+
+forks:
+  - id: S1
+    need: an affordance for an output form other than the one the task specifies
+    observable: invoke with --json / --format json; inspect for a formatter type or directory
+    levels: [absent, seam-only, implemented]
+    entails_baseline: not predicted — this is the measurement (see PREDICTIONS.md section 5)
+    entails_D: absent
+    entails_A: seam-only or implemented
+  - id: S2
+    need: an affordance for inputs beyond `*.csv` directly under the directory
+    observable: invoke with --recursive / --ext / --glob / --delimiter
+    levels: [absent, seam-only, implemented]
+    entails_baseline: not predicted
+    entails_D: absent
+    entails_A: seam-only or implemented
+  - id: S3
+    need: a declared extension point in the source
+    observable: >
+      exported interface/abstract type/union with exactly one implementor; a
+      formatters|adapters|plugins|providers directory; a config file read for
+      keys the task never names; a README section on extending the tool
+    levels: [absent, present]
+    entails_baseline: not predicted
+    entails_D: absent
+    entails_A: present
+
+# --help is excluded from every fork. It is universal to CLIs and is not a
+# feature seam; counting it would manufacture the observation. Pre-registered
+# in PREDICTIONS.md section 6 — this is trial 2's defect 1 generalised.
+scoring_exclusions:
+  - "--help / -h"
+  - "--version / -V"
+
+arms:
+  - id: baseline
+    change: none — the real library, contradiction intact
+  - id: D-decisive
+    element: code-common:CH2
+    change: >
+      branch 3 gains an explicit tie-break naming the conflict and resolving it
+      toward deferral. Position unchanged, name unchanged, id unchanged.
+  - id: A-decisive
+    element: personal:P21
+    change: >
+      the mirror tie-break, resolving toward building the seam. Position
+      unchanged, name unchanged, id unchanged.
+  - id: N-inverted
+    element: code-web:WP3     # subresource integrity pinning — inert for a Node CLI
+    change: inverted — the noise floor
+
+# Deviation from the protocol's one-element invariant, declared rather than
+# taken silently.
+invariant_deviations:
+  - invariant: exactly one element differs per arm
+    status: HELD — each arm differs from baseline in exactly one element, byte-wise
+  - invariant: the manipulated element is the only voice on its axis
+    status: VIOLATED BY CONSTRUCTION — that violation is the independent variable
+    consequence: >
+      This trial cannot attribute an outcome to CH2 or to P21 as elements. It
+      can only say whether an explicit tie-break added to a contested axis
+      moves the outcome. That is the question; the attribution this gives up is
+      the attribution trials 1 and 2 assumed they had without checking.
+  - invariant: no arm removes an element
+    status: HELD DELIBERATELY
+    rationale: >
+      An earlier design removed the eight co-stating elements to give CH2 sole
+      ownership. Rejected: it leaves eight id gaps, which is the exact tell
+      trial 2's PREDICTIONS section 10 rejected a no-element arm over, and it
+      would generalise only to a library where one element owns an axis — which
+      this library demonstrably is not. Both manipulations here are purely
+      additive clauses in the library's own native cross-reference idiom
+      (compare personal:V7's "(Distinct from V3 Composability...)" and
+      personal:H3's "The complement to the deferral tree").
+
+reps: 3
+model: opus[1m]
+
+observables:
+  scorer: instrument/score.mjs
+  floor: instrument/accept/run.sh
+  gate: instrument/leak-audit.py
+  gate_mutations: instrument/mutation-test.sh
+  transcript_gate: instrument/transcript-audit.py
+
+# Pinned absolutely, never resolved through PATH. Protocol section 4.
+cairn:
+  path: /home/guy/.nvm/versions/node/v22.14.0/bin/cairn
+  version: 5.1.0
+  provenance: >
+    Real registry install — symlinks to ../lib/node_modules/@principled/cairn/
+    dist/cli/index.js, not into any checkout. Matches main's package.json
+    version exactly, so the orchestrator verifies variants with the same build
+    the runs interpret them with.
+
+closed_channels:
+  - vcs
+  - element-name              # both manipulations leave the name unchanged
+  - run-directory-name
+  - registry                  # GVP_REGISTRY_ROOT per run — trial 1 defect 6
+  - sibling-runs
+  - per-run-HOME
+  - task-text                 # gate greps the task for the axis vocabulary
+  - acceptance-floor          # gate greps the floor for the measured forks
+  - element-restatement
+  - tag-glossary
+  - ancestor-git-worktree
+  - global-claude-config
+  - cairn-binary-provenance   # new — see protocol section 4; closed by the registry install
+  - instrument-cairn-pinned   # new
+  # new — all four arms produce byte-identical `cairn validate` output:
+  # 27 diagnostics, sha a50cebbc89b45bbc, captured from /tmp (NOT from $HOME,
+  # where ~/.gvp/config.yaml suppresses W003 and the count collapses to 2).
+  # This is what makes the additive-clause design safe where an inversion
+  # might not have been: no arm's diagnostics betray it.
+  - validate-diagnostic-identity
+
+open_channels:
+  - id: tie-break-clause-reads-as-authored-late
+    detail: >
+      Both decisive arms add a clause that references another element. The
+      library does this natively in V7 and H3, so the idiom is not a tell on its
+      own — but a run that compares clause density across the library might
+      notice. Measured by transcript-audit, not assumed.
+  - id: no-prior-arm
+    detail: >
+      There is no arm without the axis, so this trial cannot say what the nine
+      elements add over the model's prior — only whether a tie-break moves the
+      outcome. Same limit trial 2 declared.

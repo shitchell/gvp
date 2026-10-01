@@ -1,0 +1,95 @@
+meta:
+  name: code-realtime
+  scope: personal
+  inherits: code-common
+
+principles:
+  - id: RTP1
+    name: Host-authoritative means host validates everything
+    statement: >
+      In a host-authoritative system, ALL mutations must flow through the host
+      for validation. If any client can set state without host validation, the
+      system is NOT host-authoritative — it is cooperative with host
+      suggestion. Claiming authority you do not enforce is dishonest (V2).
+    tags: [realtime, security, trust]
+    maps_to: [personal:V2, personal:R1]
+
+  - id: RTP2
+    name: Prevention through protocol design, not detection
+    statement: >
+      When a peer could exploit a mechanism, redesign the protocol to remove
+      the attack surface rather than trying to detect bad actors. In
+      cooperative systems, prevention beats detection.
+    tags: [realtime, security]
+    maps_to: [personal:V1, personal:V2]
+
+  - id: RTP3
+    name: Single source of truth for mutable state
+    statement: >
+      For any piece of mutable state, there must be exactly one authoritative
+      source. If two systems track the same state independently, one is wrong
+      and you will not know which. Dual tracking is a bug factory.
+    tags: [realtime, maintainability]
+    maps_to: [personal:V1, personal:V3]
+
+  - id: RTP4
+    name: Cooperative trust requires honest documentation
+    statement: >
+      In peer-to-peer systems without a trusted server, you fundamentally
+      cannot prevent a modified client from lying. Document this honestly.
+      Any system that claims "host-authoritative security" in a serverless P2P
+      context is being dishonest about its trust model.
+    tags: [realtime, trust]
+    maps_to: [personal:V2]
+
+  - id: RTP5
+    name: Frame-rate-independent game logic
+    statement: >
+      Game loops and interpolation must use delta time or fixed timesteps,
+      never frame count or per-frame fixed factors. Frame-rate-dependent logic
+      produces different behavior on different hardware.
+    tags: [realtime, performance]
+    maps_to: [personal:V2, personal:R1]
+
+  - id: RTP6
+    name: Dispose resources on lifecycle transitions
+    statement: >
+      When a real-time object (WebRTC connection, GPU geometry, GPU material,
+      GPU texture, audio context, WebSocket) transitions state (disconnect,
+      mode change, round restart, component unmount), its resources must be
+      explicitly disposed. Relying on garbage collection for GPU or network
+      resources is a memory leak. scene.remove() is not dispose().
+    tags: [realtime, performance]
+    maps_to: [personal:V1, personal:R2]
+
+  - id: RTP7
+    name: No allocations in the hot loop
+    statement: >
+      Game loops, render loops, and per-tick network handlers must not allocate
+      objects (new Vector3, new Object, array.map creating new arrays, etc.).
+      Pre-allocate scratch variables at module scope or closure scope and reuse
+      them via mutation (.set(), .copy(), etc.). Per-frame allocations create
+      GC pressure that causes frame drops and jank.
+    tags: [realtime, performance]
+    maps_to: [personal:V1, personal:R2]
+
+rules:
+  - id: RTR1
+    name: No state mutation without host validation in host-authoritative systems
+    statement: >
+      In a host-authoritative architecture, every state mutation must be
+      validated by the host before being applied or broadcast. No client-side
+      state change is canonical until the host confirms it. This includes
+      position updates — the host must clamp to bounds, check colliders, and
+      reject impossible movement deltas.
+    tags: [realtime, security, trust]
+    maps_to: [personal:V2, personal:R1]
+
+  - id: RTR2
+    name: Never drop unknown fields in sync protocols
+    statement: >
+      Schema validation in sync protocols must never strip, discard, or reject
+      fields it does not recognize. The schema is a lens for reading data, not
+      a filter for storing it.
+    tags: [realtime, preservation]
+    maps_to: [personal:V5]
