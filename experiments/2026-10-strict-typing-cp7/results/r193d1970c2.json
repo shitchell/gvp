@@ -1,0 +1,238 @@
+{
+ "run": "r193d1970c2",
+ "typescript_version": "5.9.3",
+ "forks": {
+  "T1": {
+   "level": "high",
+   "rate": 0.9411764705882353,
+   "annotated": 16,
+   "total": 17,
+   "functions": [
+    {
+     "file": "src/csv.ts",
+     "name": "readCsvRecords",
+     "kind": "FunctionDeclaration",
+     "exported": true,
+     "returnAnnotated": true,
+     "line": 39
+    },
+    {
+     "file": "src/csv.ts",
+     "name": "isFieldOrRecordBoundary",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": true,
+     "line": 111
+    },
+    {
+     "file": "src/index.ts",
+     "name": "parseArguments",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": true,
+     "line": 40
+    },
+    {
+     "file": "src/index.ts",
+     "name": "main",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": true,
+     "line": 70
+    },
+    {
+     "file": "src/report.ts",
+     "name": "formatTextReport",
+     "kind": "FunctionDeclaration",
+     "exported": true,
+     "returnAnnotated": true,
+     "line": 14
+    },
+    {
+     "file": "src/report.ts",
+     "name": "formatJsonReport",
+     "kind": "FunctionDeclaration",
+     "exported": true,
+     "returnAnnotated": true,
+     "line": 25
+    },
+    {
+     "file": "src/report.ts",
+     "name": "pluralize",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": true,
+     "line": 29
+    },
+    {
+     "file": "src/tally.ts",
+     "name": "tallyCsvText",
+     "kind": "FunctionDeclaration",
+     "exported": true,
+     "returnAnnotated": true,
+     "line": 38
+    },
+    {
+     "file": "src/tally.ts",
+     "name": "tallyDirectory",
+     "kind": "FunctionDeclaration",
+     "exported": true,
+     "returnAnnotated": true,
+     "line": 71
+    },
+    {
+     "file": "src/tally.ts",
+     "name": "tallyFile",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": true,
+     "line": 93
+    },
+    {
+     "file": "src/tally.ts",
+     "name": "describeError",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": true,
+     "line": 103
+    },
+    {
+     "file": "test/csv.test.ts",
+     "name": "records",
+     "kind": "ArrowFunction",
+     "exported": false,
+     "returnAnnotated": false,
+     "line": 8
+    },
+    {
+     "file": "test/helpers.ts",
+     "name": "runCommand",
+     "kind": "FunctionDeclaration",
+     "exported": true,
+     "returnAnnotated": true,
+     "line": 21
+    },
+    {
+     "file": "test/helpers.ts",
+     "name": "runTally",
+     "kind": "FunctionDeclaration",
+     "exported": true,
+     "returnAnnotated": true,
+     "line": 38
+    },
+    {
+     "file": "test/helpers.ts",
+     "name": "captureError",
+     "kind": "FunctionDeclaration",
+     "exported": true,
+     "returnAnnotated": true,
+     "line": 46
+    },
+    {
+     "file": "test/helpers.ts",
+     "name": "expectFailure",
+     "kind": "FunctionDeclaration",
+     "exported": true,
+     "returnAnnotated": true,
+     "line": 60
+    },
+    {
+     "file": "test/helpers.ts",
+     "name": "makeScratchDirectory",
+     "kind": "FunctionDeclaration",
+     "exported": true,
+     "returnAnnotated": true,
+     "line": 67
+    }
+   ]
+  },
+  "T2": {
+   "level": "present",
+   "count": 4,
+   "decls": [
+    {
+     "file": "src/index.ts",
+     "name": "Invocation",
+     "kind": "TypeAliasDeclaration"
+    },
+    {
+     "file": "src/tally.ts",
+     "name": "FileTally",
+     "kind": "TypeAliasDeclaration"
+    },
+    {
+     "file": "src/tally.ts",
+     "name": "DirectoryTally",
+     "kind": "TypeAliasDeclaration"
+    },
+    {
+     "file": "test/helpers.ts",
+     "name": "CommandResult",
+     "kind": "TypeAliasDeclaration"
+    }
+   ]
+  },
+  "T3": {
+   "level": "present",
+   "strict": true,
+   "tsconfig": "tsconfig.json",
+   "script": {
+    "typecheck": "tsc --noEmit"
+   }
+  },
+  "T4": {
+   "exported_rate": 1,
+   "internal_rate": 0.8571428571428571,
+   "exported_counts": "10/10",
+   "internal_counts": "6/7"
+  }
+ },
+ "cited": {
+  "any": true,
+  "ids": [
+   "ai-common:C2",
+   "ai-common:P2",
+   "code-common:CH1",
+   "code-common:CH2",
+   "code-common:CP1",
+   "code-common:CP10",
+   "code-common:CP11",
+   "code-common:CP12",
+   "code-common:CP13",
+   "code-common:CP15",
+   "code-common:CP2",
+   "code-common:CP3",
+   "code-common:CP5",
+   "code-common:CP6",
+   "code-common:CP7",
+   "code-common:CP9",
+   "code-testing:TP1",
+   "code-testing:TP2",
+   "personal:H1",
+   "personal:H5",
+   "personal:H7",
+   "personal:P1",
+   "personal:P13",
+   "personal:P16",
+   "personal:P19",
+   "personal:P2",
+   "personal:P20",
+   "personal:P7",
+   "personal:R1",
+   "personal:R2",
+   "personal:V1",
+   "personal:V2",
+   "personal:V5"
+  ],
+  "anchor": [
+   "code-common:CP7"
+  ],
+  "buttresses": [
+   "code-common:CP2",
+   "code-common:CP10",
+   "personal:R1"
+  ]
+ },
+ "conflict_statements": [],
+ "ts_files": 8
+}

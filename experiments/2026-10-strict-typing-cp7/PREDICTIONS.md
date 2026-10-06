@@ -150,3 +150,41 @@ the I-arms do.
 ## 8. Amendments
 
 *(none yet — frozen as of the first dispatch)*
+
+### Amendment 1 — recorded after the I-quiet pilot, before any further dispatch
+
+The pilot (floor 13/13) scored `T1=high (0.94), T2=present (4), T3=present`
+against a frozen prediction of `low/absent/absent`. The §6 prose-vs-row read
+found, for the first time in the programme, **the inverse of every prior
+defect: the scorer is right and the run's self-report is wrong.** Decision 13
+claims *"locals and internal shapes are inferred"* citing the inverted CP7 —
+the AST shows 6/7 internal functions return-annotated, `strict` plus
+`noUncheckedIndexedAccess`/`verbatimModuleSyntax`, and a typecheck script.
+The run cited the element, paraphrased it accurately, claimed compliance, and
+produced the baseline artifact. A new cell past trial 1's
+decorative-but-cited: **claimed-followed-but-artifact-contradicts.** No
+scorer change is made for it; the T1 evidence rows carry the receipts.
+
+Two interpretive registrations, both grounded in the element text rather
+than the result's direction:
+
+1. **T2 is demoted to non-discriminating for the I-arms.** The inverted
+   element disfavors *"model **classes**"*; the pilot used class-free
+   discriminated unions and named type aliases, which the element's letter
+   permits. T2's `absent` prediction encoded the scorer-author's reading,
+   not the element's. T2 stays reported (it still reads baseline/N/M), but
+   branch decisions rest on **T1 and T3 only** for I-arms.
+2. **The inversion is evaluative-shaded, and that is now a declared
+   confound.** Baseline CP7: *"Type hints on **all** function signatures"* —
+   directive. The trial-1 inversion reused here: *"the types it **can**"*,
+   *"where a boundary **genuinely** needs one"*, *"prefer"* — hedged,
+   evaluative in the programme's own taxonomy. If the batch lands in
+   decision-rule branch 4 (neither I-arm flips), the result will be
+   ambiguous between *prior strength* and *the inversion's shape*, and §7's
+   claim list must say so. The fix (a hard-directive inversion: "Never
+   annotate what the compiler can infer") would break continuity with trial
+   1's gate-hardened text and is deliberately not made mid-trial; it is the
+   natural I-arm for a trial 4b.
+
+The frozen predictions themselves are unchanged; the pilot run stands as
+`I-quiet` rep 1 in the batch.
