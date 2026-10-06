@@ -1,4 +1,4 @@
-# Handoff — 2026-10-06
+# Handoff — 2026-10-07
 
 > For the agent picking this up. Written at the end of a long session; the
 > point is to let you start **small** rather than reconstruct it.
@@ -31,10 +31,18 @@ explaining. `personal:P14`.
   **#44 looks like the same failure family as #23 and #10** (list/structured
   fields written as strings, wedging the library) — check whether they are one
   fix before building three.
-- **Three trials complete.** See §3.
-- **Trial 3 is on `experiment/contested-axis-trial3`, NOT merged.** 12 runs
-  scored, `FINDINGS.md` written, `REGISTER.md` appended, protocol updated.
-  Outstanding: merge, push, and comment on #42.
+- **Four trials complete, all merged and on #42.** See §3 and
+  `experiments/REGISTER.md`.
+- **Proposal 0001 awaits the maintainer:** seven patches to a COPY of the
+  personal library (`lab/proposals/0001-tiebreak-library/`), blind-verified
+  via P0003→fix→P0005. The live `~/.gvp/library` is untouched. Adoption
+  note inside PATCHES.md (adopt after any in-flight trial, or rebuild
+  variants).
+- **The lab is the steering state** — `lab/LEDGER.md` + open musings. New
+  standing rules the trials bought: retrospectives audit artifacts, never
+  self-reports (trial 4); every load-bearing enumeration gets an independent
+  re-enumeration (musing 0011); library edits ship only after a blind
+  tension re-check (P0003/P0005 recipe).
 - `cairn` now resolves through a dispatcher at `~/bin/cairn` that runs a
   repo-local build inside a checkout and the global install elsewhere. **The
   instrument pins an absolute cairn path** rather than trusting PATH — a
@@ -51,6 +59,7 @@ Issue **#42**. The gate question is *not* "is the library good" but:
 | 1 | `code-common:CH1` (evaluative) | **did not steer.** Cited in 11/12 and described as load-bearing while producing the same outcome at both polarities |
 | 2 | `code-common:CR1` (directive) | **steered**, 3/3 on every fork, and 3/3 on a **two-word** narrowing. Cited 12/12 |
 | 3 | tie-breaks on a **ten-voice** axis | **steered against the grain only.** 0/3 vs 5/6; the with-the-grain arm was identical to the noise floor |
+| 4 | `CP7` inversions + `M` narrowing (buttressed axis, **habit domain**) | **no flip.** Strict checker 15/15; three runs claimed compliance their artifacts contradict; the outnumbered anchor was cited 0/3 — unpersoned, not argued with |
 
 **The shape hypothesis** — an evaluative element cannot steer because inverting
 its conclusion leaves its questions intact, a directive one can — **held through
