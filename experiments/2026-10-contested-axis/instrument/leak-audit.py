@@ -166,16 +166,21 @@ for v, (f, key, eid, name_must_change, additive) in TARGET.items():
             changed += [
                 f"{rel}:{k}:{i}" for i in set(bi) | set(oi) if bi.get(i) != oi.get(i)
             ]
-    chk(changed == [f"{f}:{key}:{eid}"], f"{v}: exactly one element changed ({changed})")
+    chk(
+        changed == [f"{f}:{key}:{eid}"], f"{v}: exactly one element changed ({changed})"
+    )
 
     be = [e for e in yaml.safe_load((base / f).read_text())[key] if e["id"] == eid][0]
-    oe = [
-        e for e in yaml.safe_load((root / v / f).read_text())[key] if e["id"] == eid
-    ][0]
+    oe = [e for e in yaml.safe_load((root / v / f).read_text())[key] if e["id"] == eid][
+        0
+    ]
     chk(be["statement"] != oe["statement"], f"{v}: {eid} statement actually changed")
 
     if name_must_change:
-        chk(be["name"] != oe["name"], f"{v}: {eid} name inverted alongside its statement")
+        chk(
+            be["name"] != oe["name"],
+            f"{v}: {eid} name inverted alongside its statement",
+        )
     else:
         chk(
             be["name"] == oe["name"],
@@ -228,7 +233,11 @@ for v in ["baseline", *TARGET]:
                 found[f"{libname}:{el['id']}"] = sorted(
                     {m.group(0).lower() for m in AXIS_KEYWORDS.finditer(text_of(el))}
                 )
-    unexpected = {k: w for k, w in found.items() if k not in AXIS_DECLARED and k not in AXIS_INCIDENTAL}
+    unexpected = {
+        k: w
+        for k, w in found.items()
+        if k not in AXIS_DECLARED and k not in AXIS_INCIDENTAL
+    }
     missing = sorted(AXIS_DECLARED - set(found))
     chk(not unexpected, f"{v}: no undeclared voice on the axis ({unexpected})")
     chk(not missing, f"{v}: every declared axis voice is present ({missing})")
@@ -255,7 +264,9 @@ chk(
 
 # And every axis term the glossary does carry must be acknowledged in writing.
 if (base / "personal.yaml").exists():
-    defs = yaml.safe_load((base / "personal.yaml").read_text())["meta"]["definitions"]["tags"]
+    defs = yaml.safe_load((base / "personal.yaml").read_text())["meta"]["definitions"][
+        "tags"
+    ]
     glossary = " ".join(
         d.get("description", "") for group in defs.values() for d in group.values()
     ).lower()
@@ -316,7 +327,9 @@ for v, (f, key, eid, _, additive) in TARGET.items():
     if not additive or not (root / v).exists():
         continue
     be = [e for e in yaml.safe_load((base / f).read_text())[key] if e["id"] == eid][0]
-    oe = [e for e in yaml.safe_load((root / v / f).read_text())[key] if e["id"] == eid][0]
+    oe = [e for e in yaml.safe_load((root / v / f).read_text())[key] if e["id"] == eid][
+        0
+    ]
     clauses[v] = oe["statement"].strip()[len(be["statement"].strip()) :].strip()
 
 if len(clauses) == 2:
@@ -419,7 +432,8 @@ if prompt:
     # would manufacture the observation.
     chk(
         not re.search(
-            r"tension|contradict|conflict|disagree|inconsisten|at odds|trade-?off", prompt.lower()
+            r"tension|contradict|conflict|disagree|inconsisten|at odds|trade-?off",
+            prompt.lower(),
         ),
         "RUN_PROMPT does not invite the run to look for tension in the library "
         "(prediction 2 must be unprompted)",
@@ -439,9 +453,7 @@ if prompt:
 SKIP_EXTERNAL = bool(os.environ.get("LEAK_AUDIT_SKIP_EXTERNAL"))
 
 if not SKIP_EXTERNAL and shutil.which("npm"):
-    r = subprocess.run(
-        ["npm", "ls", "-g", "--depth=0"], capture_output=True, text=True
-    )
+    r = subprocess.run(["npm", "ls", "-g", "--depth=0"], capture_output=True, text=True)
     line = [ln for ln in (r.stdout + r.stderr).splitlines() if "cairn" in ln]
     chk(
         bool(line) and not any("->" in ln for ln in line),
