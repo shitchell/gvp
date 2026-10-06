@@ -1,0 +1,70 @@
+# Operations — how units launch without losing the plot
+
+> How new trials/probes start, run, and hand back — designed for either a
+> minimal-context orchestrator or headless one-shot sessions ("or both" —
+> the maintainer, `conversations/0002`). The invariants come first because
+> they are the actual requirements; the tiers are just ways to satisfy them.
+
+## Invariants (what any launch mechanism must preserve)
+
+1. **Intention** — every unit starts from a BRIEF that quotes the rationale
+   it serves (maintainer quotes from `conversations/`, or the LEDGER entry
+   that picked its path). No unit runs on vibes inherited from a dead
+   context window.
+2. **Self-amendment** — the model stays versioned: units may append
+   musings, PREDICTIONS amendments, and probe files freely; only a *steer*
+   step edits README/PATHS/OPERATIONS, and records why in the LEDGER.
+3. **Findings discipline** — a unit is done when: FINDINGS (trial) or the
+   probe file's Result+Reflection are written, `REGISTER.md`/`PATHS.md`
+   updated, a LEDGER entry exists, and a terse maintainer review
+   (`reviews/NNNN`, template in `conversations/0002`) is filed. Un-reviewed
+   work does not count as done.
+4. **Context economy** — workers load the minimum stack (below), delegate
+   bulk reads to subagents, and never load prior transcripts. The protocol's
+   §2 list stays authoritative for trials.
+
+## The minimum stack, by role
+
+| role | loads | writes |
+|---|---|---|
+| **steer** (pick next path, write briefs, amend model) | `lab/README.md` · `lab/PATHS.md` · `lab/LEDGER.md` (top N) · latest `reviews/` | BRIEF · LEDGER entry · PATHS/README amendments |
+| **trial worker** (one phase per session, per `personal:P12`) | its BRIEF · protocol · TRIAL.yaml/PREDICTIONS for its trial · REGISTER | instrument/runs/FINDINGS/amendments · musings |
+| **probe worker** | its BRIEF · the musing it tests | probe file · musing updates |
+
+## BRIEF.md — the handoff unit
+
+One file per launched unit, written by the steer step, containing exactly:
+**goal** (one sentence + the rationale quote), **inputs** (exact file list —
+the minimum stack), **contract** (the invariant-3 done-list), **constraints**
+(protocol sections that bind; what the unit may NOT touch), **stop
+conditions** (what aborts the unit and surfaces to the maintainer instead).
+A fresh `claude -p "$(cat BRIEF.md)"` or an Agent-tool worker must be able
+to run from it alone.
+
+## The two tiers (both noted, per the fork-noting rule)
+
+- **A — resident minimal-context orchestrator:** one long session holding
+  only the steer stack, spawning workers as subagents, absorbing their
+  reports. *For:* tight feedback, mid-unit judgment calls. *Against:* the
+  steer context still accretes; a crash loses the thread; it re-implements
+  what HANDOFF + this directory already give any fresh session.
+- **B — headless phase-sessions + thin steer (recommended first):** each
+  unit phase is its own `claude -p` session launched from a BRIEF; between
+  units, a steer session (manual today; cron-able as PA-16) reads
+  PATHS/LEDGER/reviews and writes the next BRIEF or stops. *For:* matches
+  `personal:P12` (one cohesive unit per session), crash isolation, honest
+  context resets, and the repo itself is the memory — which the lab already
+  proved works (this directory was built across exactly such resets).
+  *Against:* no mid-unit steering; briefs must be good.
+
+Recommendation: **B now, A never ruled out** — if briefs prove too lossy for
+trial-grade work, tier A's orchestrator is the fallback and PATHS gets the
+row. Automating B's steer step with cron is PA-16, **parked until the
+maintainer okays unattended session-spawning.**
+
+## Today's manual equivalent
+
+Until PA-16: the driver session plays both roles, but *acts* them
+separately — steer moments write LEDGER/PATHS/briefs before worker moments
+execute them. The overnight run already followed this shape informally; this
+document makes it checkable.
