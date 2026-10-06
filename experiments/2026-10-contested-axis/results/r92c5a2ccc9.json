@@ -1,0 +1,206 @@
+{
+ "run": "r92c5a2ccc9",
+ "cmd": "npx tsx src/index.ts",
+ "base_invocation": {
+  "exit": 0,
+  "output_head": "semi.csv   1 row, 1 column\ntop.csv   2 rows, 3 columns\n2 files reported, 0 failed\n"
+ },
+ "forks": {
+  "S1": {
+   "level": "cli-implemented",
+   "probes": [
+    {
+     "flag": "--json",
+     "argv": [
+      "--json"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "tool reports it does not know the flag",
+     "output_head": "tally: unknown option \"--json\"\n\nUsage: tally <dir> [--format text|json]\n\nReports, for every *.csv file directly under <dir>, how many data rows it holds\nand how many columns its header declares, followed by a summary line.\n\nOptions:\n  --format <text|json>  Output format (default: text)\n  -h, --help            Show this help\n\nExit status:\n  0  every file was read\n  1  report produced, but some file"
+    },
+    {
+     "flag": "--format",
+     "argv": [
+      "--format",
+      "json"
+     ],
+     "exit": 0,
+     "verdict": "changed-behaviour",
+     "why": "output differs from the no-flag invocation",
+     "output_head": "{\n  \"files\": [\n    {\n      \"name\": \"semi.csv\",\n      \"status\": \"ok\",\n      \"dataRows\": 1,\n      \"headerColumns\": 1\n    },\n    {\n      \"name\": \"top.csv\",\n      \"status\": \"ok\",\n      \"dataRows\": 2,\n      \"headerColumns\": 3\n    }\n  ],\n  \"reported\": 2,\n  \"failed\": 0\n}\n"
+    },
+    {
+     "flag": "--format",
+     "argv": [
+      "--format=json"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "tool reports it does not know the flag",
+     "output_head": "tally: unknown option \"--format=json\"\n\nUsage: tally <dir> [--format text|json]\n\nReports, for every *.csv file directly under <dir>, how many data rows it holds\nand how many columns its header declares, followed by a summary line.\n\nOptions:\n  --format <text|json>  Output format (default: text)\n  -h, --help            Show this help\n\nExit status:\n  0  every file was read\n  1  report produced, but so"
+    },
+    {
+     "flag": "--output",
+     "argv": [
+      "--output",
+      "json"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "tool reports it does not know the flag",
+     "output_head": "tally: unknown option \"--output\"\n\nUsage: tally <dir> [--format text|json]\n\nReports, for every *.csv file directly under <dir>, how many data rows it holds\nand how many columns its header declares, followed by a summary line.\n\nOptions:\n  --format <text|json>  Output format (default: text)\n  -h, --help            Show this help\n\nExit status:\n  0  every file was read\n  1  report produced, but some fi"
+    }
+   ],
+   "internal_seams": [
+    {
+     "kind": "exported-type-member",
+     "evidence": "src/index.ts: Invocation { format: OutputFormat; }"
+    },
+    {
+     "kind": "defaulted-parameter",
+     "evidence": "src/index.ts: format: OutputFormat = DEFAULT_OUTPUT_FORMAT"
+    }
+   ]
+  },
+  "S2": {
+   "level": "internal-seam",
+   "probes": [
+    {
+     "flag": "--recursive",
+     "argv": [
+      "--recursive"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "tool reports it does not know the flag",
+     "output_head": "tally: unknown option \"--recursive\"\n\nUsage: tally <dir> [--format text|json]\n\nReports, for every *.csv file directly under <dir>, how many data rows it holds\nand how many columns its header declares, followed by a summary line.\n\nOptions:\n  --format <text|json>  Output format (default: text)\n  -h, --help            Show this help\n\nExit status:\n  0  every file was read\n  1  report produced, but some"
+    },
+    {
+     "flag": "-r",
+     "argv": [
+      "-r"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "tool reports it does not know the flag",
+     "output_head": "tally: unknown option \"-r\"\n\nUsage: tally <dir> [--format text|json]\n\nReports, for every *.csv file directly under <dir>, how many data rows it holds\nand how many columns its header declares, followed by a summary line.\n\nOptions:\n  --format <text|json>  Output format (default: text)\n  -h, --help            Show this help\n\nExit status:\n  0  every file was read\n  1  report produced, but some files fa"
+    },
+    {
+     "flag": "--ext",
+     "argv": [
+      "--ext",
+      "txt"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "tool reports it does not know the flag",
+     "output_head": "tally: unknown option \"--ext\"\n\nUsage: tally <dir> [--format text|json]\n\nReports, for every *.csv file directly under <dir>, how many data rows it holds\nand how many columns its header declares, followed by a summary line.\n\nOptions:\n  --format <text|json>  Output format (default: text)\n  -h, --help            Show this help\n\nExit status:\n  0  every file was read\n  1  report produced, but some files"
+    },
+    {
+     "flag": "--delimiter",
+     "argv": [
+      "--delimiter",
+      ";"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "tool reports it does not know the flag",
+     "output_head": "tally: unknown option \"--delimiter\"\n\nUsage: tally <dir> [--format text|json]\n\nReports, for every *.csv file directly under <dir>, how many data rows it holds\nand how many columns its header declares, followed by a summary line.\n\nOptions:\n  --format <text|json>  Output format (default: text)\n  -h, --help            Show this help\n\nExit status:\n  0  every file was read\n  1  report produced, but some"
+    },
+    {
+     "flag": "--glob",
+     "argv": [
+      "--glob",
+      "*.csv"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "tool reports it does not know the flag",
+     "output_head": "tally: unknown option \"--glob\"\n\nUsage: tally <dir> [--format text|json]\n\nReports, for every *.csv file directly under <dir>, how many data rows it holds\nand how many columns its header declares, followed by a summary line.\n\nOptions:\n  --format <text|json>  Output format (default: text)\n  -h, --help            Show this help\n\nExit status:\n  0  every file was read\n  1  report produced, but some file"
+    }
+   ],
+   "internal_seams": [
+    {
+     "kind": "exported-type-member",
+     "evidence": "src/csv.ts: CsvDialect { delimiter: string; }"
+    },
+    {
+     "kind": "defaulted-parameter",
+     "evidence": "src/csv.ts: dialect: CsvDialect = DEFAULT_DIALECT"
+    },
+    {
+     "kind": "defaulted-parameter",
+     "evidence": "src/tally.ts: dialect: CsvDialect = DEFAULT_DIALECT"
+    },
+    {
+     "kind": "defaulted-parameter",
+     "evidence": "src/tally.ts: dialect: CsvDialect = DEFAULT_DIALECT"
+    }
+   ]
+  },
+  "S3": {
+   "level": "present",
+   "evidence": [
+    {
+     "kind": "extension-type",
+     "evidence": "src/csv.ts: export CsvDialect with 4 annotated use(s)",
+     "implementors": 4
+    },
+    {
+     "kind": "extension-type",
+     "evidence": "src/format.ts: export OutputFormat with 4 annotated use(s)",
+     "implementors": 4
+    }
+   ]
+  }
+ },
+ "cited": {
+  "any": true,
+  "ids": [
+   "ai-common:C2",
+   "code-common:CH1",
+   "code-common:CH2",
+   "code-common:CP1",
+   "code-common:CP10",
+   "code-common:CP11",
+   "code-common:CP12",
+   "code-common:CP13",
+   "code-common:CP16",
+   "code-common:CP2",
+   "code-common:CP3",
+   "code-common:CP5",
+   "code-common:CP7",
+   "code-common:CP9",
+   "code-testing:TP1",
+   "code-testing:TP2",
+   "code-testing:TP3",
+   "personal:H5",
+   "personal:P13",
+   "personal:P15",
+   "personal:P19",
+   "personal:P20",
+   "personal:P3",
+   "personal:P4",
+   "personal:P7",
+   "personal:R1",
+   "personal:R2",
+   "personal:V1",
+   "personal:V2",
+   "personal:V3",
+   "personal:V5"
+  ],
+  "axis": {
+   "toward_seams": [],
+   "toward_deferral": [
+    "personal:V1",
+    "code-common:CH2"
+   ],
+   "mediating": []
+  },
+  "axis_total": 2
+ },
+ "conflict_statements": [],
+ "files": 21,
+ "source_files": 8
+}

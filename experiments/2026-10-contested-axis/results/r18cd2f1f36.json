@@ -1,0 +1,215 @@
+{
+ "run": "r18cd2f1f36",
+ "cmd": "npx tsx src/index.ts",
+ "base_invocation": {
+  "exit": 0,
+  "output_head": "semi.csv: 1 data row, 1 column\ntop.csv: 2 data rows, 3 columns\n2 files reported, 0 failed\n"
+ },
+ "forks": {
+  "S1": {
+   "level": "cli-implemented",
+   "probes": [
+    {
+     "flag": "--json",
+     "argv": [
+      "--json"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "tool reports it does not know the flag",
+     "output_head": "tally: Unknown option '--json'. To specify a positional argument starting with a '-', place it at the end of the command after '--', as in '-- \"--json\"\n\nUsage: tally <dir> [--format text|json]\n\nReports every *.csv file directly under <dir>: its name, how many data rows it\nholds (the first line is the header and is not counted), and how many columns\nits header declares. Files that cannot be read as"
+    },
+    {
+     "flag": "--format",
+     "argv": [
+      "--format",
+      "json"
+     ],
+     "exit": 0,
+     "verdict": "changed-behaviour",
+     "why": "output differs from the no-flag invocation",
+     "output_head": "{\n  \"files\": [\n    {\n      \"kind\": \"tally\",\n      \"name\": \"semi.csv\",\n      \"dataRows\": 1,\n      \"headerColumns\": 1\n    },\n    {\n      \"kind\": \"tally\",\n      \"name\": \"top.csv\",\n      \"dataRows\": 2,\n      \"headerColumns\": 3\n    }\n  ],\n  \"summary\": {\n    \"reported\": 2,\n    \"failed\": 0\n  }\n}\n"
+    },
+    {
+     "flag": "--format",
+     "argv": [
+      "--format=json"
+     ],
+     "exit": 0,
+     "verdict": "changed-behaviour",
+     "why": "output differs from the no-flag invocation",
+     "output_head": "{\n  \"files\": [\n    {\n      \"kind\": \"tally\",\n      \"name\": \"semi.csv\",\n      \"dataRows\": 1,\n      \"headerColumns\": 1\n    },\n    {\n      \"kind\": \"tally\",\n      \"name\": \"top.csv\",\n      \"dataRows\": 2,\n      \"headerColumns\": 3\n    }\n  ],\n  \"summary\": {\n    \"reported\": 2,\n    \"failed\": 0\n  }\n}\n"
+    },
+    {
+     "flag": "--output",
+     "argv": [
+      "--output",
+      "json"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "tool reports it does not know the flag",
+     "output_head": "tally: Unknown option '--output'. To specify a positional argument starting with a '-', place it at the end of the command after '--', as in '-- \"--output\"\n\nUsage: tally <dir> [--format text|json]\n\nReports every *.csv file directly under <dir>: its name, how many data rows it\nholds (the first line is the header and is not counted), and how many columns\nits header declares. Files that cannot be rea"
+    }
+   ],
+   "internal_seams": []
+  },
+  "S2": {
+   "level": "internal-seam",
+   "probes": [
+    {
+     "flag": "--recursive",
+     "argv": [
+      "--recursive"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "tool reports it does not know the flag",
+     "output_head": "tally: Unknown option '--recursive'. To specify a positional argument starting with a '-', place it at the end of the command after '--', as in '-- \"--recursive\"\n\nUsage: tally <dir> [--format text|json]\n\nReports every *.csv file directly under <dir>: its name, how many data rows it\nholds (the first line is the header and is not counted), and how many columns\nits header declares. Files that cannot "
+    },
+    {
+     "flag": "-r",
+     "argv": [
+      "-r"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "tool reports it does not know the flag",
+     "output_head": "tally: Unknown option '-r'. To specify a positional argument starting with a '-', place it at the end of the command after '--', as in '-- \"-r\"\n\nUsage: tally <dir> [--format text|json]\n\nReports every *.csv file directly under <dir>: its name, how many data rows it\nholds (the first line is the header and is not counted), and how many columns\nits header declares. Files that cannot be read as CSV are"
+    },
+    {
+     "flag": "--ext",
+     "argv": [
+      "--ext",
+      "txt"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "tool reports it does not know the flag",
+     "output_head": "tally: Unknown option '--ext'. To specify a positional argument starting with a '-', place it at the end of the command after '--', as in '-- \"--ext\"\n\nUsage: tally <dir> [--format text|json]\n\nReports every *.csv file directly under <dir>: its name, how many data rows it\nholds (the first line is the header and is not counted), and how many columns\nits header declares. Files that cannot be read as C"
+    },
+    {
+     "flag": "--delimiter",
+     "argv": [
+      "--delimiter",
+      ";"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "tool reports it does not know the flag",
+     "output_head": "tally: Unknown option '--delimiter'. To specify a positional argument starting with a '-', place it at the end of the command after '--', as in '-- \"--delimiter\"\n\nUsage: tally <dir> [--format text|json]\n\nReports every *.csv file directly under <dir>: its name, how many data rows it\nholds (the first line is the header and is not counted), and how many columns\nits header declares. Files that cannot "
+    },
+    {
+     "flag": "--glob",
+     "argv": [
+      "--glob",
+      "*.csv"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "tool reports it does not know the flag",
+     "output_head": "tally: Unknown option '--glob'. To specify a positional argument starting with a '-', place it at the end of the command after '--', as in '-- \"--glob\"\n\nUsage: tally <dir> [--format text|json]\n\nReports every *.csv file directly under <dir>: its name, how many data rows it\nholds (the first line is the header and is not counted), and how many columns\nits header declares. Files that cannot be read as"
+    }
+   ],
+   "internal_seams": [
+    {
+     "kind": "exported-type-member",
+     "evidence": "src/csv.ts: CsvDialect { readonly delimiter: string; }"
+    },
+    {
+     "kind": "defaulted-parameter",
+     "evidence": "src/csv.ts: dialect: CsvDialect = DEFAULT_DIALECT"
+    },
+    {
+     "kind": "defaulted-parameter",
+     "evidence": "src/csv.ts: dialect: CsvDialect = DEFAULT_DIALECT"
+    },
+    {
+     "kind": "exported-type-member",
+     "evidence": "src/tally.ts: FileReport { readonly dialect?: CsvDialect; }"
+    },
+    {
+     "kind": "defaulted-parameter",
+     "evidence": "tests/csv.test.ts: dialect: CsvDialect = DEFAULT_DIALECT"
+    }
+   ]
+  },
+  "S3": {
+   "level": "present",
+   "evidence": [
+    {
+     "kind": "extension-type",
+     "evidence": "src/csv.ts: export CsvDialect with 9 annotated use(s)",
+     "implementors": 9
+    },
+    {
+     "kind": "extension-type",
+     "evidence": "src/format.ts: export OutputFormat with 3 annotated use(s)",
+     "implementors": 3
+    },
+    {
+     "kind": "extension-type",
+     "evidence": "src/tally.ts: export TallyOptions with 1 annotated use(s)",
+     "implementors": 1
+    }
+   ]
+  }
+ },
+ "cited": {
+  "any": true,
+  "ids": [
+   "ai-common:P2",
+   "ai-common:P5",
+   "code-common:CH1",
+   "code-common:CH2",
+   "code-common:CP1",
+   "code-common:CP10",
+   "code-common:CP11",
+   "code-common:CP12",
+   "code-common:CP13",
+   "code-common:CP2",
+   "code-common:CP3",
+   "code-common:CP5",
+   "code-common:CP7",
+   "code-common:CP8",
+   "code-common:CP9",
+   "code-common:CR2",
+   "code-testing:TP1",
+   "code-testing:TP2",
+   "code-testing:TP3",
+   "personal:H1",
+   "personal:H5",
+   "personal:P13",
+   "personal:P16",
+   "personal:P18",
+   "personal:P19",
+   "personal:P2",
+   "personal:P20",
+   "personal:P4",
+   "personal:P7",
+   "personal:R1",
+   "personal:R2",
+   "personal:V1",
+   "personal:V2",
+   "personal:V3",
+   "personal:V4",
+   "personal:V5",
+   "personal:V7"
+  ],
+  "axis": {
+   "toward_seams": [
+    "personal:V7"
+   ],
+   "toward_deferral": [
+    "personal:V1",
+    "personal:H1",
+    "code-common:CH2"
+   ],
+   "mediating": []
+  },
+  "axis_total": 4
+ },
+ "conflict_statements": [],
+ "files": 22,
+ "source_files": 8
+}

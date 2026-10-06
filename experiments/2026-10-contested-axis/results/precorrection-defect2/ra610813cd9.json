@@ -1,0 +1,209 @@
+{
+ "run": "ra610813cd9",
+ "cmd": "npx tsx src/index.ts",
+ "base_invocation": {
+  "exit": 0,
+  "output_head": "semi.csv  1 row   1 column\ntop.csv   2 rows  3 columns\n2 files reported, 0 failed\n"
+ },
+ "forks": {
+  "S1": {
+   "level": "cli-implemented",
+   "probes": [
+    {
+     "flag": "--json",
+     "argv": [
+      "--json"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "tool reports it does not know the flag",
+     "output_head": "tally: Unknown option '--json'. To specify a positional argument starting with a '-', place it at the end of the command after '--', as in '-- \"--json\"\n\nUsage: tally <dir> [--format text|json]\n\nReports, for every *.csv file directly under <dir>, how many data rows it\nholds and how many columns its header declares, followed by a summary line.\n\nOptions:\n  --format <fmt>  output format: text, json (d"
+    },
+    {
+     "flag": "--format",
+     "argv": [
+      "--format",
+      "json"
+     ],
+     "exit": 0,
+     "verdict": "changed-behaviour",
+     "why": "output differs from the no-flag invocation",
+     "output_head": "{\n  \"directory\": \"/tmp/t3-probe-whGFDr\",\n  \"files\": [\n    {\n      \"name\": \"semi.csv\",\n      \"status\": \"ok\",\n      \"dataRows\": 1,\n      \"columns\": 1\n    },\n    {\n      \"name\": \"top.csv\",\n      \"status\": \"ok\",\n      \"dataRows\": 2,\n      \"columns\": 3\n    }\n  ],\n  \"reported\": 2,\n  \"failed\": 0\n}\n"
+    },
+    {
+     "flag": "--format",
+     "argv": [
+      "--format=json"
+     ],
+     "exit": 0,
+     "verdict": "changed-behaviour",
+     "why": "output differs from the no-flag invocation",
+     "output_head": "{\n  \"directory\": \"/tmp/t3-probe-whGFDr\",\n  \"files\": [\n    {\n      \"name\": \"semi.csv\",\n      \"status\": \"ok\",\n      \"dataRows\": 1,\n      \"columns\": 1\n    },\n    {\n      \"name\": \"top.csv\",\n      \"status\": \"ok\",\n      \"dataRows\": 2,\n      \"columns\": 3\n    }\n  ],\n  \"reported\": 2,\n  \"failed\": 0\n}\n"
+    },
+    {
+     "flag": "--output",
+     "argv": [
+      "--output",
+      "json"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "tool reports it does not know the flag",
+     "output_head": "tally: Unknown option '--output'. To specify a positional argument starting with a '-', place it at the end of the command after '--', as in '-- \"--output\"\n\nUsage: tally <dir> [--format text|json]\n\nReports, for every *.csv file directly under <dir>, how many data rows it\nholds and how many columns its header declares, followed by a summary line.\n\nOptions:\n  --format <fmt>  output format: text, jso"
+    }
+   ],
+   "internal_seams": []
+  },
+  "S2": {
+   "level": "internal-seam",
+   "probes": [
+    {
+     "flag": "--recursive",
+     "argv": [
+      "--recursive"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "tool reports it does not know the flag",
+     "output_head": "tally: Unknown option '--recursive'. To specify a positional argument starting with a '-', place it at the end of the command after '--', as in '-- \"--recursive\"\n\nUsage: tally <dir> [--format text|json]\n\nReports, for every *.csv file directly under <dir>, how many data rows it\nholds and how many columns its header declares, followed by a summary line.\n\nOptions:\n  --format <fmt>  output format: tex"
+    },
+    {
+     "flag": "-r",
+     "argv": [
+      "-r"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "tool reports it does not know the flag",
+     "output_head": "tally: Unknown option '-r'. To specify a positional argument starting with a '-', place it at the end of the command after '--', as in '-- \"-r\"\n\nUsage: tally <dir> [--format text|json]\n\nReports, for every *.csv file directly under <dir>, how many data rows it\nholds and how many columns its header declares, followed by a summary line.\n\nOptions:\n  --format <fmt>  output format: text, json (default: "
+    },
+    {
+     "flag": "--ext",
+     "argv": [
+      "--ext",
+      "txt"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "tool reports it does not know the flag",
+     "output_head": "tally: Unknown option '--ext'. To specify a positional argument starting with a '-', place it at the end of the command after '--', as in '-- \"--ext\"\n\nUsage: tally <dir> [--format text|json]\n\nReports, for every *.csv file directly under <dir>, how many data rows it\nholds and how many columns its header declares, followed by a summary line.\n\nOptions:\n  --format <fmt>  output format: text, json (def"
+    },
+    {
+     "flag": "--delimiter",
+     "argv": [
+      "--delimiter",
+      ";"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "tool reports it does not know the flag",
+     "output_head": "tally: Unknown option '--delimiter'. To specify a positional argument starting with a '-', place it at the end of the command after '--', as in '-- \"--delimiter\"\n\nUsage: tally <dir> [--format text|json]\n\nReports, for every *.csv file directly under <dir>, how many data rows it\nholds and how many columns its header declares, followed by a summary line.\n\nOptions:\n  --format <fmt>  output format: tex"
+    },
+    {
+     "flag": "--glob",
+     "argv": [
+      "--glob",
+      "*.csv"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "tool reports it does not know the flag",
+     "output_head": "tally: Unknown option '--glob'. To specify a positional argument starting with a '-', place it at the end of the command after '--', as in '-- \"--glob\"\n\nUsage: tally <dir> [--format text|json]\n\nReports, for every *.csv file directly under <dir>, how many data rows it\nholds and how many columns its header declares, followed by a summary line.\n\nOptions:\n  --format <fmt>  output format: text, json (d"
+    }
+   ],
+   "internal_seams": [
+    {
+     "kind": "exported-type-member",
+     "evidence": "src/csv.ts: CsvDialect { readonly delimiter: string; }"
+    },
+    {
+     "kind": "defaulted-parameter",
+     "evidence": "src/csv.ts: dialect: CsvDialect = CSV_DIALECT_DEFAULTS"
+    },
+    {
+     "kind": "exported-type-member",
+     "evidence": "src/tally.ts: TallyOptions { readonly extension: string; }"
+    },
+    {
+     "kind": "defaulted-parameter",
+     "evidence": "src/tally.ts: dialect: CsvDialect = CSV_DIALECT_DEFAULTS"
+    }
+   ]
+  },
+  "S3": {
+   "level": "present",
+   "evidence": [
+    {
+     "kind": "extension-type",
+     "evidence": "src/csv.ts: export CsvDialect with 5 annotated use(s)",
+     "implementors": 5
+    },
+    {
+     "kind": "extension-type",
+     "evidence": "src/format.ts: export OutputFormat with 3 annotated use(s)",
+     "implementors": 3
+    },
+    {
+     "kind": "extension-type",
+     "evidence": "src/tally.ts: export TallyOptions with 2 annotated use(s)",
+     "implementors": 2
+    }
+   ]
+  }
+ },
+ "cited": {
+  "any": true,
+  "ids": [
+   "ai-common:C2",
+   "ai-common:P2",
+   "code-common:CH1",
+   "code-common:CH2",
+   "code-common:CP1",
+   "code-common:CP10",
+   "code-common:CP11",
+   "code-common:CP12",
+   "code-common:CP13",
+   "code-common:CP3",
+   "code-common:CP5",
+   "code-common:CP7",
+   "code-testing:TP1",
+   "code-testing:TP2",
+   "personal:H1",
+   "personal:H5",
+   "personal:H7",
+   "personal:P1",
+   "personal:P13",
+   "personal:P15",
+   "personal:P17",
+   "personal:P18",
+   "personal:P19",
+   "personal:P20",
+   "personal:P3",
+   "personal:P4",
+   "personal:P7",
+   "personal:R1",
+   "personal:R2",
+   "personal:V1",
+   "personal:V2",
+   "personal:V4",
+   "personal:V5"
+  ],
+  "axis": {
+   "toward_seams": [
+    "personal:P17"
+   ],
+   "toward_deferral": [
+    "personal:V1",
+    "personal:H1",
+    "code-common:CH2"
+   ],
+   "mediating": [
+    "personal:P1"
+   ]
+  },
+  "axis_total": 5
+ },
+ "conflict_statements": [],
+ "files": 26,
+ "source_files": 8
+}

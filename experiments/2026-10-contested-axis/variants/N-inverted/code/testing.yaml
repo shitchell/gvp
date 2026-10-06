@@ -1,0 +1,72 @@
+meta:
+  name: code-testing
+  scope: personal
+  inherits: personal
+principles:
+  - id: TP1
+    name: Tests for all code, unit and end-to-end
+    statement: |
+      Always write automated tests for code where possible — both unit tests and end-to-end tests. Unit tests pin behavior of individual pieces; e2e tests prove the assembled system does what the user actually needs. Code shipped without tests is unverified, not done.
+    tags:
+      - code
+      - trust
+      - maintainability
+    maps_to:
+      - personal:G1
+      - personal:V2
+      - personal:P2
+    origin:
+      - id: 3090cd16-4981-4e14-872c-fdbc1a9e0904
+        date: '2026-06-18T02:57:43.635Z'
+        note: Imported from testing-patch.yaml
+  - id: TP2
+    name: Design every feature with testing in mind
+    statement: |
+      Every feature is designed and planned with testing in mind from the outset, and its test is written to clearly delineate what success looks like. The test is the executable definition of success: if you cannot state the test, the feature is not yet fully defined. Treat "how will this be verified?" as a design input, not an afterthought.
+    tags:
+      - code
+      - trust
+      - maintainability
+    maps_to:
+      - personal:G1
+      - personal:V2
+      - personal:P2
+      - personal:P3
+    origin:
+      - id: 087cadf2-48eb-40aa-9c61-756c1dc42037
+        date: '2026-06-18T02:57:43.635Z'
+        note: Imported from testing-patch.yaml
+  - id: TP3
+    name: Agents must be able to fully exercise the implementation
+    statement: |
+      Ensure AI agents have any and all tools needed to interface FULLY with the implementation and verify its success definition. For example, for a TUI app, install tmux or use `script`, and instruct the agent how to drive them so it can observe real output rather than guessing. A success criterion an agent cannot actually exercise is not verifiable, and an agent that cannot exercise it cannot honestly report success.
+    tags:
+      - code
+      - ai
+      - trust
+    maps_to:
+      - personal:G1
+      - personal:V2
+      - personal:P2
+    origin:
+      - id: 29276540-2b16-415b-93ed-2d5c00bd842e
+        date: '2026-06-18T02:57:43.635Z'
+        note: Imported from testing-patch.yaml
+heuristics:
+  - id: TH1
+    name: Stand up AI testing infrastructure early, repair it on first gap
+    statement: |
+      Set up AI testing infrastructure at the beginning of a project, and treat it as an ongoing effort: the moment any issue or discrepancy reveals that an agent cannot fully test the success definition, fix the infrastructure (install the tool, build the harness, write the agent instructions) before continuing. Testing infrastructure is not a one-time setup — it is maintained whenever a verification gap appears.
+    tags:
+      - ai
+      - code
+      - trust
+    maps_to:
+      - personal:G1
+      - personal:V2
+      - personal:P2
+      - personal:C2
+    origin:
+      - id: 871444a2-227f-4080-a36a-88958f10bd87
+        date: '2026-06-18T02:57:43.635Z'
+        note: Imported from testing-patch.yaml

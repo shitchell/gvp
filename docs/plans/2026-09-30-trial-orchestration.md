@@ -78,6 +78,10 @@ Known channels, all of which the gate must assert against:
 | cross-run visibility | `ls ../` shows siblings | opaque ids make siblings uninformative; separate parents if paranoid |
 | the task text | a task that hints at the axis biases the outcome | task must state **behaviour only**, never mechanism |
 | the floor | an assertion the task never stated smuggles in a preference | floor asserts only what `TASK.md` requires — this was defect #1 |
+| **the `cairn` binary's own provenance** | `npm ls -g` printed `@principled/cairn -> …/shitchell/gvp` when cairn was installed as a global npm link, handing any run the path to the real repository. Trial 2 verified by transcript that no run followed it, and reported it still open | **closed as of trial 3.** The global is now a real registry install (`@principled/cairn@5.1.0`, no `-> path` arrow), and the repo-local dispatcher at `~/bin/cairn` carries **no hardcoded path** — it discovers a checkout by walking up from `$PWD` grepping `package.json` for `"name": "@principled/cairn"`, so reading the wrapper itself leaks nothing. Runs under `mktemp -d` have no checkout above them and fall through to the global. **Assert both:** no `-> ` arrow in `npm ls -g` output, and `type -P cairn`'s target contains no repo path |
+| **the instrument's own `cairn`** | not a run-facing leak, a *reproducibility* one. The orchestrator verifies "exactly one element differs" with `cairn`, and with the dispatcher on `PATH` that resolves to a repo-local `dist/` whose build may be stale — a different build from the one the runs interpret the variant with | pin an **absolute** cairn path in the instrument, never bare `cairn`; prefer the global install, because that is what the runs resolve to; record the resolved path *and* `--version` in the manifest and assert them in the gate |
+| **`cairn validate`'s own diagnostics** | `CLAUDE.md` tells every run to consult the library through `cairn`. If a manipulation changes the diagnostic set — a mapping warning that appears or vanishes, a count that shifts — then `validate` reports a different number in one arm than another, and the run is told which arm it is in by the tool the experiment requires it to use. Neither trial 1 nor trial 2 asserted this | capture `validate` output per arm and assert it is **byte-identical** across all of them. Trial 3's four arms all produce the same 27 diagnostics (`sha a50ceb…`), which is what makes its additive-clause design safe where an inversion might not have been. Run it from **outside `$HOME`** or the assertion is worthless: `~/.gvp/config.yaml` carries `suppress_diagnostics: [W003, W005]` and the project walk-up runs to the filesystem root, so it is discovered as the *project* config for every cwd below `$HOME` — same library, 2 warnings from `~`, 27 from `/tmp` (#36) |
+| **axis co-statement** (semantic, not structural) | the invariant "exactly one element differs" is satisfied byte-wise while **other elements state the same position**, so a flip cannot be attributed to the manipulated element. Trial 1 named this its sharpest data point (the redundancy null) and trial 3 found CH2's axis carries **nine** competing voices | before declaring a trial, query the library for every element bearing on the axis — not just the one under test. If more than one speaks to it, the manipulation is either redundant (same position) or contested (opposite), and **neither is a one-element change in effect**. Record the full voice list in the trial declaration |
 
 **New channels will exist.** Before each trial, ask the question that was never
 asked the first time: *if this run wanted to know which variant it is in, what
@@ -117,6 +121,10 @@ closed_channels: [vcs, name, dirname, registry, siblings]
 
 - a `null` arm always exists and its element is inert for the task
 - exactly one element differs per arm, verified structurally and byte-wise
+- **the manipulated element is the only voice on its axis** — or, where it is
+  not, the declaration lists every co-stating element and the trial states what
+  it can therefore conclude. Byte-wise one-element is not semantically
+  one-element; see §4's last row
 - the task and prompt are byte-identical across arms (checksummed)
 - predictions are frozen before the first dispatch
 - the floor asserts only what the task states
@@ -135,6 +143,58 @@ From `experiments/2026-09-manipulation-check/instrument/`:
 - **The citation capture** — `cited: {element: bool, ids: [...]}` parsed from
   each run's `DECISIONS.md`. This is half the instrument and the first version
   shipped without it.
+
+### The required scoring step: read each run's prose against its scored row
+
+**Not optional, and not a review pass at the end.** Three of trial 2's seven
+instrument defects (#2, #3, #6) were found this way and no other way, including
+one that scored a 3/3 flip as no flip because the detector matched
+`process.env.NAME` but not the named-constant form `code-common:CP9`
+prescribes — *the scorer was blind to the style the library under test
+produces.*
+
+For every run, before any arm is summarised: open its `DECISIONS.md`, read what
+it says it did, and compare that to the row the scorer emitted. **A scorer that
+disagrees with the artefact it scored is wrong until proven otherwise.** Every
+derived value in `results/*.json` must carry the evidence string it came from,
+so the comparison is mechanical rather than a matter of memory.
+
+**Trial 3 found both of its scoring defects this way and no other way, and the
+second only because a result contradicted the clause its own arm quotes
+verbatim.** Note what validation did *not* catch: that scorer passed 5/5
+known-answer cases before the pilot and 6/6 before the batch, and was wrong both
+times. **Self-validation bounds the errors you imagined; only real artefacts
+find the rest.**
+
+### Ask whether the thing happened, not which form it took
+
+Three scoring defects across trials 2 and 3 are the same error:
+
+| trial | the classifier enumerated | and so missed |
+|---|---|---|
+| 2 #3 | `process.env.NAME` | `env[TOKEN_ENV_VAR]` — the form `code-common:CP9` prescribes |
+| 3 #1 | CLI flags, and type names like `Formatter`/`Adapter` | `TallyOptions { extension, dialect }` — a parameterised seam with no CLI path |
+| 3 #2 | refusal phrasings (`unknown option`, `unrecognized`, …) | `tally: expected exactly one directory` + usage + exit 2 |
+
+Each was fixed by replacing a pattern list with a semantic question — *is the
+need parameterised?*, *did the tool still do its job?* Trial 3 #2 is the sharpest
+case: it scored the **strictest** runs, the ones that refuse unknown arguments,
+as having *implemented* the feature, and so made the arm that forbids seams look
+like the arm with the most of them.
+
+**A lexical list of the ways a thing can be expressed cannot be completed.**
+When a classifier needs a list of forms, that is the signal to ask a question
+about the outcome instead.
+
+Two corollaries trial 2 paid for:
+
+- when a correction is made **after seeing that the floor moved**, preserve the
+  pre-correction numbers in the results directory and say so in `FINDINGS.md` —
+  that is the moment motivated reasoning is most likely, and a reader who
+  rejects the amendment needs the original to reject
+- a lexical proxy (`but`/`however` near a keyword) **supports no rate**. Either
+  implement the axis properly or report it as flagged instances with their
+  matches, never as a count
 
 **Tasks are the reusable asset.** `TASK.md` cost nothing to write and works for
 any dependency-axis trial. Build a `tasks/` library; a trial names a task
@@ -173,8 +233,34 @@ Ordered by what each would settle:
 1. **A directive rule** — `code-common:CR1` (secrets out of source control) or
    `code-common:CR2` (no scaffolding without explicit verification). Directly
    tests §3's hypothesis. **Run this first.**
-2. **A second evaluative element** — `code-common:CH2` (deferral decision tree).
-   If it also fails to steer, the shape claim generalises past `CH1`.
+2. ~~**A second evaluative element** — `code-common:CH2` (deferral decision
+   tree). If it also fails to steer, the shape claim generalises past `CH1`.~~
+   **Withdrawn by trial 3's enumeration, on two independent grounds.** First,
+   CH2 is not CH1's shape: *"If needed for stability: implement now. If additive
+   and access patterns unknown: add flex points without implementing. If
+   speculative with no concrete use case: defer entirely"* is a **hybrid** —
+   the classification is evaluative, but each of the three consequents is a
+   definite action. CH1's mechanism (inverting the conclusion leaves the
+   questions intact) has nothing to act on. Second, and disqualifying: **nine
+   elements speak to CH2's axis and they contradict each other** — `V7`, `P21`,
+   `P17`, `H3`, `CP15` toward building seams; `V1`, `P5`, `H1`, `CH2` toward
+   deferring; `P1` mediating. `personal:P21` already states *"favor creating
+   many flex points in early builds, exposed as config options"*, so a
+   manipulation of CH2 in that direction is redundant by construction. A
+   candidate for the shape contrast must own its axis — check that **before**
+   writing a declaration.
+2b. **The contested axis itself** — what a library does when it disagrees with
+   itself, which is the condition CH2 actually presents. **Trial 3, done:** a
+   tie-break steers a contested axis (0/3 against 5/6) but **only against the
+   direction the axis already resolves** — the with-the-grain arm was identical
+   to the noise floor. No run reported the contradiction, and `cairn validate`
+   is silent about it.
+2c. **The axis-ownership survey — run this before any further shape test.** For
+   each candidate element, how many elements bear on its axis and how many take
+   a position? Trial 3's gate does this by hand for one axis and found ten
+   voices. If most axes are multiply-stated, that reframes trials 1 and 2 as
+   having measured contested axes without knowing it, and it is a bigger result
+   than any single shape test. It also specifies a tool `cairn` lacks (#26).
 3. **A genuine heuristic by the hard/soft test** — `code-common:CH1` fails that
    test; `personal:H5` or `code-testing:TH1` may pass it. Tests whether the
    *category* predicts steering power, which would make the categorisation axis
