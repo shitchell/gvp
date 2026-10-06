@@ -1,0 +1,688 @@
+meta:
+  name: personal
+  scope: universal
+  definitions:
+    tags:
+      domains:
+        meta:
+          description: Decision-making process, delegation, planning approach
+        code:
+          description: Software development across all languages and domains
+        web:
+          description: Browser-based applications, HTML/CSS/JS, web APIs
+        realtime:
+          description: Real-time systems, multiplayer, P2P, game loops
+        ai:
+          description: AI agent integration, LLM-assisted development
+      concerns:
+        simplicity:
+          description: Reducing complexity, preferring minimal solutions
+        trust:
+          description: Verification, validation, honest reporting of limitations
+        composability:
+          description: DRY, modularity, shared infrastructure
+        autonomy:
+          description: User control, opt-in, meaningful choices
+        preservation:
+          description: Data integrity, no silent loss, unknown field handling
+        security:
+          description: Input sanitization, boundary validation, secrets management
+        performance:
+          description: Resource lifecycle, caching, frame-rate independence
+        maintainability:
+          description: Naming, structure, extensibility, testability
+goals:
+  - id: G1
+    name: Systems that align with intent without constant oversight
+    statement: |
+      Build systems where the guiding elements (values, principles, heuristics, rules) are comprehensive enough that an implementer — human or AI — can make aligned decisions without asking. Reduce the cognitive load of architectural review while maintaining alignment.
+    tags:
+      - meta
+      - ai
+    maps_to: []
+  - id: G2
+    name: Portable, composable knowledge that outlives any single project
+    statement: |
+      Capture decision-making patterns in reusable libraries that compound across projects. The lessons from project N inform project N+1 without rediscovery. Knowledge lives in libraries, not in heads.
+    tags:
+      - meta
+    maps_to: []
+values:
+  - id: V1
+    name: Simplicity
+    statement: |
+      Prefer the simplest approach that meets the requirement. Complexity must earn its place — every abstraction, indirection, or generalization should solve a real problem, not a hypothetical one. Fewer things to parse, fewer assumptions to understand, fewer moving parts.
+    tags:
+      - simplicity
+    maps_to:
+      - personal:G1
+    origin:
+      - date: '2026-04-04'
+        note: Strongest signal across 7/8 personal projects
+  - id: V2
+    name: Transparency
+    statement: |
+      Be honest about trade-offs, limitations, and the reasoning behind decisions. Never pretend fundamental limitations are solvable through cleverness. When corners are cut or trade-offs made, document them explicitly. Presenting a clean facade over unclear motivations helps no one.
+    tags:
+      - trust
+    maps_to:
+      - personal:G1
+    origin:
+      - date: '2026-04-04'
+        note: 7/8 projects — philosophical commitment, not just technical
+  - id: V3
+    name: Composability and DRY
+    statement: |
+      Build small, focused pieces that combine naturally. Shared infrastructure is written once and composed, not copy-pasted. "I love DRY."
+    tags:
+      - composability
+    maps_to:
+      - personal:G1
+      - personal:G2
+    origin:
+      - date: '2026-04-04'
+        note: 6/8 projects — verbatim 'i love DRY' in lnotify
+  - id: V4
+    name: User autonomy
+    statement: |
+      Users should have meaningful control over their experience. The system provides options and defaults; the user decides. Prefer opt-in over auto-activation.
+    tags:
+      - autonomy
+    maps_to:
+      - personal:G1
+    origin:
+      - date: '2026-04-04'
+        note: 5/8 projects — consistent across very different domains
+  - id: V5
+    name: Data preservation
+    statement: |
+      Never silently discard, overwrite, or strand user data. Unknown fields are preserved, not filtered. Switching modes or configurations should never lose data.
+    tags:
+      - preservation
+    maps_to:
+      - personal:G1
+    origin:
+      - date: '2026-04-04'
+        note: 4/8 projects — strong when present
+  - id: V6
+    name: Pluralist anti-realism — no interpretive frame is privileged
+    statement: |
+      Only the underlying "stuff" is real; every interpretive frame — a school of thought, a model,
+      a conceptual lens — is an arbitrary, co-equal story laid over it, true of no more than an
+      infinitesimal slice of perception. No frame is canonical or "more true" than another. Systems
+      built under this value treat frames as parallel and swappable: never hard-coding one as the
+      default truth, making cross-frame swapping and mapping first-class, and presenting disagreement
+      between frames side-by-side rather than ranked. In the user's words: "the only thing that is
+      real in the universe is 'stuff', and any/all conceptualization past that is made up, arbitrary
+      stories built around infinitesimally small slices of perception (including this one)."
+    origin:
+      - id: 37c65db4-550c-477b-9f76-8db79311f1f8
+        date: '2026-06-19T00:14:42.552Z'
+        note: Imported from phil-patch.yaml
+  - id: V7
+    name: Flexibility / optionality
+    statement: |
+      Favor choices that keep the possibility space open over ones that lock you in. When two
+      options are otherwise close, prefer the one that preserves future optionality and doesn't
+      foreclose directions you might later want — swappable seams over hard couplings, extensible
+      abstractions over fixed ones. Flexibility bought cheaply up front is worth far more than the
+      rework it avoids when a foreseeable need arrives. (Distinct from V3 Composability: composability
+      is about building from small combinable parts; this is about not painting yourself into a
+      corner — keeping later options cheap.)
+    origin:
+      - id: 731e0117-388f-45c2-934c-4ce026fbd29c
+        date: '2026-07-21T00:00:00.000Z'
+        note: Added — flexibility/optionality value (the driver behind swappable-persistence/ORM affinity).
+  - id: V8
+    name: Contribution over ownership
+    statement: |
+      What looks like wanting to own a thing is really wanting to have contributed something to people. Ownership is the proxy; contribution is the substance — and in software, open source is the form that contribution actually takes, because a thing nobody can use, read, fork, or build on has not been contributed to anyone.
+      This is a value, not a goal: it is a direction that shapes tradeoffs rather than a state to reach. It generally resolves in favour of publishing over withholding, permissive over restrictive, and legible over clever — and it means secrecy has to earn its place with a specific reason, rather than being the default a project drifts into.
+      It is not a mandate to open source everything regardless of consequence. Where publishing would cause concrete harm, that is a reason; "it isn't polished yet" and "someone might copy it" are not.
+    tags:
+      - meta
+      - trust
+    maps_to: []
+    origin:
+      - id: 9de9ccd3-990b-4a4c-9f06-fb23eb757057
+        date: '2026-09-03T10:16:46.692Z'
+        note: Imported from personal.yaml
+        by:
+          name: Shaun Mitchell
+          email: shaun@shitchell.com
+constraints:
+  - id: C1
+    name: AI time estimates are unreliable
+    impact: |
+      AI models are trained on human measurements of time but operate at fundamentally different speeds. Never frame AI-assisted development in terms of traditional time-cost tradeoffs. Measure quality tiers or token cost, not hours or weeks.
+    tags:
+      - ai
+      - meta
+    maps_to: []
+  - id: C2
+    name: People optimize for minimal effort
+    impact: |
+      Humans and AI alike tend toward the path of least resistance. Any process or standard that relies on discipline alone will erode over time. Design systems that make the right thing easy rather than relying on willpower.
+    tags:
+      - meta
+    origin:
+      - id: 5f313ef2-acc8-4648-ad32-e4cfcb49ee7f
+        date: '2026-06-16T02:17:29.843Z'
+        note: Imported from personal.yaml
+principles:
+  - id: P1
+    name: Design around flex points
+    statement: |
+      When a future change is plausible, shape the architecture so the change is not painful when it arrives — but do not implement the change early. Infinite flexibility for hypothetical scenarios equals infinite complexity. Zero flexibility locks you into headaches.
+    tags:
+      - maintainability
+    maps_to:
+      - personal:G1
+      - personal:V1
+      - personal:V6
+    origin:
+      - date: '2026-04-04'
+        note: 6/8 projects — nearly identical wording, core architectural stance
+  - id: P2
+    name: Empirical validation before commitment
+    statement: |
+      Test assumptions with real code and real data before committing to design decisions. Protocols are tested by running them, not by reasoning about them. Data, not vibes.
+    tags:
+      - trust
+    maps_to:
+      - personal:G1
+      - personal:V2
+    origin:
+      - date: '2026-04-04'
+        note: 6/8 projects — one of the most distinctive personal principles
+  - id: P3
+    name: Separate what from how at every layer
+    statement: |
+      Requirements specify behavior (what the system must do). Design decisions specify architecture (how the system is structured). Implementation chooses form (the specific code). Keep these layers clean. The test: if you rewrote this in a different language/framework, would this statement still be true? If yes, it's a requirement. If no, it's an implementation detail.
+    tags:
+      - meta
+      - maintainability
+    maps_to:
+      - personal:G1
+      - personal:V2
+    origin:
+      - date: '2026-04-04'
+        note: From NOTES.md — meta-level decision-making principle
+  - id: P4
+    name: Generic solutions over special-case handling
+    statement: |
+      When encountering a specific failure, prefer building a generic mechanism that handles the class of failures, not just the instance. Special-case fixes accumulate; generic mechanisms compose.
+    tags:
+      - composability
+      - maintainability
+    maps_to:
+      - personal:G2
+      - personal:V3
+      - personal:V6
+    origin:
+      - date: '2026-04-04'
+        note: 4/8 projects
+  - id: P5
+    name: Plans informed by reality
+    statement: |
+      Do not plan speculatively. Build phase N, then plan phase N+1 based on what you actually learned. Implementation plans written per phase, after the previous phase teaches you what the real interfaces and gotchas are.
+    tags:
+      - meta
+    maps_to:
+      - personal:G1
+      - personal:V2
+    origin:
+      - date: '2026-04-04'
+        note: 3/8 projects — consistent in spirit
+  - id: P6
+    name: Decompose rationale to its most domain-agnostic element
+    statement: |
+      When recording a lesson, decompose its rationale to the most domain-agnostic guiding element before writing it down, then extend that broad element with narrower domain- or language-specific elements that map up to it. A surface-level heuristic yields value for one scenario; identifying the underlying principle yields aligned decisions across domains not yet encountered. This is DRY applied to guiding elements: duplicating reasoning across scenario-specific heuristics is like copy-pasting code. One specific lesson may fan into several elements at different levels.
+    tags:
+      - meta
+      - composability
+    maps_to:
+      - personal:G2
+      - personal:V3
+    origin:
+      - id: 5315b699-9eca-4e28-bd59-109b4615cafa
+        date: '2026-06-16T02:17:29.843Z'
+        note: Imported from personal.yaml
+  - id: P7
+    name: Every process needs a concrete enforcement mechanism
+    statement: |
+      A process without enforcement is a suggestion that will be forgotten under context pressure. Every intended process needs a concrete mechanism — a hook, check, CI gate, validation, or migration — that makes the right thing automatic and the wrong thing observable. Relying on discipline alone guarantees drift.
+    tags:
+      - meta
+      - maintainability
+    maps_to:
+      - personal:G1
+      - personal:V2
+      - personal:C2
+    origin:
+      - id: 76cc28b4-b4a3-440b-aedd-0bc4ddeeb20c
+        date: '2026-06-16T02:17:29.843Z'
+        note: Imported from personal.yaml
+  - id: P8
+    name: Consolidated interfaces over many near-duplicate entry points
+    statement: |
+      Prefer fewer entry points with options over many slightly-different entry points. Three commands with flags beat twenty near-duplicate subcommands. The interface — CLI, API, config, even organizational structure — should match the consumer's mental model, not the implementation's module boundaries.
+    tags:
+      - simplicity
+      - maintainability
+    maps_to:
+      - personal:G1
+      - personal:V1
+    origin:
+      - id: 399824c9-50b6-4568-a8b3-b9e866e7979d
+        date: '2026-06-16T02:17:29.843Z'
+        note: Imported from personal.yaml
+  - id: P9
+    name: Follow rules uniformly, change them explicitly
+    statement: |
+      Consistency means following whatever the current rules are; flexibility means the rules themselves can change through explicit decision. Both are valued. Do not silently break a rule for a one-off; change the rule through a deliberate, human-planned decision, document the reason, and form a heuristic for when the old rule versus the new rule applies — then follow the new rule consistently.
+    tags:
+      - meta
+      - maintainability
+    maps_to:
+      - personal:G1
+      - personal:V2
+    origin:
+      - id: a1be833d-2557-46a6-bfc8-08eea8e4800c
+        date: '2026-06-16T02:17:29.843Z'
+        note: Imported from personal.yaml
+  - id: P10
+    name: Structural asymmetry is bias — check for it explicitly
+    statement: |
+      When a design represents multiple categories of things, check whether the structure gives one category an advantage over another. If one source type gets a dedicated type and another is inline, that is bias; if built-in plugins get affordances third-party ones lack, that is bias. Structural asymmetry — not just lexical choice — is the primary signal. Apply it to schemas, API affordances, framework privileges, and organizational structures.
+    tags:
+      - maintainability
+      - trust
+    maps_to:
+      - personal:G1
+      - personal:V2
+      - personal:V6
+    origin:
+      - id: 96405447-222f-420b-9ddf-d80b18f83fbe
+        date: '2026-06-16T02:17:29.843Z'
+        note: Imported from personal.yaml
+  - id: P11
+    name: AI-first development
+    statement: |
+      Develop so that AI agents, not only humans, can pick up the work and drive it. Externalize decisions, rationale, context, and process into durable, traceable, machine-readable artifacts (guiding-element libraries, decision registers, handoff docs) instead of leaving them in-head. Make the implicit explicit by default, so any capable implementer — human or AI — can act on the work and make aligned decisions without asking.
+    maps_to:
+      - personal:G1
+      - personal:G2
+    tags:
+      - ai
+      - meta
+    origin:
+      - id: 6472d5fb-cf05-41b4-87b5-c50577ef4a8b
+        date: '2026-06-20T16:03:04.597Z'
+        note: Imported from aifirst-principle.yaml
+  - id: P12
+    name: Scope a work session to one cohesive unit
+    statement: |
+      For AI-driven work, scope each session to a single cohesive unit (e.g. one delivery phase) and start the next unit in a fresh session. The conversation transcript rides every turn and grows monotonically, so cache_read cost compounds within a session; a fresh session per unit is the decisive lever on that cost. Prefer ending at a natural boundary (a merge) over carrying one session across units.
+    maps_to:
+      - personal:P11
+      - personal:V1
+    tags:
+      - ai
+      - meta
+    origin:
+      - id: 14071fc6-8038-41d8-ab75-9ce20a66c820
+        date: '2026-06-21T03:08:29.592Z'
+        note: Imported from supplementary-principles.yaml
+  - id: P13
+    name: Verify in the production runtime, not just the test harness
+    statement: |
+      Green tests are not proof of working software. A test runner can mask runtime and interop bugs that only appear in the real execution environment (e.g. ESM/CJS module resolution differing between the test harness and production). Before claiming a change works, exercise it in the production runtime — boot the app, run the real loader — not only the test suite.
+    maps_to:
+      - personal:V2
+      - personal:P11
+    tags:
+      - trust
+      - meta
+    origin:
+      - id: 0d3188ea-3eab-4a73-91d7-2479f3b5a21a
+        date: '2026-06-21T03:08:29.592Z'
+        note: Imported from supplementary-principles.yaml
+  - id: P14
+    name: Delegate context-heavy work to subagents; return terse
+    statement: |
+      In AI-driven work, push context-heavy exploration and reading into subagents that return terse, structured results, and route large tool outputs through files rather than the main context. Only the parent's re-ingested text rides every subsequent turn, so keeping that lean — delegating the verbose work and absorbing only the conclusions — controls context cost without losing rigor.
+    maps_to:
+      - personal:P11
+      - personal:V1
+    tags:
+      - ai
+      - meta
+    origin:
+      - id: d102f0a9-75f6-40f9-943a-b90a7c468d8c
+        date: '2026-06-21T03:08:29.592Z'
+        note: Imported from supplementary-principles.yaml
+  - id: P15
+    name: Humans review guiding elements, not decisions
+    statement: |
+      In GVP-governed work the human's review attention belongs on guiding elements (goals, values, constraints, principles, heuristics, rules) — never on individual decisions. A decision is the guided output: when it follows unambiguously from the existing guiding elements, it is correct by construction and needs no human review. Spending human attention per-decision defeats the purpose of the library; spending it on the guidance that determines all future decisions is the leverage.
+    maps_to:
+      - personal:G1
+      - personal:V4
+    tags:
+      - meta
+    origin:
+      - id: e4b27ab4-ef23-451a-92c0-45ea6011612e
+        date: '2026-06-22T23:10:28.081Z'
+        note: Imported from gvp-p15-h5.yaml
+  - id: P16
+    name: Prioritize the integrity of foundational systems (rigor scales with what depends on them)
+    statement: |
+      A system that many other components are built upon deserves rigor in proportion to how much depends on it. A flaw in a foundational, load-bearing system is inherited by everything above it and compounds — it grows more expensive to fix as more is built atop it, and a weak core can force a ground-up rework of everything it carries, whereas a flaw in a leaf component (few or no dependents) stays local and cheap. So invest disproportionate care — correctness, testing, clean seams, design scrutiny — in the core, even at the cost of speed there, because that cost amortizes across every dependent; and conversely let leaf or disposable components be built more loosely. The test when choosing what to build on, or how much to harden something: weight it by blast radius — the more that will rest on it, the less you compromise its integrity. This is stated explicitly because the natural pull is the opposite: under effort-pressure, invisible foundations get shortchanged first (personal:C2), and that is exactly the debt that later propagates.
+    maps_to:
+      - personal:G1
+    tags:
+      - meta
+      - maintainability
+    origin:
+      - id: 988dd6d9-d1f9-4450-a1cb-150f570bbe17
+        date: '2026-07-22'
+        note: Authored during the threshold fresh-session alignment review — the core-integrity driver behind threshold decision D36 (build V1 fresh); no existing element captured it.
+  - id: P17
+    name: Build, don't defer, a tentative flex point when the seam is uncertain and getting it wrong is costly
+    statement: |
+      Favor building — rather than deferring — a tentative flex point/seam when you're uncertain it can be built correctly AND getting it wrong might incur architectural, heavy, or otherwise risky rework. (An uncertain, high-blast-radius seam is worth proving early — even with a throwaway consumer that only exercises it — rather than banking on an unvalidated assumption.)
+    maps_to:
+      - personal:P1
+      - personal:P16
+    tags:
+      - meta
+      - maintainability
+    origin:
+      - id: 499773d9-7f78-4627-8948-99c70399f14b
+        date: '2026-07-22'
+        note: Authored during the threshold fresh-session alignment review — the seam-correctness qualifier on P1 (build early when a flex point is uncertain and costly to get wrong).
+  - id: P18
+    name: Gates must earn their friction
+    status: active
+    tags:
+      - meta
+      - simplicity
+    maps_to:
+      - personal:G1
+      - personal:V1
+      - personal:P7
+    statement: 'Every gate carries a friction cost, and that cost is part of its design. In order of preference: a gate that reduces friction (it does the work and the right thing becomes the easy path), one that is friction-neutral (invisible when things are right, speaking up only when they are wrong), and only then one that adds friction, which must be worth what it protects. Design hard for the first two. A high-friction gate invites bypass, and a bypassed gate is worse than none: it teaches people to route around enforcement. When adding one, name the friction it adds and why the protection is worth it.'
+    origin:
+      - id: 260ca3d9-bfe8-40e2-b643-d187671a7749
+        date: '2026-09-25T19:24:21.262Z'
+        by:
+          name: Shaun Mitchell
+          email: shaun@shitchell.com
+        note: 'In the user''s words: "a validations/checks thing that is complementary around using deterministic checks to help gate desired outcomes/behaviors wherever possible AND always with friction in mind (i.e.: reduce friction, keep friction neutral, try hard to ensure it is designed without friction, OR ensure any friction is worth the gate)". Drafted by Claude from that; the bypass sentence is Claude''s inference, approved by the user ("i can dig that, go ahead").'
+  - id: P19
+    name: Favor low-effort, high-information signals
+    statement: |
+      Implement low-effort, high-information signals wherever possible, even when it is not certain they will be immediately useful.
+    tags:
+      - meta
+      - simplicity
+    maps_to:
+      - personal:G1
+      - personal:V1
+    origin:
+      - id: e00acaae-957e-41d9-9be3-6884bf3bfb37
+        date: '2026-09-30T03:34:32.655Z'
+        note: Imported from personal.yaml
+        by:
+          name: Claude Opus 5
+          email: noreply@anthropic.com
+  - id: P20
+    name: Prefer machine-consumable forms where easy
+    statement: |
+      Where it is easy, shape signals and artifacts so a program can read them. A machine-consumable form can drive automation; a human-only one cannot.
+    tags:
+      - meta
+      - composability
+    maps_to:
+      - personal:G1
+      - personal:V3
+    origin:
+      - id: 07667917-84f5-493d-9814-42c7eea48a96
+        date: '2026-09-30T03:34:32.655Z'
+        note: Imported from personal.yaml
+        by:
+          name: Claude Opus 5
+          email: noreply@anthropic.com
+  - id: P21
+    name: Build flex points early to discover the best use
+    statement: |
+      Favor creating many flex points in early builds, exposed as config options, to aid the process of experimenting to discover the best use of the tool.
+    tags:
+      - meta
+      - autonomy
+    maps_to:
+      - personal:G1
+      - personal:V7
+      - personal:V4
+      - personal:P2
+    origin:
+      - id: f0b4d0c3-a240-403e-b96f-805788640d64
+        date: '2026-09-30T03:34:32.655Z'
+        note: Imported from personal.yaml
+        by:
+          name: Claude Opus 5
+          email: noreply@anthropic.com
+  - id: P22
+    name: Account for uncertainty during planning
+    statement: |
+      Aim to account for uncertainty during planning: ask which items carry uncertainty, prioritizing load-bearing ones; assess how to deal with it, especially if present hypotheses are wrong; and organize items in whatever way helps manage it.
+    tags:
+      - meta
+      - maintainability
+    maps_to:
+      - personal:G1
+      - personal:P17
+      - personal:P16
+      - personal:P5
+    origin:
+      - id: e59df436-ad73-4718-adbb-58f06896808c
+        date: '2026-09-30T03:34:32.655Z'
+        note: Imported from personal.yaml
+        by:
+          name: Claude Opus 5
+          email: noreply@anthropic.com
+heuristics:
+  - id: H1
+    name: Extraction timing
+    statement: |
+      If the boundary between two concerns is clean and natural, extract now. If the boundary is unclear, wait until a second consumer forces the design. Do not create shared abstractions before a real shared need exists AND the boundary is empirically clear.
+    tags:
+      - composability
+      - maintainability
+    maps_to:
+      - personal:G1
+      - personal:V1
+      - personal:V3
+    origin:
+      - date: '2026-04-04'
+        note: 4/8 projects — tersest wording is canonical
+  - id: H2
+    name: Delegation test
+    statement: |
+      When multiple viable answers exist and you have no strong preference for the specific form: define the constraints (what must be true about the outcome) and let the implementer choose the form (how to achieve it). The test: would you notice or care if the implementer chose differently? If no, define constraints and delegate. Exception: never delegate when the choice affects user-facing behavior, constrains future flexibility, or when you have a strong opinion (even if it's just taste).
+    tags:
+      - meta
+    maps_to:
+      - personal:G1
+      - personal:V1
+    origin:
+      - date: '2026-04-04'
+        note: From NOTES.md — meta-level decision-making heuristic
+  - id: H3
+    name: Build-now certainty threshold scales with cost asymmetry
+    statement: |
+      The complement to the deferral tree, as a sliding threshold rather than a gate: the certainty of future need required to build now scales inversely with the cost asymmetry. Estimate three things — the cost of building now, the cost of retrofitting later, and the likelihood the need materializes — and build now when likelihood times retrofit savings clearly exceeds the build-now cost. Cheap now and expensive later justifies building on low certainty; expensive now and cheap later defers unless the need is near-certain. Estimating the costs and the likelihood is judgment; running the comparison is not. Examples: N-party cardinality when the N use case is known, schema fields that prevent a future migration, interface generality that avoids a breaking change.
+    tags:
+      - simplicity
+      - maintainability
+    maps_to:
+      - personal:G1
+      - personal:V1
+    origin:
+      - id: 55372306-14b5-474c-8f23-f1b45a127d5d
+        date: '2026-06-16T02:17:29.843Z'
+        note: Imported from personal.yaml
+  - id: H4
+    name: Parallelize human attention with computation
+    statement: |
+      When a computation is running, use the time rather than waiting. When AI is building, review or plan in parallel; when tests are running, write documentation; when presenting while something computes, explain. Dead air wastes time; parallel activity maximizes density.
+    tags:
+      - meta
+    maps_to:
+      - personal:G1
+      - personal:V1
+    origin:
+      - id: d028d5c3-78cd-4d43-83de-ced46113e004
+        date: '2026-06-16T02:17:29.843Z'
+        note: Imported from personal.yaml
+  - id: H5
+    name: Disambiguate-then-surface gate
+    statement: |
+      When a decision is needed: if the existing guiding elements yield a single reasonable decision, record it and proceed — no human review, and never ask "go or no go". A blocker is exactly "any decision that cannot be unambiguously derived from my personal or the project GVP library". Where that is true: (1) weigh the different possible decisions that align with the existing library/libraries, (2) determine what updates would need to be added to the library to make each of those decisions the unambiguous choice over the others, and then (3) present each of those guiding-element patches to the human, with a recommendation — the patches, not bare decisions — before proceeding.
+    maps_to:
+      - personal:P15
+      - personal:G1
+    tags:
+      - meta
+    origin:
+      - id: bd8b9433-4f72-4f3c-adcd-edd20369f899
+        date: '2026-06-22T23:10:28.081Z'
+        note: Imported from gvp-p15-h5.yaml
+    updated_by:
+      - id: b9669289-0fca-47d1-af14-2679a80c2503
+        date: '2026-09-28T23:55:32.429Z'
+        rationale: 'Shaun, 2026-09-28, verbatim: "a blocker in this case would be ''any decision that cannot be unambiguously derived from my personal or the project GVP library''. and where that is true -- an unambiguous decision cannot be derived -- i would prefer you followed the steps: (1) weigh different possible decisions that align with the existing library/libraries, (2) determine what updates would need to be added to the library to make each of those decisions the unambiguous choice over the others, and then (3) present each of those to me with your recommendation"; and "go or no go is never a question. underlying (potential) blockers are." (~/wmd decision go-no-go-is-never-a-question)'
+        by:
+          name: Shaun Mitchell
+          email: shaun@shitchell.com
+    reviewed_by:
+      - id: 07899efd-4648-4dad-8f99-50c020b3c418
+        date: '2026-09-29T03:24:43.117Z'
+        by:
+          name: Shaun Mitchell
+          email: shaun@shitchell.com
+        updates_reviewed:
+          - b9669289-0fca-47d1-af14-2679a80c2503
+        note: Shaun's verbatim wording, given 2026-09-28 in the wmd helper session ("a blocker in this case would be 'any decision that cannot be unambiguously derived from my personal or the project GVP library'...")
+  - id: H6
+    name: Delegate the residual to whoever can survey the evidence faster
+    statement: |
+      Constrain a decision by your real requirements, then delegate what remains to whoever can gather and weigh the evidence faster. Delegation allocates comparative advantage, not disinterest, so the delegate still owes the basis for its choice.
+    tags:
+      - meta
+    maps_to:
+      - personal:G1
+      - personal:H2
+      - personal:V2
+    origin:
+      - id: ae5c43b3-c269-47fb-8731-703ebb4b5c7c
+        date: '2026-09-30T03:34:32.655Z'
+        note: Imported from personal.yaml
+        by:
+          name: Claude Opus 5
+          email: noreply@anthropic.com
+  - id: H7
+    name: Interface consolidation is bounded in both directions
+    statement: |
+      Weigh interface consolidation by how many times someone must consult help output to accomplish one task. Both too few and too many entry points raise that count.
+    tags:
+      - simplicity
+      - maintainability
+    maps_to:
+      - personal:G1
+      - personal:P8
+      - personal:V1
+    origin:
+      - id: f4e57513-8708-48f4-a8e0-6c101d313003
+        date: '2026-09-30T03:34:32.655Z'
+        note: Imported from personal.yaml
+        by:
+          name: Claude Opus 5
+          email: noreply@anthropic.com
+  - id: H8
+    name: Buy reversibility when it costs less than proof
+    statement: |
+      When validating a choice would cost more than making it reversible, take the judgment call and invest in reversibility instead. Record that the validation was priced and declined, and what would trigger doing it after all.
+    tags:
+      - meta
+      - simplicity
+    maps_to:
+      - personal:G1
+      - personal:P2
+      - personal:P1
+      - personal:V7
+    origin:
+      - id: 9cf33afd-3a6e-4692-9fe5-6988396a7e8d
+        date: '2026-09-30T03:34:32.655Z'
+        note: Imported from personal.yaml
+        by:
+          name: Claude Opus 5
+          email: noreply@anthropic.com
+  - id: H9
+    name: Scale naming effort to expected reach
+    statement: |
+      Spend effort on a name in proportion to how many people will encounter it. A small-audience tool does not earn deliberation, and a plainly descriptive name is the right outcome there.
+    tags:
+      - meta
+      - maintainability
+    maps_to:
+      - personal:V8
+      - personal:V1
+    origin:
+      - id: 058c7fe0-1bdc-4f70-bbef-78075f065d21
+        date: '2026-09-30T03:34:32.655Z'
+        note: Imported from personal.yaml
+        by:
+          name: Claude Opus 5
+          email: noreply@anthropic.com
+rules:
+  - id: R1
+    name: Verify before claiming correctness
+    statement: |
+      Never claim a change is correct without verification. Typecheck must pass. Tests must pass. Protocols must be validated through real use. "No trust. Zero trust. Verify everything."
+    tags:
+      - trust
+    maps_to:
+      - personal:G1
+      - personal:V2
+    origin:
+      - date: '2026-04-04'
+        note: 5/8 projects — hard rule, not a preference
+  - id: R2
+    name: No silent failures or data loss
+    statement: |
+      Failures must be surfaced, not swallowed. Data must not be silently lost. If a write fails, the user must know. If data is discarded, it must be explicit. Bugs compound — do not greenlight failing states.
+    tags:
+      - trust
+      - preservation
+    maps_to:
+      - personal:G1
+      - personal:V2
+      - personal:V5
+    origin:
+      - date: '2026-04-04'
+        note: 5/8 projects — universal pattern
+  - id: R3
+    name: Category precedence under contradiction
+    statement: |
+      When two elements entail opposing answers to the same decision, the more rigid category governs: rule over heuristic over principle over value. Principles are deliberately judgment-weighted — sometimes true, sometimes not — so a heuristic that applies beats a principle that leans, and a rule beats both. If the contest is within one category, or following the winner seems wrong, surface it as a guiding-element patch (personal:H5) rather than resolving it silently. This precedence is only safe while categories are honest: a heuristic that cannot pass the hard/soft test must be recategorized, not obeyed.
+    tags:
+      - meta
+      - trust
+    maps_to:
+      - personal:G1
+      - personal:V2
+    origin:
+      - date: '2026-10-06'
+        note: 'Maintainer, resolving the A4 contest: "if they contradict, then the heuristic should always win since it does define a more rigid set of instructions." Generalized; see lab/conversations/0001.'

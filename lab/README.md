@@ -80,6 +80,8 @@ muse ──► design ──► probe or trial ──► reflect ──► revie
 | `LEDGER.md` | the direction log | dated decisions-of-direction and model amendments, newest first; **read this + open musings to steer** |
 | `musings/NNNN-slug.md` | questions, hunches, findings | one thought per file; frontmatter carries status and lineage |
 | `probes/NNNN-slug.md` | small cheap tests | design, raw result, reflection — one file per probe |
+| `conversations/NNNN-slug.md` | maintainer conversations | verbatim rationale and rulings, quoted never paraphrased — added 2026-10-06 at the maintainer's ask |
+| `proposals/NNNN-slug/` | reviewable work products | e.g. a patched copy of the personal library awaiting `personal:P15` review; never applied to the live original |
 
 Numbering is `0001, 0002, …` and never reused. Nothing here is "final" —
 supersede by a new musing that links the old one.
