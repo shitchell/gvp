@@ -67,10 +67,11 @@ muse ──► design ──► probe or trial ──► reflect ──► revie
 5. **Review & decide.** Read [`PATHS.md`](PATHS.md), [`LEDGER.md`](LEDGER.md)
    and the open musings; **deposit every candidate direction into PATHS
    first**, then pick; record the pick as a LEDGER entry *with the
-   reasoning*, so the choice is auditable later even if it was wrong. Every
-   completed unit also files a terse quantified review in `reviews/`
-   (template: `conversations/0002`) — the maintainer reads those, not the
-   FINDINGS. **The review
+   reasoning*, so the choice is auditable later even if it was wrong. Every unit
+   **closes** with a terse quantified review in `reviews/` (template:
+   `conversations/0002`) — the maintainer reads those, not the FINDINGS.
+   Closed, not done: nothing here is ever done, units just become
+   reportable and reopenable. **The review
    explicitly includes the model itself**: does the lab need a new tracked
    type, a change to how something is tracked, a reorganization, a different
    step? Methodology amendments are LEDGER entries like any other decision —

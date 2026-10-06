@@ -5,6 +5,20 @@ Methodology amendments to [`README.md`](README.md) land here too.
 
 ---
 
+## 2026-10-07 — entry points built; "done" corrected to "closes"
+
+Maintainer: *"i wouldn't frame anything as a done gate necessarily? when is
+experimentation and review ever truly done?"* — accepted; README/OPERATIONS
+now say a unit **closes** (reportable, auditable, reopenable), never "done".
+Entry points shipped: `lab/bin/steer` (one headless steer turn from
+`lab/prompts/steer.md`), `lab/bin/work <brief>` (one worker from a brief),
+logs to gitignored `lab/.runs/`, state lives entirely in the repo. **Brief
+0001 queued**: the delivery trial's design-and-instrument phase (PA-01 +
+PA-05, element = CR1 since delivery needs a known-steerer, habit-domain
+observable mandated by trial 4). PA-16 (scheduling the steer turn) stays
+parked — the scripts are cron-ready; the go is the maintainer's.
+
+
 ## 2026-10-07 — morning rulings: adoption parked, reviews go terse, forks get a menu, launch gets a runbook
 
 Maintainer rulings (verbatim in `conversations/0002`): proposal adoption

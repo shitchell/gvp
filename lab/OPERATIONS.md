@@ -14,11 +14,13 @@
 2. **Self-amendment** — the model stays versioned: units may append
    musings, PREDICTIONS amendments, and probe files freely; only a *steer*
    step edits README/PATHS/OPERATIONS, and records why in the LEDGER.
-3. **Findings discipline** — a unit is done when: FINDINGS (trial) or the
-   probe file's Result+Reflection are written, `REGISTER.md`/`PATHS.md`
-   updated, a LEDGER entry exists, and a terse maintainer review
-   (`reviews/NNNN`, template in `conversations/0002`) is filed. Un-reviewed
-   work does not count as done.
+3. **Findings discipline** — a unit **closes** (bookkeeping sense:
+   reportable, auditable, reopenable — never "done": *"when is
+   experimentation and review ever truly done?"* — the maintainer,
+   2026-10-07) when: FINDINGS (trial) or the probe file's Result+Reflection
+   are written, `REGISTER.md`/`PATHS.md` updated, a LEDGER entry exists, and
+   a terse maintainer review (`reviews/NNNN`) is filed. Unclosed work can't
+   be steered from, which is the only force this carries.
 4. **Context economy** — workers load the minimum stack (below), delegate
    bulk reads to subagents, and never load prior transcripts. The protocol's
    §2 list stays authoritative for trials.
@@ -61,6 +63,18 @@ Recommendation: **B now, A never ruled out** — if briefs prove too lossy for
 trial-grade work, tier A's orchestrator is the fallback and PATHS gets the
 row. Automating B's steer step with cron is PA-16, **parked until the
 maintainer okays unattended session-spawning.**
+
+## Entry points (what actually starts a session)
+
+| you want | run |
+|---|---|
+| one steer turn, headless (pick/execute next unit) | `lab/bin/steer` |
+| run a specific queued brief | `lab/bin/work lab/briefs/NNNN-*.md` |
+| the same thing interactively | start `claude` in the repo and paste `lab/prompts/steer.md` (or just say "take a steer turn for the lab") |
+| scheduled/unattended | **PA-16, parked** — the scripts are cron-ready (`lab/bin/steer` is idempotent per turn; state lives in the repo), but activating a schedule spawns unattended `--dangerously-skip-permissions` sessions and that is the maintainer's call |
+
+Session logs land in `lab/.runs/` (gitignored). The scripts hold no state —
+kill one anytime; the repo is the memory and the next turn re-derives.
 
 ## Today's manual equivalent
 

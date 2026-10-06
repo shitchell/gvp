@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Run one worker session from a brief:  lab/bin/work lab/briefs/0001-foo.md
+set -uo pipefail
+[ $# -eq 1 ] && [ -f "$1" ] || { echo "usage: lab/bin/work <brief.md>" >&2; exit 2; }
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+BRIEF="$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
+LOG_DIR="$ROOT/lab/.runs"
+mkdir -p "$LOG_DIR"
+LOG="$LOG_DIR/work-$(basename "$BRIEF" .md)-$(date +%Y%m%dT%H%M%S).log"
+cd "$ROOT"
+echo "worker ← $BRIEF → $LOG"
+claude -p "You are a worker session for this repository's research lab. Your entire assignment is the brief below. Honor its contract and stop conditions exactly; read ONLY the inputs it names (plus lab/OPERATIONS.md for your role); work in a git worktree; close per the contract or stop per the conditions.
+
+$(cat "$BRIEF")" \
+  --dangerously-skip-permissions \
+  2>&1 | tee "$LOG"
+echo "worker complete (exit $?) → $LOG"
