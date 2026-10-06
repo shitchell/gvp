@@ -26,7 +26,8 @@ independent grounds**, both recorded in `TRIAL.yaml:withdrawn_candidate`:
    actions. Trial 1's mechanism (inverting the conclusion leaves the questions
    intact) has nothing to act on.
 2. **Disqualifying: nine elements speak to CH2's axis and they contradict each
-   other.** `personal:V7`, `P21`, `P17`, `H3` and `code-common:CP15` push toward
+   other** *(post-report correction, defect 4: eleven — the survey found `CP5`
+   and `CP6` as well, both pro-seam)*. `personal:V7`, `P21`, `P17`, `H3` and `code-common:CP15` push toward
    building seams; `personal:V1`, `P5`, `H1` and `CH2` push toward deferring;
    `personal:P1` mediates. `personal:P21` **already states** *"favor creating
    many flex points in early builds, exposed as config options"* — so any
@@ -251,6 +252,7 @@ encouraging single datum in three trials.
 | 1 | S2 and S3 were blind to an **internal** seam — a need parameterised in the source with a default and no CLI path. The pilot built exactly that (`TallyOptions { extension, dialect }`, `CsvDialect`) and was scored `absent` on both. **Trial 2's defect 3 in a new form: a detector blind to the style the library under test produces** | the pilot, via the §6 prose-vs-row step |
 | 2 | the rejection detector was a list of refusal *phrasings*, so three runs answering an unknown flag with `tally: expected exactly one directory` + usage + exit 2 were read as `changed-behaviour` and scored `cli-implemented`. **The strictest runs — the ones that refuse unknown arguments — scored as having implemented the feature**, which made `D-decisive` look like the arm with the most seams | the §6 step, on a result that contradicted the clause the arm cites |
 | 3 | the conflict-awareness axis is a lexical proxy (`tension`/`contradict`/`conflict` near a library word). It flags 3 of 12 and **all three are off-target**. It supports no count, only quoted sentences — the same defect as trial 2's #6, which was predicted in `PREDICTIONS.md` §8 and shipped anyway | reading the flag's own recorded matches |
+| 4 | **the declared axis list was short by two.** The gate's "no undeclared voice" check was a keyword scan, and `CP5` (*"wire up configuration from the start"*) and `CP6` (*"write code as if it will be reused, even when unsure"*) are pro-seam voices that use none of its keywords. The axis has **eleven** contradicting voices plus `P1`, not nine — and the pilot had cited `CP5` for its seam decision, in a quote §4 of this document reproduces. No conclusion changes: both missed voices are pro-seam, which *strengthens* the explanation of `A-decisive`'s null and leaves `D-decisive`'s steer intact. Same lesson as defect 2, at the library layer: a keyword list cannot be completed | the axis-ownership survey (`../2026-10-axis-survey.md`), after this trial reported |
 
 **Defect 2 is the one worth generalising.** Both it and defect 1 are the same
 error with opposite sign: a classifier that enumerates the forms it expects
