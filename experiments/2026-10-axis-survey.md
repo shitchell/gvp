@@ -232,3 +232,22 @@ axes` (§5) should be an agent pass with independent re-enumeration, keywords
 demoted to a pre-filter; and the §1-level claim worth keeping is unchanged in
 direction but stronger: the library is more contested than any single reader
 concludes.
+
+### §7 addendum — the ownership column fails the same way (P0002, 2026-10-06)
+
+§4 called `CP7` *"owned — CP3 gives weak support; nothing opposes"*. An
+independent re-enumeration focused on the typing axis
+(`lab/probes/0002-cp7-axis-reenumeration.md`) found **four restating voices**
+(`CP2` "Explicit function signatures"; `CP10`'s example "enforce strict type
+checking in a pre-commit hook"; `CP16` "hard requirements such as type
+checking", which maps_to CP7; `R1` "Typecheck must pass") plus conditional
+and indirect leaners — all one direction, none opposing. `CP7` is not owned;
+it anchors a **buttressed** axis.
+
+Taxonomy consequence: §1's four states are really five, and *buttressed*
+deserves equal billing — owned / buttressed / contested / reconciled /
+aligned-cluster — because the manipulation-relevant property differs per
+state. Trial 4 pivoted accordingly (lone inversion vs quieted-buttress
+inversion). Trust the per-element ownership calls in §4 only where a focused
+re-enumeration has confirmed them; two independent passes have now each
+corrected this document once.

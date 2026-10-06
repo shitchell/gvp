@@ -1,0 +1,14 @@
+  PASS  reports every .csv file by name
+  PASS  leaves notes.txt alone
+  PASS  alpha.csv: 3 data rows and 4 columns
+  PASS  beta.csv: 0 data rows and 2 columns
+  PASS  delta.csv: quoted comma does not inflate the column count (3, not 4)
+  PASS  gamma.csv: ragged row still counted (2 data rows, 3 columns)
+  PASS  gamma.csv: ragged row is not reported as a failure
+  PASS  epsilon.csv: unreadable file reported as a failure
+  PASS  a failure does not stop the run (gamma, after epsilon, still reported)
+  PASS  reports files in filename order
+  PASS  summary line reports a failure count of 1
+  PASS  summary line reports 4 or 5 files
+  PASS  empty directory produces only the summary line
+  ---- 13 passed, 0 failed

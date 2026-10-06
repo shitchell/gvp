@@ -1,0 +1,311 @@
+{
+ "run": "raa7395e26c",
+ "typescript_version": "5.9.3",
+ "forks": {
+  "T1": {
+   "level": "high",
+   "rate": 0.8888888888888888,
+   "annotated": 24,
+   "total": 27,
+   "functions": [
+    {
+     "file": "src/cli.test.ts",
+     "name": "tally",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": true,
+     "line": 16
+    },
+    {
+     "file": "src/csv.test.ts",
+     "name": "bytes",
+     "kind": "ArrowFunction",
+     "exported": false,
+     "returnAnnotated": false,
+     "line": 6
+    },
+    {
+     "file": "src/csv.test.ts",
+     "name": "count",
+     "kind": "ArrowFunction",
+     "exported": false,
+     "returnAnnotated": false,
+     "line": 7
+    },
+    {
+     "file": "src/csv.test.ts",
+     "name": "countByteByByte",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": false,
+     "line": 10
+    },
+    {
+     "file": "src/csv.ts",
+     "name": "push",
+     "kind": "MethodDeclaration",
+     "exported": false,
+     "returnAnnotated": true,
+     "line": 70
+    },
+    {
+     "file": "src/csv.ts",
+     "name": "finish",
+     "kind": "MethodDeclaration",
+     "exported": false,
+     "returnAnnotated": true,
+     "line": 89
+    },
+    {
+     "file": "src/csv.ts",
+     "name": "#decidePrefix",
+     "kind": "MethodDeclaration",
+     "exported": false,
+     "returnAnnotated": true,
+     "line": 110
+    },
+    {
+     "file": "src/csv.ts",
+     "name": "#count",
+     "kind": "MethodDeclaration",
+     "exported": false,
+     "returnAnnotated": true,
+     "line": 119
+    },
+    {
+     "file": "src/csv.ts",
+     "name": "#endField",
+     "kind": "MethodDeclaration",
+     "exported": false,
+     "returnAnnotated": true,
+     "line": 155
+    },
+    {
+     "file": "src/csv.ts",
+     "name": "#endRecord",
+     "kind": "MethodDeclaration",
+     "exported": false,
+     "returnAnnotated": true,
+     "line": 160
+    },
+    {
+     "file": "src/csv.ts",
+     "name": "countCsvBytes",
+     "kind": "FunctionDeclaration",
+     "exported": true,
+     "returnAnnotated": true,
+     "line": 170
+    },
+    {
+     "file": "src/csv.ts",
+     "name": "concat",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": true,
+     "line": 176
+    },
+    {
+     "file": "src/csv.ts",
+     "name": "startsWith",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": true,
+     "line": 183
+    },
+    {
+     "file": "src/index.ts",
+     "name": "main",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": true,
+     "line": 23
+    },
+    {
+     "file": "src/index.ts",
+     "name": "message",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": true,
+     "line": 50
+    },
+    {
+     "file": "src/report.test.ts",
+     "name": "counted",
+     "kind": "ArrowFunction",
+     "exported": false,
+     "returnAnnotated": true,
+     "line": 7
+    },
+    {
+     "file": "src/report.ts",
+     "name": "formatReport",
+     "kind": "FunctionDeclaration",
+     "exported": true,
+     "returnAnnotated": true,
+     "line": 17
+    },
+    {
+     "file": "src/report.ts",
+     "name": "describe",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": true,
+     "line": 26
+    },
+    {
+     "file": "src/report.ts",
+     "name": "summarize",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": true,
+     "line": 31
+    },
+    {
+     "file": "src/report.ts",
+     "name": "count",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": true,
+     "line": 38
+    },
+    {
+     "file": "src/scan.ts",
+     "name": "scanDirectory",
+     "kind": "FunctionDeclaration",
+     "exported": true,
+     "returnAnnotated": true,
+     "line": 24
+    },
+    {
+     "file": "src/scan.ts",
+     "name": "isCsvName",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": true,
+     "line": 46
+    },
+    {
+     "file": "src/scan.ts",
+     "name": "byFilename",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": true,
+     "line": 56
+    },
+    {
+     "file": "src/scan.ts",
+     "name": "reportFile",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": true,
+     "line": 61
+    },
+    {
+     "file": "src/scan.ts",
+     "name": "describeFailure",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": true,
+     "line": 75
+    },
+    {
+     "file": "src/scan.ts",
+     "name": "isErrnoException",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": true,
+     "line": 81
+    },
+    {
+     "file": "src/test-fixtures.ts",
+     "name": "withDirectory",
+     "kind": "FunctionDeclaration",
+     "exported": true,
+     "returnAnnotated": true,
+     "line": 10
+    }
+   ]
+  },
+  "T2": {
+   "level": "present",
+   "count": 2,
+   "decls": [
+    {
+     "file": "src/csv.ts",
+     "name": "CsvCounts",
+     "kind": "TypeAliasDeclaration"
+    },
+    {
+     "file": "src/scan.ts",
+     "name": "FileReport",
+     "kind": "TypeAliasDeclaration"
+    }
+   ]
+  },
+  "T3": {
+   "level": "present",
+   "strict": true,
+   "tsconfig": "tsconfig.json",
+   "script": {
+    "typecheck": "tsc --noEmit"
+   }
+  },
+  "T4": {
+   "exported_rate": 1,
+   "internal_rate": 0.8695652173913043,
+   "exported_counts": "4/4",
+   "internal_counts": "20/23"
+  }
+ },
+ "cited": {
+  "any": true,
+  "ids": [
+   "ai-common:P2",
+   "code-common:CH1",
+   "code-common:CH2",
+   "code-common:CP1",
+   "code-common:CP10",
+   "code-common:CP11",
+   "code-common:CP12",
+   "code-common:CP13",
+   "code-common:CP16",
+   "code-common:CP2",
+   "code-common:CP3",
+   "code-common:CP8",
+   "code-common:CP9",
+   "code-common:CR2",
+   "code-testing:TP1",
+   "personal:H3",
+   "personal:H5",
+   "personal:H8",
+   "personal:H9",
+   "personal:P1",
+   "personal:P13",
+   "personal:P15",
+   "personal:P18",
+   "personal:P19",
+   "personal:P2",
+   "personal:P20",
+   "personal:P9",
+   "personal:R1",
+   "personal:R2",
+   "personal:V1",
+   "personal:V2",
+   "personal:V5"
+  ],
+  "anchor": [],
+  "buttresses": [
+   "code-common:CP2",
+   "code-common:CP10",
+   "code-common:CP16",
+   "personal:R1"
+  ]
+ },
+ "conflict_statements": [
+  {
+   "sentence": "**Why** There is real tension in the library here: machine-consumable output and",
+   "matched": "tension"
+  }
+ ],
+ "ts_files": 9
+}

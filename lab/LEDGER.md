@@ -5,6 +5,37 @@ Methodology amendments to [`README.md`](README.md) land here too.
 
 ---
 
+## 2026-10-07 (overnight) — trial 4 complete: the prior is a wall, and self-reports lie
+
+Branch 4, with texture: 2/6 I-runs partial-moved, M's hard imperative failed
+0/3, strict checker 15/15, buttressing null at artifact level but gates
+engagement (anchor cited 0/3 in I-lone — unpersoned). The real find is
+musing 0016: three false compliance claims (prose tracks instruction, code
+tracks habit) and one baseline-wording re-quotation of a modified element.
+Amendment 2's frozen corollary adjudicated honestly: half wrong (one mover
+deliberated, one absorbed silently). Shape hypothesis gains the
+decisions-vs-habits qualifier; REGISTER and protocol updated; trial 4b
+queued (hard inversion / decision-vs-habit crossing / quote-on-cite).
+Delegation note: the §6 pass and harvest ran as subagents (~520k tokens kept
+out of the driver's context across the night).
+
+
+## 2026-10-06 — P0002 kills trial 4 as declared; pivot to the buttressing trial
+
+The standing re-enumeration step (musing 0011) found CP7 is **buttressed**,
+not owned — four restating voices (`CP2`, `CP10`, `CP16`, `R1`), zero
+opposing. A lone inversion would be unattributable: a non-flip could mean
+buttresses won OR the element is impotent. **Decision: convert the confound
+into the independent variable** (trial 3's move): arms baseline / I-lone
+(CP7 inverted, buttresses intact) / I-quiet (CP7 inverted + the four
+restating clauses de-typed) / M-narrowed (hints on exported only) /
+N-inverted (WP3). 5 arms × 3 = 15 runs. Tests musing 0012 (is buttressing
+protective) — symmetric informativeness restored. Also corrected: trial 4's
+"prior-neutral" claim — trial 3's 12 surviving run roots show the style
+prior at ceiling (strict 12/12, ret-annotations 99.5%), so the I-arms are
+override-the-prior tests mirroring trial 2's structure in a style domain.
+Survey §7 extended; taxonomy gains *buttressed* as a first-class state.
+
 ## 2026-10-06 (overnight) — P0004: the inside voice is harvestable and convergent
 
 7/36 would-have-flipped, 106 steering-meta, 34/36 files productive, one

@@ -1,0 +1,174 @@
+id: 2026-10-strict-typing-cp7
+hypothesis: >
+  Two questions, one trial. (1) Does a directive element steer in a pure
+  style domain, against the model's measured style prior? (2) Does
+  buttressing protect an element from inversion — i.e. when a lone element is
+  inverted while four same-direction restatements stand, do the buttresses
+  win? The I-lone/I-quiet contrast carries question 2; I-quiet alone carries
+  question 1.
+element:
+  id: code-common:CP7            # "Strict typing"
+  shape: directive               # prescriptions, no weighing
+  category: principle
+  axis_state: buttressed         # P0002 — NOT owned, as the survey first said
+  polarity_neutral_name: false   # I-arms invert the name too (trial 1 defect 3)
+
+# ---------------------------------------------------------------------------
+# The axis, re-enumerated independently per musing 0011 (probe P0002), not
+# taken from the survey — which had called CP7 "owned" and was wrong.
+# ---------------------------------------------------------------------------
+axis:
+  name: how much explicit static typing to use
+  anchor: code-common:CP7
+  restating_buttresses:          # quieted in I-quiet, each by a same-shape swap
+    - id: code-common:CP2
+      phrase: "Explicit function signatures."
+      quiet_swap: "Explicit control flow."
+    - id: code-common:CP10
+      phrase: "Example: enforce strict type checking in a pre-commit hook"
+      quiet_swap: "Example: enforce a formatter in a pre-commit hook"
+    - id: code-common:CP16
+      phrase: "hard requirements such as type checking"
+      quiet_swap: "hard requirements such as deployment targets"
+    - id: personal:R1
+      phrase: "Typecheck must pass."
+      quiet_swap: "Checks must pass."
+  adjudicated_not_restating:     # left untouched in every arm, with reasons
+    - id: code-common:CP3
+      reason: "'Function signatures show all inputs' is inputs-as-parameters (anti-hidden-state), not annotations; 'Enums over string literals' bears weakly on (c) only"
+    - id: personal:P7
+      reason: conditional via enforcement generally; no typing content
+    - { id: personal:P19, reason: inferential only }
+    - { id: personal:P20, reason: inferential only }
+    - { id: ai-common:P4, reason: deterministic-automation generally }
+    - { id: code-web:WP2, reason: runtime schema validation, not static typing }
+    - { id: code-web:WR2, reason: runtime schema validation, not static typing }
+    - { id: personal:V1, reason: cuts both ways, entails neither (P0002) }
+    - { id: personal:P16, reason: scaler not direction — axis A6 territory }
+    - { id: personal:P18, reason: gate-friction accounting, direction-neutral }
+    - { id: ai-common:P2, reason: tiebreaker depends on facts not stated }
+
+# The model's prior on this axis is MEASURED, not assumed: trial 3's 12
+# surviving run roots (same library, same task, untampered on this axis) sit
+# at ceiling — tsconfig strict 12/12, typecheck script 12/12, explicit return
+# annotations 194/195 (99.5%), zero `any`. So the I-arms are
+# override-the-prior tests (trial 2's structure, style domain instead of
+# safety), and the earlier "prior-neutral" claim in REGISTER is corrected in
+# PREDICTIONS section 2: neutral in professional acceptability, NOT in model
+# preference.
+prior:
+  source: trial 3 run roots, measured 2026-10-06 (PREDICTIONS section 2 table)
+  strict_tsconfig: 12/12
+  typecheck_script: 12/12
+  return_annotations: 194/195
+  any_usage: 0
+
+task: ../tasks/csv-tally.md      # byte-identical reuse from trial 3
+task_note: >
+  Reuse is deliberate: it makes trial 3's 12 runs a measured prior for this
+  exact task. The task's "TypeScript on Node" line is a stack constant,
+  byte-identical across arms and identical to trials 2-3; it forecloses the
+  element's TS-over-JS clause (sub-decision d), which is declared out of
+  scope. The gate whitelists exactly that line and asserts the task names no
+  other axis vocabulary.
+
+forks:
+  - id: T1
+    need: explicit return-type annotations on functions
+    observable: TS AST — fraction of function declarations + arrow functions carrying a return annotation
+    levels: {high: ">= 0.8", mid: "0.2 - 0.8", low: "<= 0.2"}
+  - id: T2
+    need: named data models for the row/report shapes
+    observable: TS AST — count of interface + type-alias declarations
+    levels: {present: ">= 2", absent: "<= 1"}
+  - id: T3
+    need: a checker affordance
+    observable: tsconfig.json with strict true AND a package.json script invoking tsc (or documented equivalent)
+    levels: {present: both, partial: one, absent: neither}
+  - id: T4
+    need: boundary-scoped annotation (M-narrowed's discriminator)
+    observable: T1 split by exported vs internal functions
+    levels: reported as two rates per run
+
+arms:
+  - id: baseline
+    change: none
+  - id: I-lone
+    change: CP7 name+statement inverted (trial 1's R-inverted text, verbatim); buttresses intact — the library contradicts itself
+  - id: I-quiet
+    change: same CP7 inversion PLUS the four restating clauses de-typed — the inverted voice is the library's only typing voice
+  - id: M-narrowed
+    change: "one prescription boundary-scoped: 'Type hints on exported function signatures; omit them on internal ones and let inference carry those.' Name unchanged"
+  - id: N-inverted
+    change: code-web:WP3 inverted (trial 3's null, verbatim) — the noise floor
+
+invariant_deviations:
+  - invariant: exactly one element differs per arm
+    status: VIOLATED BY I-quiet, BY CONSTRUCTION — five elements, two files
+    consequence: >
+      I-quiet cannot attribute its outcome to CP7 alone; it attributes to
+      "the library's typing stance, coherently inverted". That is the point:
+      the I-lone/I-quiet DELTA isolates what the buttresses contribute, which
+      is the independent variable. All other arms hold the one-element
+      invariant, verified byte-wise.
+  - invariant: the manipulated element is the only voice on its axis
+    status: VIOLATED BY I-lone AND M-narrowed, DECLARED — the axis is buttressed (P0002)
+    consequence: >
+      I-lone's outcome is attributable to "lone inversion under intact
+      buttressing", not to CP7's impotence or potency alone. M's narrowing
+      contradicts no buttress head-on (none prescribes internal-function
+      annotations specifically), but CP2's generic clause leans against it;
+      declared as residual.
+
+reps: 3
+model: opus[1m]
+
+observables:
+  scorer: instrument/score.mjs          # TS-AST based; to be validated on trial 3 roots before any dispatch
+  floor: instrument/accept/run.sh       # trial 3's floor, unchanged — same task
+  gate: instrument/leak-audit.py
+  gate_mutations: instrument/mutation-test.sh
+  transcript_gate: instrument/transcript-audit.py
+
+cairn:
+  path: /home/guy/.nvm/versions/node/v22.14.0/bin/cairn
+  version: 5.1.0
+
+closed_channels:
+  # inherited from trial 3, all still asserted
+  - vcs
+  - run-directory-name
+  - registry
+  - sibling-runs
+  - per-run-HOME
+  - acceptance-floor
+  - tag-glossary            # no tag states a typing position (P0002 checked)
+  - ancestor-git-worktree
+  - global-claude-config
+  - cairn-binary-provenance
+  - instrument-cairn-pinned
+  - validate-diagnostic-identity   # verified: all five arms sha-identical (a50cebbc)
+  # trial-4 specific
+  - element-name            # I-arms invert the name alongside (trial 1 defect 3); M documented
+  - buttress-swap-tells     # the four quiet-swaps introduce no new axis vocabulary; gate greps them
+
+open_channels:
+  - id: task-names-typescript
+    detail: >
+      TASK.md's "TypeScript on Node" is axis-adjacent (CP7 says "TypeScript
+      over JavaScript"). Constant across arms and identical to trials 2-3, so
+      not a differential tell; it forecloses sub-decision (d) only. Declared,
+      whitelisted in the gate.
+  - id: self-contradiction-visibility-in-I-lone
+    detail: >
+      I-lone's library genuinely contradicts itself (inverted CP7 vs intact
+      R1/CP2/CP10/CP16). A run could notice and infer tampering. This is not
+      closable — it IS the experimental condition. Transcript + DECISIONS
+      evidence will be read for it (trial 3 found zero unprompted
+      contradiction-reports across 12 runs; P0001 says they can see it when
+      asked — whether they SAY it unprompted here is itself data).
+  - id: no-prior-free-cell
+    detail: >
+      If neither I-arm flips, the trial cannot distinguish "style prior too
+      strong" from "element impotent in style domains" — there is no arm
+      without the prior. Same limit class trials 2 and 3 declared.
