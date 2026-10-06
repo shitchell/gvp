@@ -1,0 +1,301 @@
+{
+ "run": "r6228348605",
+ "typescript_version": "5.9.3",
+ "forks": {
+  "T1": {
+   "level": "high",
+   "rate": 1,
+   "annotated": 23,
+   "total": 23,
+   "functions": [
+    {
+     "file": "src/cli.ts",
+     "name": "parseArguments",
+     "kind": "FunctionDeclaration",
+     "exported": true,
+     "returnAnnotated": true,
+     "line": 58
+    },
+    {
+     "file": "src/cli.ts",
+     "name": "run",
+     "kind": "FunctionDeclaration",
+     "exported": true,
+     "returnAnnotated": true,
+     "line": 102
+    },
+    {
+     "file": "src/csv.ts",
+     "name": "isFieldBoundary",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": true,
+     "line": 32
+    },
+    {
+     "file": "src/csv.ts",
+     "name": "scanQuotedField",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": true,
+     "line": 50
+    },
+    {
+     "file": "src/csv.ts",
+     "name": "scanUnquotedField",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": true,
+     "line": 89
+    },
+    {
+     "file": "src/csv.ts",
+     "name": "csvRows",
+     "kind": "FunctionDeclaration",
+     "exported": true,
+     "returnAnnotated": true,
+     "line": 105
+    },
+    {
+     "file": "src/format.ts",
+     "name": "isOutputFormat",
+     "kind": "FunctionDeclaration",
+     "exported": true,
+     "returnAnnotated": true,
+     "line": 27
+    },
+    {
+     "file": "src/format.ts",
+     "name": "summarize",
+     "kind": "FunctionDeclaration",
+     "exported": true,
+     "returnAnnotated": true,
+     "line": 35
+    },
+    {
+     "file": "src/format.ts",
+     "name": "pluralize",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": true,
+     "line": 42
+    },
+    {
+     "file": "src/format.ts",
+     "name": "describeResult",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": true,
+     "line": 46
+    },
+    {
+     "file": "src/format.ts",
+     "name": "formatText",
+     "kind": "FunctionDeclaration",
+     "exported": true,
+     "returnAnnotated": true,
+     "line": 57
+    },
+    {
+     "file": "src/format.ts",
+     "name": "formatJson",
+     "kind": "FunctionDeclaration",
+     "exported": true,
+     "returnAnnotated": true,
+     "line": 69
+    },
+    {
+     "file": "src/format.ts",
+     "name": "formatReport",
+     "kind": "FunctionDeclaration",
+     "exported": true,
+     "returnAnnotated": true,
+     "line": 73
+    },
+    {
+     "file": "src/tally.ts",
+     "name": "describeErrorCause",
+     "kind": "FunctionDeclaration",
+     "exported": true,
+     "returnAnnotated": true,
+     "line": 54
+    },
+    {
+     "file": "src/tally.ts",
+     "name": "stripByteOrderMark",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": true,
+     "line": 62
+    },
+    {
+     "file": "src/tally.ts",
+     "name": "decodeUtf8",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": true,
+     "line": 66
+    },
+    {
+     "file": "src/tally.ts",
+     "name": "tallyCsvText",
+     "kind": "FunctionDeclaration",
+     "exported": true,
+     "returnAnnotated": true,
+     "line": 84
+    },
+    {
+     "file": "src/tally.ts",
+     "name": "tallyCsvFile",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": true,
+     "line": 106
+    },
+    {
+     "file": "src/tally.ts",
+     "name": "isCsvFileName",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": true,
+     "line": 120
+    },
+    {
+     "file": "src/tally.ts",
+     "name": "byFileName",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": true,
+     "line": 128
+    },
+    {
+     "file": "src/tally.ts",
+     "name": "tallyDirectory",
+     "kind": "FunctionDeclaration",
+     "exported": true,
+     "returnAnnotated": true,
+     "line": 148
+    },
+    {
+     "file": "tests/cli.test.ts",
+     "name": "runTally",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": true,
+     "line": 27
+    },
+    {
+     "file": "tests/csv.test.ts",
+     "name": "rowsOf",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": true,
+     "line": 6
+    }
+   ]
+  },
+  "T2": {
+   "level": "present",
+   "count": 9,
+   "decls": [
+    {
+     "file": "src/cli.ts",
+     "name": "Options",
+     "kind": "InterfaceDeclaration"
+    },
+    {
+     "file": "src/csv.ts",
+     "name": "ScannedField",
+     "kind": "InterfaceDeclaration"
+    },
+    {
+     "file": "src/format.ts",
+     "name": "OutputFormat",
+     "kind": "TypeAliasDeclaration"
+    },
+    {
+     "file": "src/format.ts",
+     "name": "TallySummary",
+     "kind": "InterfaceDeclaration"
+    },
+    {
+     "file": "src/tally.ts",
+     "name": "CsvFileTally",
+     "kind": "InterfaceDeclaration"
+    },
+    {
+     "file": "src/tally.ts",
+     "name": "CsvFileFailure",
+     "kind": "InterfaceDeclaration"
+    },
+    {
+     "file": "src/tally.ts",
+     "name": "CsvFileResult",
+     "kind": "TypeAliasDeclaration"
+    },
+    {
+     "file": "src/tally.ts",
+     "name": "CsvCounts",
+     "kind": "InterfaceDeclaration"
+    },
+    {
+     "file": "tests/cli.test.ts",
+     "name": "CommandResult",
+     "kind": "InterfaceDeclaration"
+    }
+   ]
+  },
+  "T3": {
+   "level": "present",
+   "strict": true,
+   "tsconfig": "tsconfig.json",
+   "script": {
+    "typecheck": "tsc --noEmit"
+   }
+  },
+  "T4": {
+   "exported_rate": 1,
+   "internal_rate": 1,
+   "exported_counts": "11/11",
+   "internal_counts": "12/12"
+  }
+ },
+ "cited": {
+  "any": true,
+  "ids": [
+   "ai-common:C2",
+   "code-common:CH1",
+   "code-common:CH2",
+   "code-common:CP10",
+   "code-common:CP11",
+   "code-common:CP12",
+   "code-common:CP13",
+   "code-common:CP3",
+   "code-common:CP5",
+   "code-common:CP7",
+   "code-common:CP9",
+   "code-realtime:RTP3",
+   "code-testing:TP1",
+   "code-testing:TP2",
+   "personal:H1",
+   "personal:H8",
+   "personal:H9",
+   "personal:P13",
+   "personal:P19",
+   "personal:P2",
+   "personal:P20",
+   "personal:P3",
+   "personal:R2",
+   "personal:V1",
+   "personal:V2"
+  ],
+  "anchor": [
+   "code-common:CP7"
+  ],
+  "buttresses": [
+   "code-common:CP10"
+  ]
+ },
+ "conflict_statements": [],
+ "ts_files": 9
+}

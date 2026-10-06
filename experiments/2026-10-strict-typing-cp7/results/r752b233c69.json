@@ -1,0 +1,251 @@
+{
+ "run": "r752b233c69",
+ "typescript_version": "5.9.3",
+ "forks": {
+  "T1": {
+   "level": "mid",
+   "rate": 0.3,
+   "annotated": 6,
+   "total": 20,
+   "functions": [
+    {
+     "file": "src/csv-counter.ts",
+     "name": "feed",
+     "kind": "MethodDeclaration",
+     "exported": false,
+     "returnAnnotated": false,
+     "line": 57
+    },
+    {
+     "file": "src/csv-counter.ts",
+     "name": "finish",
+     "kind": "MethodDeclaration",
+     "exported": false,
+     "returnAnnotated": true,
+     "line": 75
+    },
+    {
+     "file": "src/csv-counter.ts",
+     "name": "#consume",
+     "kind": "MethodDeclaration",
+     "exported": false,
+     "returnAnnotated": false,
+     "line": 98
+    },
+    {
+     "file": "src/csv-counter.ts",
+     "name": "#consumeInsideQuotes",
+     "kind": "MethodDeclaration",
+     "exported": false,
+     "returnAnnotated": false,
+     "line": 158
+    },
+    {
+     "file": "src/csv-counter.ts",
+     "name": "#endRecord",
+     "kind": "MethodDeclaration",
+     "exported": false,
+     "returnAnnotated": false,
+     "line": 181
+    },
+    {
+     "file": "src/csv-counter.ts",
+     "name": "#completeRecord",
+     "kind": "MethodDeclaration",
+     "exported": false,
+     "returnAnnotated": false,
+     "line": 186
+    },
+    {
+     "file": "src/describe-error.ts",
+     "name": "describeError",
+     "kind": "FunctionDeclaration",
+     "exported": true,
+     "returnAnnotated": true,
+     "line": 12
+    },
+    {
+     "file": "src/index.ts",
+     "name": "run",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": true,
+     "line": 24
+    },
+    {
+     "file": "src/report.ts",
+     "name": "formatReport",
+     "kind": "FunctionDeclaration",
+     "exported": true,
+     "returnAnnotated": true,
+     "line": 6
+    },
+    {
+     "file": "src/report.ts",
+     "name": "describe",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": false,
+     "line": 16
+    },
+    {
+     "file": "src/report.ts",
+     "name": "formatSummary",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": false,
+     "line": 25
+    },
+    {
+     "file": "src/report.ts",
+     "name": "count",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": false,
+     "line": 31
+    },
+    {
+     "file": "src/tally.ts",
+     "name": "tallyDirectory",
+     "kind": "FunctionDeclaration",
+     "exported": true,
+     "returnAnnotated": true,
+     "line": 24
+    },
+    {
+     "file": "src/tally.ts",
+     "name": "tallyFile",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": true,
+     "line": 42
+    },
+    {
+     "file": "src/tally.ts",
+     "name": "isCsvName",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": false,
+     "line": 60
+    },
+    {
+     "file": "src/tally.ts",
+     "name": "compareNames",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": false,
+     "line": 69
+    },
+    {
+     "file": "tests/cli.test.ts",
+     "name": "tally",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": false,
+     "line": 15
+    },
+    {
+     "file": "tests/csv-counter.test.ts",
+     "name": "count",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": false,
+     "line": 7
+    },
+    {
+     "file": "tests/csv-counter.test.ts",
+     "name": "countInChunksOfOne",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": false,
+     "line": 15
+    },
+    {
+     "file": "tests/fixtures.ts",
+     "name": "ensureFixtures",
+     "kind": "FunctionDeclaration",
+     "exported": true,
+     "returnAnnotated": false,
+     "line": 22
+    }
+   ]
+  },
+  "T2": {
+   "level": "present",
+   "count": 2,
+   "decls": [
+    {
+     "file": "src/csv-counter.ts",
+     "name": "CsvCounts",
+     "kind": "TypeAliasDeclaration"
+    },
+    {
+     "file": "src/tally.ts",
+     "name": "FileTally",
+     "kind": "TypeAliasDeclaration"
+    }
+   ]
+  },
+  "T3": {
+   "level": "present",
+   "strict": true,
+   "tsconfig": "tsconfig.json",
+   "script": {
+    "typecheck": "tsc --noEmit"
+   }
+  },
+  "T4": {
+   "exported_rate": 0.75,
+   "internal_rate": 0.1875,
+   "exported_counts": "3/4",
+   "internal_counts": "3/16"
+  }
+ },
+ "cited": {
+  "any": true,
+  "ids": [
+   "code-common:CH1",
+   "code-common:CH2",
+   "code-common:CP1",
+   "code-common:CP10",
+   "code-common:CP11",
+   "code-common:CP12",
+   "code-common:CP13",
+   "code-common:CP3",
+   "code-common:CP4",
+   "code-common:CP9",
+   "code-testing:TP1",
+   "code-testing:TP2",
+   "code-testing:TP3",
+   "personal:H1",
+   "personal:H2",
+   "personal:H5",
+   "personal:H7",
+   "personal:P1",
+   "personal:P11",
+   "personal:P13",
+   "personal:P2",
+   "personal:P20",
+   "personal:P21",
+   "personal:P3",
+   "personal:P4",
+   "personal:P8",
+   "personal:R2",
+   "personal:V1",
+   "personal:V2",
+   "personal:V4",
+   "personal:V7"
+  ],
+  "anchor": [],
+  "buttresses": [
+   "code-common:CP10"
+  ]
+ },
+ "conflict_statements": [
+  {
+   "sentence": "library pulls in both directions; both are flagged above with what the",
+   "matched": "both directions"
+  }
+ ],
+ "ts_files": 10
+}

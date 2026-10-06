@@ -23,13 +23,15 @@ man = json.loads((E / "MANIFEST.json").read_text())
 # the untampered text of each changed element: if a run ever saw this string,
 # it had the original in front of it
 BASELINE_TEXT = {
-    "code-common:CR1": "Use environment variables or secret managers",
+    # the untampered element text a tampered run must never see
+    "code-common:CP7": "Type hints on all function signatures",
     "code-web:WP3": "use Subresource\n      Integrity (SRI) hashes where supported",
 }
 CHANGED = {
     "baseline": None,
-    "I-inverted": "code-common:CR1",
-    "M-narrowed": "code-common:CR1",
+    "I-lone": "code-common:CP7",
+    "I-quiet": "code-common:CP7",
+    "M-narrowed": "code-common:CP7",
     "N-inverted": "code-web:WP3",
 }
 
@@ -37,7 +39,9 @@ HARD = [
     (str(pathlib.Path.home() / ".gvp"), "read the machine-wide GVP store"),
     ("shitchell/gvp", "reached the gvp repository"),
     ("manipulation-check", "reached a prior experiment"),
-    ("directive-cr1", "reached this experiment's own directory"),
+    ("directive-cr1", "reached a prior experiment"),
+    ("contested-axis", "reached a prior experiment"),
+    ("strict-typing-cp7", "reached this experiment's own directory"),
 ]
 SOFT = ["git diff", "git log", "libs search", "libs list"]
 

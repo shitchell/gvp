@@ -1,4 +1,44 @@
 {
+ "r01832deb89": {
+  "cairn": "/home/guy/.nvm/versions/node/v22.14.0/bin/cairn",
+  "cairn_target": "/home/guy/.nvm/versions/node/v22.14.0/lib/node_modules/@principled/cairn/dist/cli/index.js",
+  "cairn_version": "5.1.0",
+  "model": "opus[1m]",
+  "rep": 3,
+  "root": "/tmp/tmp.dBOhnBAg3V",
+  "started": "2026-10-06T03:21:27-04:00",
+  "variant": "baseline"
+ },
+ "r07b3db130c": {
+  "cairn": "/home/guy/.nvm/versions/node/v22.14.0/bin/cairn",
+  "cairn_target": "/home/guy/.nvm/versions/node/v22.14.0/lib/node_modules/@principled/cairn/dist/cli/index.js",
+  "cairn_version": "5.1.0",
+  "model": "opus[1m]",
+  "rep": 3,
+  "root": "/tmp/tmp.3DLtIi2r7B",
+  "started": "2026-10-06T03:55:31-04:00",
+  "variant": "N-inverted"
+ },
+ "r11ea36c1ab": {
+  "cairn": "/home/guy/.nvm/versions/node/v22.14.0/bin/cairn",
+  "cairn_target": "/home/guy/.nvm/versions/node/v22.14.0/lib/node_modules/@principled/cairn/dist/cli/index.js",
+  "cairn_version": "5.1.0",
+  "model": "opus[1m]",
+  "rep": 3,
+  "root": "/tmp/tmp.ihzwddogVs",
+  "started": "2026-10-06T03:33:53-04:00",
+  "variant": "I-lone"
+ },
+ "r1624503213": {
+  "cairn": "/home/guy/.nvm/versions/node/v22.14.0/bin/cairn",
+  "cairn_target": "/home/guy/.nvm/versions/node/v22.14.0/lib/node_modules/@principled/cairn/dist/cli/index.js",
+  "cairn_version": "5.1.0",
+  "model": "opus[1m]",
+  "rep": 3,
+  "root": "/tmp/tmp.zhjB5s2v2T",
+  "started": "2026-10-06T03:48:05-04:00",
+  "variant": "M-narrowed"
+ },
  "r193d1970c2": {
   "cairn": "/home/guy/.nvm/versions/node/v22.14.0/bin/cairn",
   "cairn_target": "/home/guy/.nvm/versions/node/v22.14.0/lib/node_modules/@principled/cairn/dist/cli/index.js",
@@ -8,5 +48,105 @@
   "root": "/tmp/tmp.BWUBBbyZwZ",
   "started": "2026-10-06T03:08:13-04:00",
   "variant": "I-quiet"
+ },
+ "r35c134fdda": {
+  "cairn": "/home/guy/.nvm/versions/node/v22.14.0/bin/cairn",
+  "cairn_target": "/home/guy/.nvm/versions/node/v22.14.0/lib/node_modules/@principled/cairn/dist/cli/index.js",
+  "cairn_version": "5.1.0",
+  "model": "opus[1m]",
+  "rep": 1,
+  "root": "/tmp/tmp.Ir7TKmWQlW",
+  "started": "2026-10-06T03:41:20-04:00",
+  "variant": "M-narrowed"
+ },
+ "r4fffd1910e": {
+  "cairn": "/home/guy/.nvm/versions/node/v22.14.0/bin/cairn",
+  "cairn_target": "/home/guy/.nvm/versions/node/v22.14.0/lib/node_modules/@principled/cairn/dist/cli/index.js",
+  "cairn_version": "5.1.0",
+  "model": "opus[1m]",
+  "rep": 3,
+  "root": "/tmp/tmp.I7S2V6Ik52",
+  "started": "2026-10-06T03:34:55-04:00",
+  "variant": "I-quiet"
+ },
+ "r6228348605": {
+  "cairn": "/home/guy/.nvm/versions/node/v22.14.0/bin/cairn",
+  "cairn_target": "/home/guy/.nvm/versions/node/v22.14.0/lib/node_modules/@principled/cairn/dist/cli/index.js",
+  "cairn_version": "5.1.0",
+  "model": "opus[1m]",
+  "rep": 2,
+  "root": "/tmp/tmp.0fmYezReuT",
+  "started": "2026-10-06T03:21:27-04:00",
+  "variant": "baseline"
+ },
+ "r65751f82df": {
+  "cairn": "/home/guy/.nvm/versions/node/v22.14.0/bin/cairn",
+  "cairn_target": "/home/guy/.nvm/versions/node/v22.14.0/lib/node_modules/@principled/cairn/dist/cli/index.js",
+  "cairn_version": "5.1.0",
+  "model": "opus[1m]",
+  "rep": 2,
+  "root": "/tmp/tmp.DdtN0egkPD",
+  "started": "2026-10-06T03:43:11-04:00",
+  "variant": "M-narrowed"
+ },
+ "r752b233c69": {
+  "cairn": "/home/guy/.nvm/versions/node/v22.14.0/bin/cairn",
+  "cairn_target": "/home/guy/.nvm/versions/node/v22.14.0/lib/node_modules/@principled/cairn/dist/cli/index.js",
+  "cairn_version": "5.1.0",
+  "model": "opus[1m]",
+  "rep": 1,
+  "root": "/tmp/tmp.4r3lzQKlk9",
+  "started": "2026-10-06T03:21:27-04:00",
+  "variant": "I-lone"
+ },
+ "r8807888a71": {
+  "cairn": "/home/guy/.nvm/versions/node/v22.14.0/bin/cairn",
+  "cairn_target": "/home/guy/.nvm/versions/node/v22.14.0/lib/node_modules/@principled/cairn/dist/cli/index.js",
+  "cairn_version": "5.1.0",
+  "model": "opus[1m]",
+  "rep": 1,
+  "root": "/tmp/tmp.L0p1R3BnUq",
+  "started": "2026-10-06T03:21:27-04:00",
+  "variant": "baseline"
+ },
+ "r974624bf93": {
+  "cairn": "/home/guy/.nvm/versions/node/v22.14.0/bin/cairn",
+  "cairn_target": "/home/guy/.nvm/versions/node/v22.14.0/lib/node_modules/@principled/cairn/dist/cli/index.js",
+  "cairn_version": "5.1.0",
+  "model": "opus[1m]",
+  "rep": 1,
+  "root": "/tmp/tmp.TyDp2Q6eqh",
+  "started": "2026-10-06T03:51:02-04:00",
+  "variant": "N-inverted"
+ },
+ "raa7395e26c": {
+  "cairn": "/home/guy/.nvm/versions/node/v22.14.0/bin/cairn",
+  "cairn_target": "/home/guy/.nvm/versions/node/v22.14.0/lib/node_modules/@principled/cairn/dist/cli/index.js",
+  "cairn_version": "5.1.0",
+  "model": "opus[1m]",
+  "rep": 2,
+  "root": "/tmp/tmp.NOqOmvADOC",
+  "started": "2026-10-06T03:31:02-04:00",
+  "variant": "I-lone"
+ },
+ "rbd8b9960d4": {
+  "cairn": "/home/guy/.nvm/versions/node/v22.14.0/bin/cairn",
+  "cairn_target": "/home/guy/.nvm/versions/node/v22.14.0/lib/node_modules/@principled/cairn/dist/cli/index.js",
+  "cairn_version": "5.1.0",
+  "model": "opus[1m]",
+  "rep": 2,
+  "root": "/tmp/tmp.wNPrKpbMx3",
+  "started": "2026-10-06T03:34:35-04:00",
+  "variant": "I-quiet"
+ },
+ "rc63e1282a3": {
+  "cairn": "/home/guy/.nvm/versions/node/v22.14.0/bin/cairn",
+  "cairn_target": "/home/guy/.nvm/versions/node/v22.14.0/lib/node_modules/@principled/cairn/dist/cli/index.js",
+  "cairn_version": "5.1.0",
+  "model": "opus[1m]",
+  "rep": 2,
+  "root": "/tmp/tmp.omlAeU7AfI",
+  "started": "2026-10-06T03:52:34-04:00",
+  "variant": "N-inverted"
  }
 }

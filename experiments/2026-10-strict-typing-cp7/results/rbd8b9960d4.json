@@ -1,0 +1,252 @@
+{
+ "run": "rbd8b9960d4",
+ "typescript_version": "5.9.3",
+ "forks": {
+  "T1": {
+   "level": "mid",
+   "rate": 0.3157894736842105,
+   "annotated": 6,
+   "total": 19,
+   "functions": [
+    {
+     "file": "src/cli.ts",
+     "name": "runCli",
+     "kind": "FunctionDeclaration",
+     "exported": true,
+     "returnAnnotated": true,
+     "line": 40
+    },
+    {
+     "file": "src/cli.ts",
+     "name": "parseCliArgs",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": false,
+     "line": 66
+    },
+    {
+     "file": "src/cli.ts",
+     "name": "isOutputFormat",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": true,
+     "line": 89
+    },
+    {
+     "file": "src/cli.ts",
+     "name": "cannotRun",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": true,
+     "line": 93
+    },
+    {
+     "file": "src/csv.ts",
+     "name": "parseCsvRows",
+     "kind": "FunctionDeclaration",
+     "exported": true,
+     "returnAnnotated": true,
+     "line": 39
+    },
+    {
+     "file": "src/csv.ts",
+     "name": "endField",
+     "kind": "ArrowFunction",
+     "exported": false,
+     "returnAnnotated": false,
+     "line": 54
+    },
+    {
+     "file": "src/csv.ts",
+     "name": "endRow",
+     "kind": "ArrowFunction",
+     "exported": false,
+     "returnAnnotated": false,
+     "line": 60
+    },
+    {
+     "file": "src/report.ts",
+     "name": "renderReport",
+     "kind": "FunctionDeclaration",
+     "exported": true,
+     "returnAnnotated": false,
+     "line": 14
+    },
+    {
+     "file": "src/report.ts",
+     "name": "renderText",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": false,
+     "line": 22
+    },
+    {
+     "file": "src/report.ts",
+     "name": "renderFileLine",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": false,
+     "line": 30
+    },
+    {
+     "file": "src/report.ts",
+     "name": "renderJson",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": false,
+     "line": 35
+    },
+    {
+     "file": "src/report.ts",
+     "name": "count",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": false,
+     "line": 39
+    },
+    {
+     "file": "src/tally.ts",
+     "name": "tallyCsvText",
+     "kind": "FunctionDeclaration",
+     "exported": true,
+     "returnAnnotated": false,
+     "line": 26
+    },
+    {
+     "file": "src/tally.ts",
+     "name": "tallyDirectory",
+     "kind": "FunctionDeclaration",
+     "exported": true,
+     "returnAnnotated": true,
+     "line": 43
+    },
+    {
+     "file": "src/tally.ts",
+     "name": "tallyOneFile",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": true,
+     "line": 66
+    },
+    {
+     "file": "src/tally.ts",
+     "name": "describeFailure",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": false,
+     "line": 75
+    },
+    {
+     "file": "test/cli.test.ts",
+     "name": "tally",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": false,
+     "line": 19
+    },
+    {
+     "file": "test/csv.test.ts",
+     "name": "parseFailure",
+     "kind": "FunctionDeclaration",
+     "exported": false,
+     "returnAnnotated": false,
+     "line": 7
+    },
+    {
+     "file": "test/helpers.ts",
+     "name": "makeFixtureDir",
+     "kind": "FunctionDeclaration",
+     "exported": true,
+     "returnAnnotated": false,
+     "line": 12
+    }
+   ]
+  },
+  "T2": {
+   "level": "present",
+   "count": 4,
+   "decls": [
+    {
+     "file": "src/cli.ts",
+     "name": "CliOutcome",
+     "kind": "InterfaceDeclaration"
+    },
+    {
+     "file": "src/report.ts",
+     "name": "OutputFormat",
+     "kind": "TypeAliasDeclaration"
+    },
+    {
+     "file": "src/tally.ts",
+     "name": "FileTally",
+     "kind": "TypeAliasDeclaration"
+    },
+    {
+     "file": "src/tally.ts",
+     "name": "TallyReport",
+     "kind": "InterfaceDeclaration"
+    }
+   ]
+  },
+  "T3": {
+   "level": "present",
+   "strict": true,
+   "tsconfig": "tsconfig.json",
+   "script": {
+    "typecheck": "tsc --noEmit"
+   }
+  },
+  "T4": {
+   "exported_rate": 0.5,
+   "internal_rate": 0.23076923076923078,
+   "exported_counts": "3/6",
+   "internal_counts": "3/13"
+  }
+ },
+ "cited": {
+  "any": true,
+  "ids": [
+   "ai-common:P2",
+   "code-common:CH1",
+   "code-common:CH2",
+   "code-common:CP1",
+   "code-common:CP10",
+   "code-common:CP11",
+   "code-common:CP12",
+   "code-common:CP13",
+   "code-common:CP2",
+   "code-common:CP3",
+   "code-common:CP4",
+   "code-common:CP5",
+   "code-common:CP7",
+   "code-common:CP9",
+   "code-testing:TP1",
+   "code-testing:TP2",
+   "personal:C2",
+   "personal:H1",
+   "personal:H2",
+   "personal:H5",
+   "personal:P1",
+   "personal:P13",
+   "personal:P18",
+   "personal:P19",
+   "personal:P20",
+   "personal:P3",
+   "personal:R1",
+   "personal:R2",
+   "personal:V1",
+   "personal:V2",
+   "personal:V3"
+  ],
+  "anchor": [
+   "code-common:CP7"
+  ],
+  "buttresses": [
+   "code-common:CP2",
+   "code-common:CP10",
+   "personal:R1"
+  ]
+ },
+ "conflict_statements": [],
+ "ts_files": 9
+}

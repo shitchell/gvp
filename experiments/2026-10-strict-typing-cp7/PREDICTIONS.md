@@ -188,3 +188,22 @@ than the result's direction:
 
 The frozen predictions themselves are unchanged; the pilot run stands as
 `I-quiet` rep 1 in the batch.
+
+### Amendment 2 — recorded after the batch summary table, before the §6 pass returns
+
+The table shows branch 4 (neither I-arm flips) with new texture: 2/6 I-runs
+moved to `mid` with internal annotations collapsing; 0/9 non-I runs moved;
+the mover rate is identical across I-lone and I-quiet (1/3 each);
+M-narrowed moved nothing at all (internal 100% ×3) while citing its element.
+
+**Hypothesis registered before reading any run's prose, so it cannot be
+back-fitted to the quotes: elements steer discrete deliberated DECISIONS and
+fail against generation HABITS.** Trials 2 and 3's steered outcomes (where
+a token lives; whether a seam exists) are single deliberated choices; trial
+4's forks are habits applied dozens of times during generation. Predicted
+corollary, checkable against the §6 pass: the two I-arm movers will show an
+explicit upfront *decision* about typing style in their DECISIONS.md (the
+element elevated into deliberation, generation then following), and the
+non-movers will show the element cited or discussed without any such
+upfront style decision. If the movers show no such decision, the hypothesis
+is wrong as stated.
