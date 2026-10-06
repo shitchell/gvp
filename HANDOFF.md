@@ -12,6 +12,7 @@
 
 | read | why |
 |---|---|
+| `lab/README.md` + `lab/LEDGER.md` | **the methodology and the direction log.** The lab is the thinking layer (musings, probes, reflections, decisions-of-direction); read the ledger + open musings to steer |
 | `docs/plans/2026-09-30-trial-orchestration.md` | **the protocol.** What to load, how to declare a trial, the contamination channels, the candidate queue |
 | `experiments/REGISTER.md` | one line per trial plus "what trial 3 changed about the programme". **Read this before the individual findings** |
 | `experiments/2026-10-contested-axis/FINDINGS.md` | the most recent result, and the one that changed the programme's sequencing |
