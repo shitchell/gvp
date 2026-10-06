@@ -1,9 +1,15 @@
 #!/usr/bin/env bash
 # Assemble the manifest, then for each finished run: snapshot, score, floor.
 #
-# Order matters. The snapshot is taken and scored BEFORE the acceptance floor
-# runs, because the floor drives the tool with --url/--token and a tool that
-# wrongly persisted an override would rewrite the very file fork P measures.
+# Order matters, for a different reason than in trial 2. There the floor drove
+# the tool with --url/--token and a tool that wrongly persisted an override
+# would have rewritten the file fork P measured. Here BOTH the scorer and the
+# floor execute the tool, so the snapshot is taken first and all file-based
+# evidence (S3, citations) is read from that pristine copy, while the
+# invocation probes run in the live project where node_modules exists.
+#
+# Probes and the floor are driven against temp fixtures, never the project, so
+# neither can disturb the other.
 # usage: collect.sh
 set -uo pipefail
 E="$(cd "$(dirname "$0")/.." && pwd)"
@@ -25,21 +31,44 @@ while read -r ID ROOT VARIANT REP; do
 
   rm -rf "snapshots/$ID"
   rsync -a --exclude='node_modules' --exclude='.gvp' "$P/" "snapshots/$ID/"
-  node instrument/score.mjs "snapshots/$ID" "$ROOT/.home" "$ID" > "results/$ID.json"
   cp "$P/DECISIONS.md" "decisions/$VARIANT-rep$REP-$ID.md"
 
-  # pick the documented entry point; record which one was used
+  # Pick the documented entry point; record which one was used, so a run scored
+  # through an unexpected entry point is visible rather than silent.
   CMD=""
-  for c in "src/index.ts" "src/cli.ts" "src/main.ts" "index.ts"; do
-    [ -f "$P/$c" ] && { CMD="npx tsx $c"; break; }
+  for c in "src/index.ts" "src/cli.ts" "src/main.ts" "index.ts" "src/index.mjs" "src/index.js"; do
+    if [ -f "$P/$c" ]; then
+      case "$c" in
+        *.ts) CMD="npx tsx $c" ;;
+        *)    CMD="node $c" ;;
+      esac
+      break
+    fi
   done
-  if [ -z "$CMD" ]; then CMD="npm start --"; fi
+  [ -z "$CMD" ] && CMD="npm start --"
   echo "$CMD" > "results/$ID.cmd"
+
+  node instrument/score.mjs "snapshots/$ID" "$P" "$ID" $CMD > "results/$ID.json" 2> "results/$ID.score.err"
   bash instrument/accept/run.sh "$P" $CMD > "results/$ID.floor.txt" 2>&1
-  echo "$ID $VARIANT rep$REP  floor: $(tail -1 "results/$ID.floor.txt" | sed 's/.*---- //')"
+
+  LEVELS=$(python3 -c "
+import json,sys
+try:
+    d=json.load(open('results/$ID.json'))
+    f=d['forks']
+    print(f\"S1={f['S1']['level']:<11} S2={f['S2']['level']:<11} S3={f['S3']['level']:<7} axis_cited={d['cited']['axis_total']}\")
+except Exception as e:
+    print('UNSCORED', e)
+")
+  echo "$ID $VARIANT rep$REP  floor: $(tail -1 "results/$ID.floor.txt" | sed 's/.*---- //')  $LEVELS"
 done < <(python3 -c "
 import json
 m = json.load(open('MANIFEST.json'))
 for k, v in sorted(m.items()):
     print(k, v['root'], v['variant'], v['rep'])
 ")
+
+echo
+echo "REMINDER (protocol section 6, required step): read each run's"
+echo "decisions/*.md against its results/*.json row before summarising any arm."
+echo "Three of trial 2's seven defects were found that way and no other way."
