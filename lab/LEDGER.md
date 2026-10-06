@@ -5,6 +5,30 @@ Methodology amendments to [`README.md`](README.md) land here too.
 
 ---
 
+## 2026-10-07 — morning rulings: adoption parked, reviews go terse, forks get a menu, launch gets a runbook
+
+Maintainer rulings (verbatim in `conversations/0002`): proposal adoption
+**parked** until strategy/framing numbers exist (PA-15 — and trial 4's
+report-vs-artifact finding says the caution is empirically right); every
+fork in direction must be deposited in the new **`PATHS.md`** before any is
+taken, with the reviewing agent choosing; maintainer reviews become terse
+quantified tables — **`reviews/`** created with the template and seven
+retrofits (trials 1–4, the enumeration program, the harvest, proposal 0001);
+P0004 clustering parked (PA-14). **`OPERATIONS.md`** designs the launch
+architecture both ways per the fork-noting rule and recommends headless
+phase-sessions from BRIEFs + a thin steer step, with cron automation parked
+as PA-16 pending maintainer go. Model amendments to README recorded
+(PATHS-first rule; reviews as the done-gate).
+
+**Next path (driver's pick, from PATHS): PA-01 + PA-05 — the delivery
+trial with a preamble arm and a habit-domain outcome.** Rationale: it gates
+the whole integration roadmap, trial 4 sharpened exactly what it must
+measure, and PA-15's unlock condition ("solid findings/numbers around how
+different strategies and framings impact agent behavior") is literally its
+output. Alternatives deposited: PA-02/03/04 (trial 4b family), PA-06
+(cairn axes eval), PA-11 (cheap variance probe).
+
+
 ## 2026-10-07 (overnight) — trial 4 complete: the prior is a wall, and self-reports lie
 
 Branch 4, with texture: 2/6 I-runs partial-moved, M's hard imperative failed

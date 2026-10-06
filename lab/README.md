@@ -64,9 +64,13 @@ muse ──► design ──► probe or trial ──► reflect ──► revie
    updates, citations into the raw evidence. A probe's reflection lives in its
    own file; a trial's lives in its FINDINGS (defects + *what cannot be
    claimed*) plus a LEDGER entry for anything directional.
-5. **Review & decide.** Read [`LEDGER.md`](LEDGER.md) and the open musings;
-   pick the next direction; record it as a LEDGER entry *with the reasoning*,
-   so the choice is auditable later even if it was wrong. **The review
+5. **Review & decide.** Read [`PATHS.md`](PATHS.md), [`LEDGER.md`](LEDGER.md)
+   and the open musings; **deposit every candidate direction into PATHS
+   first**, then pick; record the pick as a LEDGER entry *with the
+   reasoning*, so the choice is auditable later even if it was wrong. Every
+   completed unit also files a terse quantified review in `reviews/`
+   (template: `conversations/0002`) — the maintainer reads those, not the
+   FINDINGS. **The review
    explicitly includes the model itself**: does the lab need a new tracked
    type, a change to how something is tracked, a reorganization, a different
    step? Methodology amendments are LEDGER entries like any other decision —
@@ -82,6 +86,10 @@ muse ──► design ──► probe or trial ──► reflect ──► revie
 | `probes/NNNN-slug.md` | small cheap tests | design, raw result, reflection — one file per probe |
 | `conversations/NNNN-slug.md` | maintainer conversations | verbatim rationale and rulings, quoted never paraphrased — added 2026-10-06 at the maintainer's ask |
 | `proposals/NNNN-slug/` | reviewable work products | e.g. a patched copy of the personal library awaiting `personal:P15` review; never applied to the live original |
+| `conversations/NNNN-slug.md` | maintainer exchanges | verbatim rationale; added at the maintainer's ask |
+| `reviews/NNNN-slug.md` | **terse maintainer reviews** | Abstract → quantified Results table → Explanation → Methodology; the maintainer reads these, not the long FINDINGS |
+| `PATHS.md` | the fork menu | every direction not taken gets a row BEFORE any is taken; the reviewer picks from here |
+| `OPERATIONS.md` | the launch runbook | how units start headless/orchestrated without losing intention or self-amendment |
 
 Numbering is `0001, 0002, …` and never reused. Nothing here is "final" —
 supersede by a new musing that links the old one.
