@@ -5,6 +5,34 @@ Methodology amendments to [`README.md`](README.md) land here too.
 
 ---
 
+## 2026-10-06 — tie-break resolutions landed in discussion (pending patch drafts)
+
+The maintainer ruled on the three P0001 contests, mostly structurally:
+
+- **A4** — resolved by category precedence (*"if they contradict, then the
+  heuristic should always win"*) plus the real decision machinery, stated for
+  the first time: a **sliding threshold** — certainty-of-need required scales
+  inversely with cost-now vs cost-later (*"if it takes ~10 extra chars and 5
+  seconds now and saves hours or days ... I might need only 5% certainty"*).
+  Matches what trial 3's runs did unprompted (musing 0005 strengthens).
+  Plan: upgrade `H3` to carry the threshold; soften `CP6`'s absolute final
+  sentence (a rule-phrased clause inside a principle — the actual bug);
+  `H1` untouched; heuristics stay rigid (rigid procedure over subjective
+  inputs preserves hard/soft).
+- **A8** — CR2's target is **completion fraud**, not artifact type (origin
+  quoted in musing 0013). Contradiction is text-layer only; fix = move intent
+  into bytes. Rewrite drafted in two variants (honesty-only vs
+  honesty+scoped-sign-off), maintainer to pick. Residual enforcement insight:
+  husks die to mutation-tested success definitions, not permission flow.
+- **A6** — no patch; principles are deliberately judgment-weighted. But the
+  category semantics are undelivered (agents get text, not YAML keys) → the
+  **preamble** fix + delivery-trial candidate (musing 0014).
+
+New musings: 0013 (threat models age with model eras), 0014 (precedence is
+unwritten law; preamble as fix and as trial). Patch texts go to the
+maintainer for review per personal:P15 before any cairn import.
+
+
 ## 2026-10-06 — P0001 scored: the agent pass beat the survey; survey corrected
 
 First loop closed end-to-end (muse → probe → reflect → corrections) on the
