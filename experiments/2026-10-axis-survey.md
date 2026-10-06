@@ -191,3 +191,44 @@ Consequences, recorded in trial 3's FINDINGS as defect 4:
    edit — per trial 3 — is an against-the-grain tie-break on whichever side
    of each axis the agents currently override; A4 (`CP6` vs `H1`) is the
    sharpest candidate and the cheapest to settle by decree.
+
+## 7. Post-report corrections — found by probe P0001, 2026-10-06
+
+*(Same precedent as trial 3's defect 4: enumeration corrections are recorded,
+attributed, and the original numbers left visible above.)*
+
+A fresh agent, prompted for internal tensions and blind to this survey
+(`lab/probes/0001-prompted-contradiction-detection.md`), recovered 6 of the 7
+axes above, produced no clear false positive — **and found what this survey
+missed:**
+
+- **A1 gains a thirteenth voice:** `P19` — *"implement low-effort,
+  high-information signals… even when it is not certain they will be
+  immediately useful"* — pro-build, scoped to signal-shaped features.
+- **Three contested axes this survey did not see:**
+  - **A6 — rigor allocation:** `TP1` ("all code") + `CP7` ("all function
+    signatures") + `P9` (uniformity) vs `P16` (*"let leaf or disposable
+    components be built more loosely"*). No element carves the exception.
+  - **A7 — rename vs commitment:** `ai-common:P2`/`C2` + `CP8` (remove
+    misleading names) vs `CP11` (a renamed flag is the named breaking case).
+  - **A8 — scaffolding sign-off:** `CR2` (*"explicit, verbatim, quoted
+    verification from the user… No exceptions"*) vs `H5` (*"never ask 'go or
+    no go'"*), `P15`, and `P17` (*"even with a throwaway consumer"* — the
+    exact artifact CR2 forbids). The sharpest miss, and operationally live
+    for any agent working under this library.
+- **Four mild-friction axes noted:** `RTP7` vs `CP3` (scratch mutation vs no
+  hidden state); `P7`/`CP10` vs `V4` (auto-enforcement vs opt-in); `H2` vs
+  `H6`/`P15` (user-facing delegation — §2 had flagged it as "edge"); `CP5`
+  vs `V6` (zero-config default vs no privileged frame).
+
+**Corrected headline: 8 contested axes, ~30 elements (~29%).** §1's table is
+left as written; this section is the diff.
+
+The meta-result outranks the numbers: keyword scan (10 voices on A1) <
+manual survey (12, 5 contested axes) < prompted agent pass (13, 8 + 4 mild).
+**Single-pass enumeration undercounts regardless of who enumerates** — this
+survey corrected trial 3 and has now been corrected the same way. `cairn
+axes` (§5) should be an agent pass with independent re-enumeration, keywords
+demoted to a pre-filter; and the §1-level claim worth keeping is unchanged in
+direction but stronger: the library is more contested than any single reader
+concludes.
