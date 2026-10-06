@@ -5,6 +5,23 @@ Methodology amendments to [`README.md`](README.md) land here too.
 
 ---
 
+## 2026-10-06 — P0002 kills trial 4 as declared; pivot to the buttressing trial
+
+The standing re-enumeration step (musing 0011) found CP7 is **buttressed**,
+not owned — four restating voices (`CP2`, `CP10`, `CP16`, `R1`), zero
+opposing. A lone inversion would be unattributable: a non-flip could mean
+buttresses won OR the element is impotent. **Decision: convert the confound
+into the independent variable** (trial 3's move): arms baseline / I-lone
+(CP7 inverted, buttresses intact) / I-quiet (CP7 inverted + the four
+restating clauses de-typed) / M-narrowed (hints on exported only) /
+N-inverted (WP3). 5 arms × 3 = 15 runs. Tests musing 0012 (is buttressing
+protective) — symmetric informativeness restored. Also corrected: trial 4's
+"prior-neutral" claim — trial 3's 12 surviving run roots show the style
+prior at ceiling (strict 12/12, ret-annotations 99.5%), so the I-arms are
+override-the-prior tests mirroring trial 2's structure in a style domain.
+Survey §7 extended; taxonomy gains *buttressed* as a first-class state.
+
+
 ## 2026-10-06 — P0001 scored: the agent pass beat the survey; survey corrected
 
 First loop closed end-to-end (muse → probe → reflect → corrections) on the
