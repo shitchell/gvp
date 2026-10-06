@@ -48,7 +48,7 @@ while read -r ID ROOT VARIANT REP; do
   [ -z "$CMD" ] && CMD="npm start --"
   echo "$CMD" > "results/$ID.cmd"
 
-  node instrument/score.mjs "snapshots/$ID" "$P" "$ID" $CMD > "results/$ID.json" 2> "results/$ID.score.err"
+  node instrument/score.mjs "snapshots/$ID" "$ID" > "results/$ID.json" 2> "results/$ID.score.err"
   bash instrument/accept/run.sh "$P" $CMD > "results/$ID.floor.txt" 2>&1
 
   LEVELS=$(python3 -c "
@@ -56,7 +56,8 @@ import json,sys
 try:
     d=json.load(open('results/$ID.json'))
     f=d['forks']
-    print(f\"S1={f['S1']['level']:<11} S2={f['S2']['level']:<11} S3={f['S3']['level']:<7} axis_cited={d['cited']['axis_total']}\")
+    t4=f['T4']
+    print(f\"T1={f['T1']['level']:<5} T2={f['T2']['level']:<8} T3={f['T3']['level']:<8} T4 exp={t4['exported_counts']:<7} int={t4['internal_counts']:<7} cites CP7={len(d['cited']['anchor'])>0}\")
 except Exception as e:
     print('UNSCORED', e)
 ")

@@ -1,25 +1,28 @@
 #!/usr/bin/env python3
 """Gate: a run must not be able to discover which arm it is in.
 
-Descended from trial 2's leak-audit.py. Two checks change in KIND here, because
-trial 3 manipulates a contested axis rather than a lone element:
+Descended from trial 3's gate. Trial-4 specifics:
 
-  - trial 2 asserted that NO other element restates the changed element's
-    position. Trial 3 cannot assert that and does not want to: ten elements
-    bear on this axis and that is the independent variable. The check becomes
-    "the set of elements on the axis is exactly the declared set", so a voice
-    nobody enumerated fails the gate.
+  - FIVE arms, one of which (I-quiet) deliberately edits five elements across
+    two files — the declared deviation that constitutes the independent
+    variable. The gate asserts that deviation EXACTLY: those five elements,
+    those two files, nothing else.
 
-  - trial 2's arms inverted statements. Trial 3's two decisive arms only APPEND
-    a clause, which is asserted structurally (the baseline statement must be a
-    prefix of the arm's). That is what keeps the tag glossary and the validate
-    diagnostics identical across arms, both of which are now asserted rather
-    than argued.
+  - The axis is BUTTRESSED (P0002), so the trial-3 "no undeclared voice"
+    keyword check is replaced by a STRONG-STEM check with a known expected
+    set: in every arm except I-quiet, exactly {CP7, CP10, CP16, R1} match the
+    strong typing stems; in I-quiet, exactly none do (the quiet swaps remove
+    them, and the inverted CP7 text deliberately contains no strong stem).
+    This is checkable because P0002 enumerated the matches up front — the
+    lesson of survey defect 4 is that keywords cannot FIND an axis, but they
+    can VERIFY a declared closure.
 
-Every check added here has a matching mutation in mutation-test.sh; the gate is
-fallible too (trial 1's version flagged hex digits as variant signal, and trial
-2's flagged two runs for "reaching the gvp repository" when both had only run
-`npm ls -g`).
+  - TASK.md's "TypeScript on Node" line is axis-adjacent and WHITELISTED: the
+    task must be byte-identical to trial 3's (a cross-trial constant), and
+    with that one line removed must contain no axis vocabulary.
+
+Every check has a matching mutation in mutation-test.sh; the gate is fallible
+too (one false positive per trial so far).
 
 usage: leak-audit.py [experiment-dir]
 """
@@ -40,62 +43,59 @@ E = (
     else pathlib.Path(__file__).parent.parent
 )
 
-# Pinned absolutely — see dispatch.sh and protocol section 4. A bare `cairn`
-# would resolve through PATH to a possibly-stale repo-local build.
 CAIRN = pathlib.Path("/home/guy/.nvm/versions/node/v22.14.0/bin/cairn")
 CAIRN_EXPECTED_VERSION = "5.1.0"
 REPO_MARKER = "shitchell/gvp"
 
-# arm -> (file, collection key, element id, name-must-change?, additive-only?)
+# single-element arms: arm -> (file, collection, id, name-must-change?)
 TARGET = {
-    "D-decisive": ("code/common.yaml", "heuristics", "CH2", False, True),
-    "A-decisive": ("personal.yaml", "principles", "P21", False, True),
-    "N-inverted": ("code/web.yaml", "principles", "WP3", True, False),
+    "I-lone": ("code/common.yaml", "principles", "CP7", True),
+    # M keeps its name: "Strict typing" still describes a statement that
+    # prescribes boundary annotations, typed models, TS and typed bash —
+    # same exemption trials 2 and 3 gave their M arms.
+    "M-narrowed": ("code/common.yaml", "principles", "CP7", False),
+    "N-inverted": ("code/web.yaml", "principles", "WP3", True),
 }
 
-# Every element that bears on the deferral / flex-point axis. Nine of these
-# take a side and contradict each other; personal:P1 mediates. This list is the
-# trial's independent variable, so the gate asserts the library matches it
-# exactly rather than asserting the list is empty.
-AXIS_DECLARED = {
-    "personal:V7",
-    "personal:P21",
-    "personal:P17",
-    "personal:H3",
-    "code-common:CP15",
-    "personal:V1",
-    "personal:P5",
-    "personal:H1",
-    "code-common:CH2",
-    "personal:P1",
+# I-quiet: exactly these elements change, in exactly these files.
+QUIET_EXPECT = {
+    "code/common.yaml": {"CP2", "CP7", "CP10", "CP16"},
+    "personal.yaml": {"R1"},
 }
+# and exactly these swapped-in phrases must be present / absent
+QUIET_SWAPS = [
+    ("code/common.yaml", "Explicit function signatures.", "Explicit control flow."),
+    (
+        "code/common.yaml",
+        "Example: enforce strict type checking in a pre-commit hook",
+        "Example: enforce a formatter in a pre-commit hook",
+    ),
+    (
+        "code/common.yaml",
+        "hard requirements such as type checking",
+        "hard requirements such as deployment targets",
+    ),
+    ("personal.yaml", "Typecheck must pass.", "Checks must pass."),
+]
 
-# An element that mentions the axis vocabulary without taking a position on it.
-# Acknowledged with the reason, never deleted from the scan — trial 2's gate
-# kept its three false positives visible for exactly this reason.
-AXIS_INCIDENTAL = {
-    "personal:P16": "'clean seams' appears in a statement about scaling rigor to blast "
-    "radius ('invest disproportionate care — correctness, testing, clean seams, design "
-    "scrutiny — in the core'). It says how much care a seam deserves once you are "
-    "building one, not whether to build one for a feature with no concrete use case.",
-}
-
-AXIS_KEYWORDS = re.compile(
-    r"flex point|\bseam|speculat|\bdefer|extensib|abstraction|optionality|premature|"
-    r"hypothetical|YAGNI|generalization",
+# Strong stems: deliberately NARROW. These verify a declared closure; they do
+# not pretend to find the axis (survey defect 4). P0002's enumeration says
+# exactly which elements match them in the untampered library.
+STRONG_STEMS = re.compile(
+    r"type hints?|type annotation|type check|typecheck|strict typ|typescript|"
+    r"pydantic|dataclass",
     re.I,
 )
-
-# The tag glossary genuinely carries this axis, in both directions, on CH2's own
-# two tags. That is a confound and part of the finding; it is not a leak,
-# because the glossary is byte-identical across arms and no arm inverts
-# anything. Both of those are asserted below.
-TAG_TERMS_ACKNOWLEDGED = {
-    "extensib": "the `maintainability` tag is defined as 'Naming, structure, extensibility, "
-    "testability' — one of CH2's own two tags, pointing toward seams",
-    "abstraction": "the `simplicity` tag is 'Reducing complexity, preferring minimal "
-    "solutions' and `composability` is 'DRY, modularity, shared infrastructure'; both "
-    "describe what the tag covers, not where this axis resolves",
+# Per-arm: the inverted CP7 text deliberately contains no strong stem, so
+# I-lone expects only the three standing buttresses that use stem vocabulary
+# (CP2's "Explicit function signatures" never matched a strong stem); M's
+# narrowed CP7 still opens with "Type hints". I-quiet expects none.
+EXPECTED_STEMS_BY_ARM = {
+    "baseline": {"code-common:CP7", "code-common:CP10", "code-common:CP16", "personal:R1"},
+    "N-inverted": {"code-common:CP7", "code-common:CP10", "code-common:CP16", "personal:R1"},
+    "M-narrowed": {"code-common:CP7", "code-common:CP10", "code-common:CP16", "personal:R1"},
+    "I-lone": {"code-common:CP10", "code-common:CP16", "personal:R1"},
+    "I-quiet": set(),
 }
 
 fails = []
@@ -119,12 +119,30 @@ def text_of(el):
     return " ".join(str(el.get(k, "")) for k in ("name", "statement", "description"))
 
 
+def changed_elements(base_dir, arm_dir):
+    out = []
+    for bf in sorted(base_dir.rglob("*.yaml")):
+        rel = bf.relative_to(base_dir)
+        b = yaml.safe_load(bf.read_text())
+        o = yaml.safe_load((arm_dir / rel).read_text())
+        for k in set(b) | set(o):
+            if not isinstance(b.get(k), list):
+                continue
+            bi = {e["id"]: e for e in b[k] if isinstance(e, dict) and "id" in e}
+            oi = {e["id"]: e for e in o.get(k, []) if isinstance(e, dict) and "id" in e}
+            out += [
+                (str(rel), k, i) for i in set(bi) | set(oi) if bi.get(i) != oi.get(i)
+            ]
+    return out
+
+
 root = E / "variants"
 base = root / "baseline"
+ARMS = ["baseline", "I-lone", "I-quiet", "M-narrowed", "N-inverted"]
 print(f"auditing {E}")
 
 # ===========================================================================
-# channel: VCS / editor / OS metadata inside the shipped library
+# channel: VCS / editor / OS metadata
 # ===========================================================================
 meta = [
     p
@@ -134,9 +152,9 @@ meta = [
 chk(not meta, f"no VCS/editor metadata in variants (found {len(meta)})")
 
 # ===========================================================================
-# channel: more than one thing differs / name contradicts statement
+# channel: more than the declared thing differs
 # ===========================================================================
-for v, (f, key, eid, name_must_change, additive) in TARGET.items():
+for v, (f, key, eid, name_must_change) in TARGET.items():
     if not (root / v).exists():
         continue
     diff_files = []
@@ -153,145 +171,117 @@ for v, (f, key, eid, name_must_change, additive) in TARGET.items():
             diff_files.append(str(rel))
     chk(diff_files == [f], f"{v}: only {f} differs byte-wise (got {diff_files})")
 
-    changed = []
-    for bf in sorted(base.rglob("*.yaml")):
-        rel = bf.relative_to(base)
-        b = yaml.safe_load(bf.read_text())
-        o = yaml.safe_load((root / v / rel).read_text())
-        for k in set(b) | set(o):
-            if not isinstance(b.get(k), list):
-                continue
-            bi = {e["id"]: e for e in b[k] if isinstance(e, dict) and "id" in e}
-            oi = {e["id"]: e for e in o.get(k, []) if isinstance(e, dict) and "id" in e}
-            changed += [
-                f"{rel}:{k}:{i}" for i in set(bi) | set(oi) if bi.get(i) != oi.get(i)
-            ]
-    chk(
-        changed == [f"{f}:{key}:{eid}"], f"{v}: exactly one element changed ({changed})"
-    )
+    ch = changed_elements(base, root / v)
+    chk(ch == [(f, key, eid)], f"{v}: exactly one element changed ({ch})")
 
     be = [e for e in yaml.safe_load((base / f).read_text())[key] if e["id"] == eid][0]
-    oe = [e for e in yaml.safe_load((root / v / f).read_text())[key] if e["id"] == eid][
-        0
-    ]
+    oe = [e for e in yaml.safe_load((root / v / f).read_text())[key] if e["id"] == eid][0]
     chk(be["statement"] != oe["statement"], f"{v}: {eid} statement actually changed")
-
     if name_must_change:
-        chk(
-            be["name"] != oe["name"],
-            f"{v}: {eid} name inverted alongside its statement",
-        )
+        chk(be["name"] != oe["name"], f"{v}: {eid} name inverted alongside its statement")
     else:
-        chk(
-            be["name"] == oe["name"],
-            f"{v}: {eid} name deliberately unchanged (the clause is additive, so the "
-            "name still describes the statement exactly as well)",
-        )
+        chk(be["name"] == oe["name"], f"{v}: {eid} name deliberately unchanged")
 
-    # The decisive arms must be PURELY ADDITIVE. If a word of the baseline
-    # position were altered, the arm would no longer be "the same library plus a
-    # tie-break" and the trial would be measuring something else.
-    if additive:
+# ---- I-quiet: the declared five-element, two-file deviation ----------------
+vq = root / "I-quiet"
+if vq.exists():
+    diff_files = []
+    for bf in sorted(base.rglob("*")):
+        if not bf.is_file():
+            continue
+        rel = bf.relative_to(base)
+        of = vq / rel
+        if (
+            not of.exists()
+            or hashlib.md5(bf.read_bytes()).hexdigest()
+            != hashlib.md5(of.read_bytes()).hexdigest()
+        ):
+            diff_files.append(str(rel))
+    chk(
+        sorted(diff_files) == sorted(QUIET_EXPECT),
+        f"I-quiet: exactly the two declared files differ (got {diff_files})",
+    )
+    ch = changed_elements(base, vq)
+    got = {}
+    for rel, k, i in ch:
+        got.setdefault(rel, set()).add(i)
+    chk(
+        got == QUIET_EXPECT,
+        f"I-quiet: exactly the five declared elements changed (got {got})",
+    )
+    # CP7 inverted name; buttress names unchanged
+    for f, ids in QUIET_EXPECT.items():
+        bdoc = yaml.safe_load((base / f).read_text())
+        qdoc = yaml.safe_load((vq / f).read_text())
+        for k, el in elements(bdoc):
+            if el["id"] not in ids:
+                continue
+            qel = [e for _, e in elements(qdoc) if e["id"] == el["id"]][0]
+            if el["id"] == "CP7":
+                chk(el["name"] != qel["name"], "I-quiet: CP7 name inverted")
+            else:
+                chk(
+                    el["name"] == qel["name"],
+                    f"I-quiet: {el['id']} name unchanged (quiet swap touches one clause only)",
+                )
+    # the exact swaps, present and absent
+    for f, old, new in QUIET_SWAPS:
+        bt = (base / f).read_text()
+        qt = (vq / f).read_text()
+        chk(old in bt and old not in qt, f"I-quiet: {f}: {old[:40]!r} removed")
+        chk(new in qt and new not in bt, f"I-quiet: {f}: {new[:40]!r} swapped in")
         chk(
-            oe["statement"].strip().startswith(be["statement"].strip()),
-            f"{v}: {eid}'s baseline statement is an exact prefix of the arm's "
-            "(the clause is appended, nothing is rewritten)",
+            not STRONG_STEMS.search(new),
+            f"I-quiet: swap text {new[:40]!r} introduces no axis stem",
         )
-        chk(
-            "id" in oe and oe["id"] == be["id"],
-            f"{v}: {eid} keeps its id (no gap, no renumbering)",
-        )
-
-    # no other document mentions either name
-    for other in sorted((root / v).rglob("*.yaml")):
-        txt = other.read_text()
-        for nm in {be["name"], oe["name"]}:
-            hits = [
-                ln
-                for ln in txt.splitlines()
-                if nm in ln
-                and f"id: {eid}" not in ln
-                and not ln.strip().startswith(f"name: {nm}")
-            ]
-            chk(
-                not hits,
-                f"{v}: {other.relative_to(root / v)} does not reference {nm!r} elsewhere",
-            )
 
 # ===========================================================================
-# channel: axis co-statement — the independent variable, asserted not assumed
+# channel: axis co-statement — verify the DECLARED closure (P0002)
 # ===========================================================================
-for v in ["baseline", *TARGET]:
+for v in ARMS:
     if not (root / v).exists():
         continue
-    found = {}
+    matches = set()
     for doc_path in sorted((root / v).rglob("*.yaml")):
         doc = yaml.safe_load(doc_path.read_text())
         libname = doc.get("meta", {}).get("name", doc_path.stem)
         for _, el in elements(doc):
-            if AXIS_KEYWORDS.search(text_of(el)):
-                found[f"{libname}:{el['id']}"] = sorted(
-                    {m.group(0).lower() for m in AXIS_KEYWORDS.finditer(text_of(el))}
-                )
-    unexpected = {
-        k: w
-        for k, w in found.items()
-        if k not in AXIS_DECLARED and k not in AXIS_INCIDENTAL
-    }
-    missing = sorted(AXIS_DECLARED - set(found))
-    chk(not unexpected, f"{v}: no undeclared voice on the axis ({unexpected})")
-    chk(not missing, f"{v}: every declared axis voice is present ({missing})")
+            if STRONG_STEMS.search(text_of(el)):
+                matches.add(f"{libname}:{el['id']}")
+    chk(
+        matches == EXPECTED_STEMS_BY_ARM[v],
+        f"{v}: strong-stem matches are exactly the declared set ({matches})",
+    )
 
 # ===========================================================================
-# channel: the tag glossary
+# channel: tag glossary — byte-identical across arms; no typing position
 # ===========================================================================
-# Trial 1's defect 7: `performance` was defined as "...frame-rate independence",
-# which contradicted its inverted RTP5 with nobody noticing. Here the glossary
-# does carry the axis — so instead of asserting it does not, assert that it is
-# IDENTICAL across arms, which is what makes it a confound rather than a tell.
-gloss_digests = {}
-for v in ["baseline", *TARGET]:
+gloss = {}
+for v in ARMS:
     p = root / v / "personal.yaml"
     if not p.exists():
         continue
     defs = yaml.safe_load(p.read_text())["meta"]["definitions"]["tags"]
-    blob = json.dumps(defs, sort_keys=True)
-    gloss_digests[v] = hashlib.md5(blob.encode()).hexdigest()
-chk(
-    len(set(gloss_digests.values())) <= 1,
-    f"the tag glossary is byte-identical across every arm ({gloss_digests})",
-)
-
-# And every axis term the glossary does carry must be acknowledged in writing.
+    gloss[v] = hashlib.md5(json.dumps(defs, sort_keys=True).encode()).hexdigest()
+chk(len(set(gloss.values())) <= 1, f"tag glossary byte-identical across arms ({gloss})")
 if (base / "personal.yaml").exists():
-    defs = yaml.safe_load((base / "personal.yaml").read_text())["meta"]["definitions"][
-        "tags"
-    ]
-    glossary = " ".join(
-        d.get("description", "") for group in defs.values() for d in group.values()
-    ).lower()
-    leaky = sorted(
-        t
-        for t in ["extensib", "abstraction", "speculat", "defer", "flex point", "seam"]
-        if t in glossary and t not in TAG_TERMS_ACKNOWLEDGED
+    defs = yaml.safe_load((base / "personal.yaml").read_text())["meta"]["definitions"]["tags"]
+    blob = " ".join(
+        d.get("description", "") for g in defs.values() for d in g.values()
     )
-    chk(not leaky, f"every axis term in the tag glossary is acknowledged ({leaky})")
+    chk(
+        not STRONG_STEMS.search(blob),
+        "no tag definition states a typing position",
+    )
 
 # ===========================================================================
-# channel: cairn validate's own diagnostics  (NEW — protocol section 4)
+# channel: cairn validate's own diagnostics (run from OUTSIDE $HOME — #36)
 # ===========================================================================
-# CLAUDE.md tells every run to consult the library through cairn. If an arm's
-# diagnostics differed, the tool the experiment requires would be telling the
-# run which arm it is in.
-#
-# Run from a directory OUTSIDE $HOME or this assertion is worthless:
-# ~/.gvp/config.yaml carries suppress_diagnostics: [W003, W005] and the project
-# walk-up runs to the filesystem root, so it is discovered as the *project*
-# config for every cwd below $HOME — 27 diagnostics from /tmp, 2 from ~ (#36).
+SKIP_EXTERNAL = bool(os.environ.get("LEAK_AUDIT_SKIP_EXTERNAL"))
 if CAIRN.exists():
     outside = pathlib.Path("/tmp")
     val = {}
-    for v in ["baseline", *TARGET]:
+    for v in ARMS:
         if not (root / v).exists():
             continue
         r = subprocess.run(
@@ -300,206 +290,138 @@ if CAIRN.exists():
             capture_output=True,
             text=True,
         )
-        val[v] = hashlib.md5((r.stdout + r.stderr).encode()).hexdigest()
+        val[v] = (
+            hashlib.md5((r.stdout + r.stderr).encode()).hexdigest(),
+            (r.stdout + r.stderr).count("WARN"),
+        )
     chk(
-        len(set(val.values())) <= 1,
-        f"cairn validate output is byte-identical across every arm ({val})",
+        len({h for h, _ in val.values()}) <= 1,
+        f"cairn validate output byte-identical across arms ({ {k: v[0][:8] for k, v in val.items()} })",
     )
-    n_diag = None
-    r = subprocess.run(
-        [str(CAIRN), "--library", str(base), "validate"],
-        cwd=outside,
-        capture_output=True,
-        text=True,
-    )
-    n_diag = (r.stdout + r.stderr).count("WARN") + (r.stdout + r.stderr).count("ERROR")
+    n = next(iter(val.values()))[1] if val else 0
     chk(
-        n_diag > 2,
-        f"the audit ran from outside $HOME ({n_diag} diagnostics; 2 would mean "
-        "~/.gvp/config.yaml suppressed them and the check above proved nothing)",
+        n > 2,
+        f"the audit ran from outside $HOME ({n} diagnostics; 2 would mean "
+        "~/.gvp/config.yaml suppressed them and the identity check proved nothing)",
     )
 
 # ===========================================================================
-# channel: the two tie-break clauses are not equally forceful
+# channel: the task, the prompt, the floor
 # ===========================================================================
-clauses = {}
-for v, (f, key, eid, _, additive) in TARGET.items():
-    if not additive or not (root / v).exists():
-        continue
-    be = [e for e in yaml.safe_load((base / f).read_text())[key] if e["id"] == eid][0]
-    oe = [e for e in yaml.safe_load((root / v / f).read_text())[key] if e["id"] == eid][
-        0
-    ]
-    clauses[v] = oe["statement"].strip()[len(be["statement"].strip()) :].strip()
-
-if len(clauses) == 2:
-    lens = {v: len(c.split()) for v, c in clauses.items()}
-    spread = max(lens.values()) - min(lens.values())
-    chk(spread <= 4, f"the tie-break clauses differ by at most 4 words ({lens})")
-    chk(
-        all(c.startswith("(Where this meets") for c in clauses.values()),
-        f"both clauses use the same construction ({list(clauses.values())})",
-    )
-    chk(
-        all(c.rstrip().endswith("seam.)") for c in clauses.values()),
-        "both clauses resolve on the same final noun, differing only in whether a seam results",
-    )
-    chk(
-        len({c for c in clauses.values()}) == 2,
-        "the two clauses are not identical",
-    )
-
-# ===========================================================================
-# channel: the task text, the floor, and the prompt
-# ===========================================================================
-# Word-stem regexes, not substrings: a bare "repo" matched "reports" in trial
-# 2's TASK.md. Another gate false positive, kept visible.
-AXIS_WORDS = [
-    r"\bdefer",
-    r"speculat",
-    r"flex point",
-    r"\bseam",
-    r"extensib",
-    r"\bplugin",
-    r"\badapter",
-    r"abstraction",
-    r"\bYAGNI\b",
-    r"over-?engineer",
-    r"\bhypothetical",
-    r"future (need|change|use)",
-    r"\blater\b",
-    r"\bconfig\w* (option|file|hook)",
-    r"\bhooks?\b",
-    r"\bswappable",
-    r"\bmodular",
-    r"\bgeneric\b",
-    r"\binterface\b",
-    r"\bflag\b",
-    r"\boption\b",
-    r"\bformat\b",
-    r"\bjson\b",
-    r"\brecursiv",
-    r"\bdelimiter",
-    r"\bextend\b",
-]
-
 task = (E / "TASK.md").read_text() if (E / "TASK.md").exists() else ""
 if task:
-    hits = [w for w in AXIS_WORDS if re.search(w, task.lower())]
-    chk(not hits, f"TASK.md never names the axis under test ({hits})")
-    # The task must specify no flags at all; that is what makes any flag a
-    # feature it never asked for.
+    t3task = E.parent / "2026-10-contested-axis" / "TASK.md"
+    if t3task.exists():
+        chk(
+            task == t3task.read_text(),
+            "TASK.md is byte-identical to trial 3's (cross-trial constant)",
+        )
+    stripped = "\n".join(
+        ln for ln in task.splitlines() if "TypeScript on Node" not in ln
+    )
+    AXIS_WORDS = [
+        r"typescript",
+        r"javascript",
+        r"\btyp(e|ing|ed)\b",
+        r"annotat",
+        r"\bstrict\b",
+        r"\binterface\b",
+        r"tsconfig",
+        r"\btsc\b",
+        r"\bany\b",
+        r"\binfer",
+        r"pydantic",
+        r"dataclass",
+        r"\bschema\b",
+        r"\bmodel\b",
+    ]
+    hits = [w for w in AXIS_WORDS if re.search(w, stripped.lower())]
+    chk(
+        not hits,
+        f"TASK.md (minus the whitelisted stack line) never names the axis ({hits})",
+    )
     chk(
         not re.search(r"(?<![\w-])--[a-z]", task),
         "TASK.md specifies no command-line flag of any kind",
     )
 
+prompt = (E / "RUN_PROMPT.md").read_text() if (E / "RUN_PROMPT.md").exists() else ""
+if prompt:
+    t3p = E.parent / "2026-10-contested-axis" / "RUN_PROMPT.md"
+    if t3p.exists():
+        chk(prompt == t3p.read_text(), "RUN_PROMPT.md byte-identical to trial 3's")
+    chk(
+        not re.search(
+            r"tension|contradict|conflict|disagree|inconsisten|at odds", prompt.lower()
+        ),
+        "RUN_PROMPT does not invite tension-hunting (the I-lone visibility "
+        "side-prediction must be unprompted)",
+    )
+
 floor_src = ""
 for p in (E / "instrument" / "accept").rglob("*"):
-    if p.is_file() and p.suffix in ("", ".sh", ".mjs"):
-        # comments are not behaviour; run.sh's header names the forks precisely
-        # to say that it must not touch them
+    if p.is_file() and p.suffix in ("", ".sh", ".mjs", ".csv", ".txt"):
         floor_src += "\n".join(
             ln
             for ln in p.read_text(errors="ignore").splitlines()
             if not ln.lstrip().startswith(("#", "//"))
         )
 if floor_src:
-    # If the floor probed any measured fork it would be scoring, not gating —
-    # trial 1's defect 1 in its general form.
     fork_probes = [
-        "--json",
-        "--format",
-        "--recursive",
-        "--delimiter",
-        "--ext",
-        "--glob",
-        "--output",
-        "formatter",
-        "adapter",
-        "plugin",
-        "README",
+        "tsconfig",
+        "typecheck",
+        "annotation",
+        "interface ",
+        "--noEmit",
+        "ReturnType",
+        ": any",
     ]
     hits = [w for w in fork_probes if w in floor_src]
     chk(not hits, f"acceptance floor does not inspect the measured forks ({hits})")
 
-prompt = (E / "RUN_PROMPT.md").read_text() if (E / "RUN_PROMPT.md").exists() else ""
-if prompt:
-    hits = [w for w in AXIS_WORDS if re.search(w, prompt.lower())]
-    chk(not hits, f"RUN_PROMPT never names the axis under test ({hits})")
-    # Prediction 2 (does a run notice the library contradicting itself?) is only
-    # meaningful if nothing asked it to look. A prompt that mentioned tension
-    # would manufacture the observation.
-    chk(
-        not re.search(
-            r"tension|contradict|conflict|disagree|inconsisten|at odds|trade-?off",
-            prompt.lower(),
-        ),
-        "RUN_PROMPT does not invite the run to look for tension in the library "
-        "(prediction 2 must be unprompted)",
-    )
-
 # ===========================================================================
-# channel: the cairn binary's own provenance  (NEW — protocol section 4)
+# channel: cairn provenance (machine-level; env-skippable for mutation runs)
 # ===========================================================================
-# `npm ls -g` printed "@principled/cairn -> .../shitchell/gvp" while cairn was a
-# global npm link, handing any run the path to the real repository. Trial 2
-# verified by transcript that no run followed it and reported it still open.
-#
-# These three checks interrogate the MACHINE, not the experiment directory, so
-# no mutation of a variant can defeat them and mutation-test.sh skips them for
-# speed (`npm ls -g` alone is ~2s, times fourteen mutations). The per-arm
-# checks above are never skipped.
-SKIP_EXTERNAL = bool(os.environ.get("LEAK_AUDIT_SKIP_EXTERNAL"))
-
 if not SKIP_EXTERNAL and shutil.which("npm"):
     r = subprocess.run(["npm", "ls", "-g", "--depth=0"], capture_output=True, text=True)
     line = [ln for ln in (r.stdout + r.stderr).splitlines() if "cairn" in ln]
     chk(
         bool(line) and not any("->" in ln for ln in line),
-        f"the global cairn is a registry install, not a link to the repo ({line})",
+        f"global cairn is a registry install, not a repo link ({line})",
     )
-
 if not SKIP_EXTERNAL and CAIRN.exists():
-    target = CAIRN.resolve()
     chk(
-        REPO_MARKER not in str(target),
-        f"the pinned cairn does not resolve into the repo ({target})",
+        REPO_MARKER not in str(CAIRN.resolve()),
+        f"pinned cairn does not resolve into the repo ({CAIRN.resolve()})",
     )
     r = subprocess.run([str(CAIRN), "--version"], capture_output=True, text=True)
     got = (r.stdout + r.stderr).strip()
-    chk(
-        got == CAIRN_EXPECTED_VERSION,
-        f"the pinned cairn is the declared version ({got!r} vs {CAIRN_EXPECTED_VERSION!r})",
-    )
-
+    chk(got == CAIRN_EXPECTED_VERSION, f"pinned cairn is {CAIRN_EXPECTED_VERSION} ({got!r})")
 dispatcher = pathlib.Path.home() / "bin" / "cairn"
 if not SKIP_EXTERNAL and dispatcher.exists():
-    body = dispatcher.read_text(errors="ignore")
     chk(
-        REPO_MARKER not in body,
-        "the ~/bin/cairn dispatcher carries no hardcoded repo path "
-        "(it walks up from $PWD grepping package.json, so reading it leaks nothing)",
+        REPO_MARKER not in dispatcher.read_text(errors="ignore"),
+        "~/bin/cairn dispatcher carries no hardcoded repo path",
     )
 
 # ===========================================================================
-# channel: the run directories, the manifest, the registry
+# channel: run directories, manifest, registry
 # ===========================================================================
 man_path = E / "MANIFEST.json"
 if man_path.exists():
     man = json.loads(man_path.read_text())
     words = (
         "base",
-        "decisive",
-        "invert",
+        "lone",
+        "quiet",
         "narrow",
+        "invert",
         "control",
         "null",
-        "defer",
-        "seam",
-        "flex",
-        "ch2",
-        "p21",
+        "typ",
+        "strict",
+        "infer",
+        "cp7",
         "wp3",
         "axis",
         "arm",
@@ -520,18 +442,12 @@ if man_path.exists():
         roots[rid] = rr
         proj = rr / "project"
         anc = [a for a in [proj, *proj.parents] if (a / ".git").exists()]
-        chk(
-            not anc,
-            f"{rid}: no git work tree at or above the run ({[str(a) for a in anc]})",
-        )
+        chk(not anc, f"{rid}: no git work tree at or above the run ({[str(a) for a in anc]})")
         chk(
             not any(w in str(rr).lower() for w in words),
             f"{rid}: run path is opaque ({rr})",
         )
-        chk(
-            not list(rr.rglob("MANIFEST*")),
-            f"{rid}: MANIFEST unreachable from the run tree",
-        )
+        chk(not list(rr.rglob("MANIFEST*")), f"{rid}: MANIFEST unreachable from the run tree")
         vd = E / "variants" / m["variant"]
         lib = proj / ".gvp" / "library"
         mism = [
@@ -556,7 +472,6 @@ if man_path.exists():
                 str(pathlib.Path.home() / ".gvp") not in blob,
                 f"{rid}: registry does not reach the machine-wide library",
             )
-        # the manifest must record which cairn seeded the registry
         chk(
             m.get("cairn_version") == CAIRN_EXPECTED_VERSION,
             f"{rid}: manifest records the pinned cairn version ({m.get('cairn_version')})",
