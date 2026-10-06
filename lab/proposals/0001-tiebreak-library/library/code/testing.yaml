@@ -73,7 +73,7 @@ heuristics:
   - id: TH2
     name: A check that cannot fail is not a check
     statement: |
-      Before trusting any success definition — a test, an acceptance check, a validation gate — demonstrate that it can fail: inject a representative defect or break the guarded behavior, watch the check go red, then restore it. A check never seen red is itself unverified, and a green mark from an unfalsifiable check is noise presented as verification. This is the mechanical defense against hollow implementations that pass superficial tests: a placeholder cannot survive a floor that has been proven falsifiable.
+      Before reporting any check as verification — a test, an acceptance check, a validation gate — demonstrate that it can fail: inject a representative defect or break the guarded behavior, watch the check go red, then restore it. A check never seen red is itself unverified, and a green mark from an unfalsifiable check is noise presented as verification. This is the mechanical defense against hollow implementations that pass superficial tests: a placeholder cannot survive a floor that has been proven falsifiable. The obligation binds any check whose green result is reported as evidence that something works (personal:V2); unreported scratch checks on throwaway work may stay loose (personal:P16).
     tags:
       - code
       - ai

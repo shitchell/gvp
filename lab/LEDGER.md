@@ -5,6 +5,22 @@ Methodology amendments to [`README.md`](README.md) land here too.
 
 ---
 
+## 2026-10-06 (overnight) — proposal 0001 blocked by its own probe, fixed, re-verified
+
+P0003: 4/5 expectations held; the fifth caught TWO self-inflicted problems —
+the H3 rewrite contradicted CH2's absolute branch (both heuristics, R3
+useless), and unscoped TH2 outranked P16, overriding the maintainer's A6
+ruling. Fixed as patch 7 (CH2's branch yields to the H3 threshold) and patch
+2-rev (TH2 binds only reported checks). P0005 blind re-verified both; the
+proposal is unblocked at seven patches. Loop lesson promoted: **a library
+edit ships only after a blind tension re-check** — the author of a fix is
+the person least able to see what it breaks (0011's law, now three authors
+deep). Also surfaced: within-category contests (rule-vs-rule WR2/RTR2) are
+the remaining jurisdiction for trial-3-style per-pair clauses; and the
+enumeration yield curve is diminishing-not-converged with late novelty at
+domain boundaries.
+
+
 ## 2026-10-06 — proposal 0001: the tie-break patch set (awaiting review + P0003)
 
 Maintainer authorized going ham on a **copy** (*"because it's a copy and not

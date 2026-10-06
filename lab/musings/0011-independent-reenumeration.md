@@ -27,3 +27,13 @@ does it converge? Cheap to test: run P0001's prompt once more with a
 different framing and diff. If pass 3 finds nothing new, two passes suffice;
 if it keeps finding, the library's contest count is method-bounded, not
 real-bounded — which would itself matter for #26.
+
+## Update — the yield curve (P0003/P0005, 2026-10-06)
+
+Pass-over-pass novelty: survey +5 axes, P0001 +7 tensions, P0003 +1
+(ai-common:P4), P0005 +2–3 (RTP2-vs-ai-H2, deprecate-vs-curate, V7-vs-V1
+named). **Diminishing, not converged**, and late-pass novelty concentrates
+at domain boundaries (realtime×ai-common, README×elements) — suggesting the
+right N for passes is "until a pass yields only boundary-flavored milds",
+and that a deliberate boundary-focused pass might close the tail faster
+than another general one.

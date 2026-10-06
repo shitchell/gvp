@@ -1,6 +1,6 @@
 # Proposal 0001 — the tie-break patch set
 
-> **Status: awaiting maintainer review** (`personal:P15` — these are guiding
+> **Status: blind-verified (P0003 → fixes → P0005), awaiting maintainer review** (`personal:P15` — these are guiding
 > elements). `library/` here is a full copy of `~/.gvp/library` with six
 > patches applied; **the real library is untouched.** Review by diffing:
 > `diff -ru ~/.gvp/library lab/proposals/0001-tiebreak-library/library`.
@@ -8,7 +8,12 @@
 > trials 1–3. Verified: `cairn validate` exit 0 with the **same 27 warnings
 > as the unpatched library** — zero new diagnostics. Blind re-check: P0003.
 
-## The six patches
+## The seven patches
+
+*(P0003 blocked the original six: the H3 rewrite collided with CH2's
+absolute third branch, and TH2-under-R3 overrode P16's loose-leaf license.
+Patch 7 and the patch-2 revision below are the fixes; P0005 verified both
+blind. The probe pair is the audit trail.)*
 
 | # | target | change | grounded in |
 |---|---|---|---|
@@ -17,6 +22,8 @@
 | 3 | `personal:H3` | **carries the sliding threshold** — certainty-of-need required scales inversely with cost-now vs retrofit-cost; estimates are judgment, the comparison is not | the maintainer's stated decision machinery (5%-vs-50% example), and what trial 3's runs already did unprompted (musing 0005) |
 | 4 | `code-common:CP6` | final absolute sentence (*"should have extracted it the first time"*) → reusability **lowers H3's threshold**; CP6 harmonizes with H1 instead of contradicting it | the absolute was a rule-phrased clause inside a judgment-weighted principle — the actual A4 bug. H1 untouched, per the maintainer's ideal |
 | 5 | `personal:R3` | **new rule** — category precedence: rule > heuristic > principle > value; within-category or wrong-feeling contests get surfaced as patches (H5), never resolved silently; precedence valid only while categories pass hard/soft | the maintainer's structural resolution, generalized — it also settles A8's H5 residual. Previously unwritten law: both blind reviews tripped on exactly its absence |
+| 2r | `code-testing:TH2` (rev) | scope: binds checks **whose green is reported as evidence** (V2); unreported scratch checks on throwaway work stay loose (P16) | P0003: under R3 the unscoped heuristic beat P16, overriding the maintainer's A6 ruling |
+| 7 | `code-common:CH2` | third branch yields: *"— unless personal:H3's threshold clearly favors building (near-free now, costly to retrofit later), which overrides this branch"* | P0003: the H3 threshold (faithfully encoding the maintainer's 5%-example, which covers speculative needs) directly contradicted CH2's gate; the right fix was making CH2 say so, not weakening H3 |
 | 6 | `library/README.md` | **"Reading this library" preamble** — what force each category carries, pointer to R3 | A6's real gap: agents receive text, not YAML keys; "principle = judgment" was undelivered. Delivery efficacy is untested → the preamble is also the delivery-trial candidate (musing 0014) |
 
 ## Deliberately not done

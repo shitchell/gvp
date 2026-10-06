@@ -221,7 +221,7 @@ heuristics:
   - id: CH2
     name: Deferral decision tree
     statement: |
-      If a feature is needed for stability or correctness: implement now. If a feature is additive and its access patterns are unknown: add flex points (interfaces, config hooks) without implementing the feature. If a feature is speculative with no concrete use case: defer entirely with no flex points.
+      If a feature is needed for stability or correctness: implement now. If a feature is additive and its access patterns are unknown: add flex points (interfaces, config hooks) without implementing the feature. If a feature is speculative with no concrete use case: defer entirely with no flex points — unless personal:H3's threshold clearly favors building (near-free now, costly to retrofit later), which overrides this branch.
     tags:
       - code
       - simplicity
