@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# One headless steer turn for the lab. Entry points:
+#   manual:        lab/bin/steer          (you are attending; output to tty + log)
+#   cron (PA-16):  same command — but activating a schedule for it is a
+#                  maintainer decision, because it spawns unattended sessions
+#                  with --dangerously-skip-permissions on this machine.
+#
+# The session's memory is the repo: README/PATHS/LEDGER/reviews. No state
+# lives in this script.
+set -uo pipefail
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+LOG_DIR="$ROOT/lab/.runs"
+mkdir -p "$LOG_DIR"
+LOG="$LOG_DIR/steer-$(date +%Y%m%dT%H%M%S).log"
+cd "$ROOT"
+echo "steer turn → $LOG"
+claude -p "$(cat "$ROOT/lab/prompts/steer.md")" \
+  --dangerously-skip-permissions \
+  2>&1 | tee "$LOG"
+echo "steer turn complete (exit $?) → $LOG"

@@ -22,6 +22,6 @@ quote. Statuses: `open` · `taken → <where>` · `parked (<why>)`.
 | PA-13 | 4-arm trajectory experiment | original programme | most expensive; last | open |
 | PA-14 | Cluster P0004's patch candidates into a review doc for #39 | P0004 | one doc | **parked** ("not yet" — maintainer, 2026-10-07) |
 | PA-15 | Adopt proposal 0001 into the live library | P0005 | rsync + re-gate | **parked** ("hold off on adopting any proposals until we have some solid findings/numbers around how different strategies and framings impact agent behavior" — maintainer, 2026-10-07) |
-| PA-16 | Automate the steer loop (cron / headless sessions per OPERATIONS.md) | conversations/0002 | CronCreate + briefs | **parked (needs maintainer go — it spawns sessions)** |
+| PA-16 | Automate the steer loop on a schedule | conversations/0002 | one CronCreate — **scripts already exist and are cron-ready** (`lab/bin/steer`) | **parked (needs maintainer go — unattended skip-permissions sessions)** |
 | PA-17 | Element era/threat-model provenance + cairn review trigger on model-era shifts | musing 0013 | cairn feature + library pass | open |
 | PA-18 | Within-category tie-break clauses for WR2-vs-RTR2 (rule-vs-rule, R3 can't reach it) | P0005 | proposal patch (blocked on PA-15's framework numbers) | open |
