@@ -5,6 +5,18 @@ Methodology amendments to [`README.md`](README.md) land here too.
 
 ---
 
+## 2026-10-06 (overnight) — P0004: the inside voice is harvestable and convergent
+
+7/36 would-have-flipped, 106 steering-meta, 34/36 files productive, one
+subagent pass (~358k tokens delegated). Headlines: three trial-2 runs
+independently proposed the SAME CR1 qualifier (convergence = the ranking
+function for the 4.4 harvest hook and #39); pre-R3 runs improvised
+precedence in BOTH directions (musing 0015 — the preamble trial gains its
+sharpest observable); CP10/P7 reported unmet in 10 files because run worlds
+have no git/CI to hook (element applicability depends on harness
+affordances). Musing 0006 answered.
+
+
 ## 2026-10-06 (overnight) — proposal 0001 blocked by its own probe, fixed, re-verified
 
 P0003: 4/5 expectations held; the fifth caught TWO self-inflicted problems —
