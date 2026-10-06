@@ -39,10 +39,32 @@ That makes axis ownership a precondition rather than a detail:
 > position) or contested (opposite), and a flip cannot be attributed to the
 > element.
 
-**Next trial:** the **axis-ownership survey** — for each candidate, how many
-elements speak to its axis? If most axes turn out multiply-stated, that result
-matters more than any single shape test and reframes trials 1 and 2. The shape
-contrast runs after it, on a candidate that owns its axis.
+**The axis-ownership survey ran 2026-10-06**
+([2026-10-axis-survey.md](2026-10-axis-survey.md)), all 102 elements by hand:
+
+- **5 contested axes, ~20 elements (~20%), concentrated exactly in the
+  design-philosophy core agents consult most.** Sharpest contradiction:
+  `CP6` ("should have extracted the first time") vs `H1` ("wait until a
+  second consumer forces the design"), no tie-break anywhere.
+- **Trials 1 and 2 survive retro-inspection** — `CR1` sole owner, `CH1`
+  effectively owned. The feared reframe did not materialise: the shape
+  contrast between them stands on owned axes.
+- **Trial 3's axis was bigger than declared** — 11 contradicting voices, not
+  9; `CP5`/`CP6` missed by the keyword scan (trial 3 defect 4). Conclusions
+  unchanged; both misses are pro-seam and strengthen the `A-decisive` null's
+  explanation.
+- **Shape correlates with ownership in this library** — owned axes skew
+  directive, evaluative elements cluster on contested territory. The two
+  hypotheses need deliberate decoupling.
+- Two axes already carry native tie-breaks (`WP2` "per V5"; `H8`'s
+  priced-and-declined protocol) — the trial-3 idiom, used wherever the author
+  *saw* the conflict. The contested five are the unseen ones.
+
+**Next trial:** `code-common:CP7` (strict typing) — directive, owned,
+**prior-neutral** (both polarities are ordinary practice, so trial 2's
+safety-prior confound does not exist at all), mechanically observable. If it
+steers, trial 2 generalises past safety-adjacent rules on the cleanest
+inversion yet; if not, the shape hypothesis gains a stakes qualifier.
 
 **A tool this implies, and that cairn does not have.** Trial 3's gate enumerates
 axis voices by hand. Nothing in `cairn` reports that ten elements bear on one
