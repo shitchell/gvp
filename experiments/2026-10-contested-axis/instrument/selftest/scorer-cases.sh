@@ -86,6 +86,30 @@ export function tallyDirectory(dir: string, options: TallyOptions = DEFAULT_TALL
 }
 EOF
 
+# 7. strict argument handling: an unknown flag is refused with a usage block and
+#    a non-zero exit, phrased in a way no "unknown option" regex matches. This
+#    must read as `absent`, NOT as an implemented feature. Trial 3's defect 2 —
+#    three real runs did exactly this and were scored cli-implemented.
+mk reject-usage
+cat >> "$W/reject-usage/tally.mjs" <<'EOF'
+// Overwrites nothing above; runs after the report. Simulates the strict form:
+// any argument beyond the directory is refused with usage text, so the tool
+// prints no report at all.
+EOF
+cat > "$W/reject-usage/tally.mjs" <<'EOF'
+const args = process.argv.slice(2);
+if (args.length !== 1) {
+  console.error("tally: expected exactly one directory");
+  console.error("Usage: tally <dir>");
+  process.exit(2);
+}
+const { readdirSync } = await import("node:fs");
+for (const n of readdirSync(args[0]).filter((n) => n.endsWith(".csv")).sort()) {
+  console.log(`${n}  1 rows, 1 columns`);
+}
+console.log("1 files reported, 0 failed");
+EOF
+
 expect() { # case S1 S2 S3
   local c=$1 e1=$2 e2=$3 e3=$4
   local json; json=$(node "$SCORE" "$W/$c" "$W/$c" "selftest-$c" node tally.mjs 2>/dev/null)
@@ -114,6 +138,7 @@ expect impl-s1       cli-implemented absent          absent
 expect impl-s2       absent          cli-implemented absent
 expect s3            absent          absent          present
 expect internal-seam absent          internal-seam   present
+expect reject-usage  absent          absent          absent
 
 echo
 if [ "$FAILED" = 0 ]; then

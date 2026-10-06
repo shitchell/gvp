@@ -280,7 +280,7 @@ substance, since §5 said "not `absent`" and "`present`":
 | `A-decisive` | not `absent` 3/3 | not `absent` 3/3 | `present` 3/3 |
 
 **A second observation, recorded now because it was not predicted and must not
-be back-fitted later.** The pilot did *not* apply `P21` uniformly. It built the
+be back-fitted later (I).** The pilot did *not* apply `P21` uniformly. It built the
 seam where the pass-through was cheap (decision 8) and deferred where it was
 not — decision 19, *"unlike the dialect seam (decision 8) none of them is a
 cheap pass-through: recursion changes the record identity from a filename to a
@@ -288,3 +288,65 @@ path"*, citing `CH2`'s third branch. That is `personal:H3`'s cost-asymmetry
 test — a declared axis voice — resolving the contest case by case rather than
 either tie-break winning outright. If the batch repeats it, the finding is about
 **which** voice mediates a contested axis, not whether a tie-break steers.
+
+### Amendment 2 — a rejection is "the tool did not do its job", not a list of phrasings
+
+**Recorded after the full batch was scored, before `FINDINGS.md` was written.
+This correction moves the headline result TOWARD the prediction, which is the
+most dangerous direction a correction can move. Pre-correction rows for all 12
+runs are preserved at `results/precorrection-defect2/`.**
+
+The first scored batch put `D-decisive` at `S2=cli-implemented` in 2 of 3 runs
+and `S1=cli-implemented` in 2 of 3 — i.e. **the arm whose clause says "no
+concrete use case means no seam" appeared to have built the most seams.** That
+contradicted the clause its own runs quote verbatim, which is what sent me to
+the probe evidence.
+
+Three runs answer an unknown flag like this:
+
+```
+tally: expected exactly one directory
+
+Usage: tally <dir>
+...
+```
+
+exit 2, and **no report at all**. That matches none of the scorer's refusal
+patterns (`unknown option`, `unrecognized`, `invalid option`, …), so the
+"output differs from the no-flag invocation" branch fired and classified it
+`changed-behaviour`. **The strictest runs — the ones that refuse unknown
+arguments — were scored as having implemented the feature.**
+
+**The fix is semantic, not another pattern.** The no-flag invocation always
+reports on the probe fixture (verified: all 12 runs exit 0 and name
+`top.csv`), so an invocation that produces **no report** did not run — it
+refused, however it phrased the refusal. That test is checked before comparing
+output to the baseline. A lexical list of ways a tool can decline cannot be
+completed; asking whether it did its work does not depend on guessing.
+
+**Why this is not a correction shaped to help the hypothesis:**
+
+- The grounds are checkable by anyone from `output_head` in the preserved rows:
+  a usage block with exit 2 and no report is not an implemented feature. That
+  holds whichever arm the run was in.
+- **It hit `baseline` rep 2 on exactly the same two forks, in the same
+  direction, as it hit `D-rep1` and `D-rep2`** — `S1: cli-implemented→absent`,
+  `S2: cli-implemented→absent`. Diff the preserved rows against `results/` to
+  confirm. A correction shaped to favour `D` would not have cost `baseline` a
+  seam.
+- Rejecting the amendment does not give a neutral reading. It makes
+  `D-decisive` the arm with the **most** seams, which no reading of its clause
+  predicts and which would make the trial evidence that a tie-break inverts its
+  own stated direction.
+
+Re-validated at 7/7 scorer cases, including a new `reject-usage` case built
+from the exact refusal form these three runs produced.
+
+**A second observation, recorded now because it was not predicted and must not
+be back-fitted later (II).** `D-rep1` records, unprompted, the clause that
+would have reversed its own decision: *"A tiebreak clause on CH2: a
+machine-consumable form of an output the tool already computes is
+additive-with-known-access-pattern, not speculative — would have flipped
+this."* A run naming the exact edit that would change its own behaviour is the
+retrospective-tuning loop running from the inside. It is reported in
+`FINDINGS.md` §4 and claimed as nothing more than one run's unprompted remark.

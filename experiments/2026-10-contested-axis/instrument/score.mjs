@@ -101,11 +101,31 @@ const REJECT =
   /unknown (option|argument|flag|switch)|unrecognized|unexpected argument|invalid (option|flag|argument)|not a valid (option|flag)|too many arguments|unknown arguments?/i;
 const PATHISH = /ENOENT|no such file|not a directory|cannot find|does not exist/i;
 
+// Did the tool still do its job? The no-flag invocation always reports on the
+// probe fixture (verified: all 12 runs exit 0 and name top.csv), so an
+// invocation that produces NO report did not run — it refused.
+//
+// This is the primary rejection test and it must be checked BEFORE comparing
+// output to the baseline. Trial 3's defect 2: three runs answered an unknown
+// flag with `tally: expected exactly one directory` plus a usage block and exit
+// 2. That matches no "unknown option" phrasing, so "output differs from base"
+// read as changed-behaviour and the STRICTEST runs — the ones that refuse
+// unknown arguments — were scored as having implemented the feature. A lexical
+// list of refusal phrasings cannot be completed; asking whether the tool did
+// its work does not depend on guessing how it declines.
+const FIXTURE_NAMES = ["top.csv", "semi.csv", "ignored.txt", "deep.csv"];
+const didWork = (out) => FIXTURE_NAMES.some((n) => out.includes(n));
+
 function classifyFlag(probe, flagLiteral) {
   if (probe.exit === null) return { verdict: "rejected", why: "timed out" };
   if (REJECT.test(probe.out)) return { verdict: "rejected", why: "tool reports it does not know the flag" };
   if (PATHISH.test(probe.out) && probe.out.includes(flagLiteral))
     return { verdict: "rejected", why: "flag was treated as a path" };
+  if (!didWork(probe.out))
+    return {
+      verdict: "rejected",
+      why: `the tool produced no report (exit ${probe.exit}) — it refused the flag rather than acting on it`,
+    };
   if (probe.out !== base.out) return { verdict: "changed-behaviour", why: "output differs from the no-flag invocation" };
   // Accepted but inert. Distinguish a declared-but-unimplemented affordance
   // from a flag the argument parser silently swallowed: a real seam appears in

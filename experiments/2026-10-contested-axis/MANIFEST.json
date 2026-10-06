@@ -8,5 +8,115 @@
   "root": "/tmp/tmp.tciR7pvPwt",
   "started": "2026-10-05T20:47:48-04:00",
   "variant": "A-decisive"
+ },
+ "r18cd2f1f36": {
+  "cairn": "/home/guy/.nvm/versions/node/v22.14.0/bin/cairn",
+  "cairn_target": "/home/guy/.nvm/versions/node/v22.14.0/lib/node_modules/@principled/cairn/dist/cli/index.js",
+  "cairn_version": "5.1.0",
+  "model": "opus[1m]",
+  "rep": 3,
+  "root": "/tmp/tmp.wwSn5z2H97",
+  "started": "2026-10-05T21:02:52-04:00",
+  "variant": "baseline"
+ },
+ "r43900cd733": {
+  "cairn": "/home/guy/.nvm/versions/node/v22.14.0/bin/cairn",
+  "cairn_target": "/home/guy/.nvm/versions/node/v22.14.0/lib/node_modules/@principled/cairn/dist/cli/index.js",
+  "cairn_version": "5.1.0",
+  "model": "opus[1m]",
+  "rep": 2,
+  "root": "/tmp/tmp.BHonrviRN5",
+  "started": "2026-10-05T21:11:42-04:00",
+  "variant": "D-decisive"
+ },
+ "r5bb53a9eb8": {
+  "cairn": "/home/guy/.nvm/versions/node/v22.14.0/bin/cairn",
+  "cairn_target": "/home/guy/.nvm/versions/node/v22.14.0/lib/node_modules/@principled/cairn/dist/cli/index.js",
+  "cairn_version": "5.1.0",
+  "model": "opus[1m]",
+  "rep": 2,
+  "root": "/tmp/tmp.oG7EylPlBF",
+  "started": "2026-10-05T21:02:52-04:00",
+  "variant": "baseline"
+ },
+ "r776489c123": {
+  "cairn": "/home/guy/.nvm/versions/node/v22.14.0/bin/cairn",
+  "cairn_target": "/home/guy/.nvm/versions/node/v22.14.0/lib/node_modules/@principled/cairn/dist/cli/index.js",
+  "cairn_version": "5.1.0",
+  "model": "opus[1m]",
+  "rep": 3,
+  "root": "/tmp/tmp.KyIyXXToo6",
+  "started": "2026-10-05T21:16:28-04:00",
+  "variant": "A-decisive"
+ },
+ "r92c5a2ccc9": {
+  "cairn": "/home/guy/.nvm/versions/node/v22.14.0/bin/cairn",
+  "cairn_target": "/home/guy/.nvm/versions/node/v22.14.0/lib/node_modules/@principled/cairn/dist/cli/index.js",
+  "cairn_version": "5.1.0",
+  "model": "opus[1m]",
+  "rep": 3,
+  "root": "/tmp/tmp.NJQaTCnuRz",
+  "started": "2026-10-05T21:27:11-04:00",
+  "variant": "N-inverted"
+ },
+ "r9d4a48f73f": {
+  "cairn": "/home/guy/.nvm/versions/node/v22.14.0/bin/cairn",
+  "cairn_target": "/home/guy/.nvm/versions/node/v22.14.0/lib/node_modules/@principled/cairn/dist/cli/index.js",
+  "cairn_version": "5.1.0",
+  "model": "opus[1m]",
+  "rep": 2,
+  "root": "/tmp/tmp.cNp3YU7KoN",
+  "started": "2026-10-05T21:25:53-04:00",
+  "variant": "N-inverted"
+ },
+ "ra610813cd9": {
+  "cairn": "/home/guy/.nvm/versions/node/v22.14.0/bin/cairn",
+  "cairn_target": "/home/guy/.nvm/versions/node/v22.14.0/lib/node_modules/@principled/cairn/dist/cli/index.js",
+  "cairn_version": "5.1.0",
+  "model": "opus[1m]",
+  "rep": 1,
+  "root": "/tmp/tmp.XZjjOEj9RO",
+  "started": "2026-10-05T21:25:49-04:00",
+  "variant": "N-inverted"
+ },
+ "rc00de53990": {
+  "cairn": "/home/guy/.nvm/versions/node/v22.14.0/bin/cairn",
+  "cairn_target": "/home/guy/.nvm/versions/node/v22.14.0/lib/node_modules/@principled/cairn/dist/cli/index.js",
+  "cairn_version": "5.1.0",
+  "model": "opus[1m]",
+  "rep": 1,
+  "root": "/tmp/tmp.LIsGuqK9mX",
+  "started": "2026-10-05T21:02:52-04:00",
+  "variant": "D-decisive"
+ },
+ "rcc2a0aeb97": {
+  "cairn": "/home/guy/.nvm/versions/node/v22.14.0/bin/cairn",
+  "cairn_target": "/home/guy/.nvm/versions/node/v22.14.0/lib/node_modules/@principled/cairn/dist/cli/index.js",
+  "cairn_version": "5.1.0",
+  "model": "opus[1m]",
+  "rep": 2,
+  "root": "/tmp/tmp.KDnDGnxZgC",
+  "started": "2026-10-05T21:14:10-04:00",
+  "variant": "A-decisive"
+ },
+ "rd9f0960383": {
+  "cairn": "/home/guy/.nvm/versions/node/v22.14.0/bin/cairn",
+  "cairn_target": "/home/guy/.nvm/versions/node/v22.14.0/lib/node_modules/@principled/cairn/dist/cli/index.js",
+  "cairn_version": "5.1.0",
+  "model": "opus[1m]",
+  "rep": 1,
+  "root": "/tmp/tmp.3PN2RN0LzX",
+  "started": "2026-10-05T21:02:52-04:00",
+  "variant": "baseline"
+ },
+ "redf0daaf0f": {
+  "cairn": "/home/guy/.nvm/versions/node/v22.14.0/bin/cairn",
+  "cairn_target": "/home/guy/.nvm/versions/node/v22.14.0/lib/node_modules/@principled/cairn/dist/cli/index.js",
+  "cairn_version": "5.1.0",
+  "model": "opus[1m]",
+  "rep": 3,
+  "root": "/tmp/tmp.GniHSqhQsM",
+  "started": "2026-10-05T21:13:47-04:00",
+  "variant": "D-decisive"
  }
 }

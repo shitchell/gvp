@@ -1,0 +1,181 @@
+{
+ "run": "r9d4a48f73f",
+ "cmd": "npx tsx src/index.ts",
+ "base_invocation": {
+  "exit": 0,
+  "output_head": "semi.csv  1 rows  1 cols\ntop.csv   2 rows  3 cols\n2 files reported, 0 failed\n"
+ },
+ "forks": {
+  "S1": {
+   "level": "cli-implemented",
+   "probes": [
+    {
+     "flag": "--json",
+     "argv": [
+      "--json"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "tool reports it does not know the flag",
+     "output_head": "tally: Unknown option '--json'. To specify a positional argument starting with a '-'\n\ntally — report the size of every CSV file in a directory\n\nUsage:\n  npx tsx src/index.ts <dir> [--format text|json]\n\nOptions:\n  --format <text|json>  output format (default: text)\n  -h, --help            show this message\n\nEach *.csv file directly under <dir> becomes one line of the report: its name,\nits data row "
+    },
+    {
+     "flag": "--format",
+     "argv": [
+      "--format",
+      "json"
+     ],
+     "exit": 0,
+     "verdict": "changed-behaviour",
+     "why": "output differs from the no-flag invocation",
+     "output_head": "{\n  \"directory\": \"/tmp/t3-probe-epWciZ\",\n  \"files\": [\n    {\n      \"file\": \"semi.csv\",\n      \"status\": \"ok\",\n      \"dataRows\": 1,\n      \"headerColumns\": 1,\n      \"raggedRows\": 0\n    },\n    {\n      \"file\": \"top.csv\",\n      \"status\": \"ok\",\n      \"dataRows\": 2,\n      \"headerColumns\": 3,\n      \"raggedRows\": 0\n    }\n  ],\n  \"reported\": 2,\n  \"failed\": 0\n}\n"
+    },
+    {
+     "flag": "--format",
+     "argv": [
+      "--format=json"
+     ],
+     "exit": 0,
+     "verdict": "changed-behaviour",
+     "why": "output differs from the no-flag invocation",
+     "output_head": "{\n  \"directory\": \"/tmp/t3-probe-epWciZ\",\n  \"files\": [\n    {\n      \"file\": \"semi.csv\",\n      \"status\": \"ok\",\n      \"dataRows\": 1,\n      \"headerColumns\": 1,\n      \"raggedRows\": 0\n    },\n    {\n      \"file\": \"top.csv\",\n      \"status\": \"ok\",\n      \"dataRows\": 2,\n      \"headerColumns\": 3,\n      \"raggedRows\": 0\n    }\n  ],\n  \"reported\": 2,\n  \"failed\": 0\n}\n"
+    },
+    {
+     "flag": "--output",
+     "argv": [
+      "--output",
+      "json"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "tool reports it does not know the flag",
+     "output_head": "tally: Unknown option '--output'. To specify a positional argument starting with a '-'\n\ntally — report the size of every CSV file in a directory\n\nUsage:\n  npx tsx src/index.ts <dir> [--format text|json]\n\nOptions:\n  --format <text|json>  output format (default: text)\n  -h, --help            show this message\n\nEach *.csv file directly under <dir> becomes one line of the report: its name,\nits data ro"
+    }
+   ],
+   "internal_seams": []
+  },
+  "S2": {
+   "level": "absent",
+   "probes": [
+    {
+     "flag": "--recursive",
+     "argv": [
+      "--recursive"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "tool reports it does not know the flag",
+     "output_head": "tally: Unknown option '--recursive'. To specify a positional argument starting with a '-'\n\ntally — report the size of every CSV file in a directory\n\nUsage:\n  npx tsx src/index.ts <dir> [--format text|json]\n\nOptions:\n  --format <text|json>  output format (default: text)\n  -h, --help            show this message\n\nEach *.csv file directly under <dir> becomes one line of the report: its name,\nits data"
+    },
+    {
+     "flag": "-r",
+     "argv": [
+      "-r"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "tool reports it does not know the flag",
+     "output_head": "tally: Unknown option '-r'. To specify a positional argument starting with a '-'\n\ntally — report the size of every CSV file in a directory\n\nUsage:\n  npx tsx src/index.ts <dir> [--format text|json]\n\nOptions:\n  --format <text|json>  output format (default: text)\n  -h, --help            show this message\n\nEach *.csv file directly under <dir> becomes one line of the report: its name,\nits data row coun"
+    },
+    {
+     "flag": "--ext",
+     "argv": [
+      "--ext",
+      "txt"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "tool reports it does not know the flag",
+     "output_head": "tally: Unknown option '--ext'. To specify a positional argument starting with a '-'\n\ntally — report the size of every CSV file in a directory\n\nUsage:\n  npx tsx src/index.ts <dir> [--format text|json]\n\nOptions:\n  --format <text|json>  output format (default: text)\n  -h, --help            show this message\n\nEach *.csv file directly under <dir> becomes one line of the report: its name,\nits data row c"
+    },
+    {
+     "flag": "--delimiter",
+     "argv": [
+      "--delimiter",
+      ";"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "tool reports it does not know the flag",
+     "output_head": "tally: Unknown option '--delimiter'. To specify a positional argument starting with a '-'\n\ntally — report the size of every CSV file in a directory\n\nUsage:\n  npx tsx src/index.ts <dir> [--format text|json]\n\nOptions:\n  --format <text|json>  output format (default: text)\n  -h, --help            show this message\n\nEach *.csv file directly under <dir> becomes one line of the report: its name,\nits data"
+    },
+    {
+     "flag": "--glob",
+     "argv": [
+      "--glob",
+      "*.csv"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "tool reports it does not know the flag",
+     "output_head": "tally: Unknown option '--glob'. To specify a positional argument starting with a '-'\n\ntally — report the size of every CSV file in a directory\n\nUsage:\n  npx tsx src/index.ts <dir> [--format text|json]\n\nOptions:\n  --format <text|json>  output format (default: text)\n  -h, --help            show this message\n\nEach *.csv file directly under <dir> becomes one line of the report: its name,\nits data row "
+    }
+   ],
+   "internal_seams": []
+  },
+  "S3": {
+   "level": "present",
+   "evidence": [
+    {
+     "kind": "extension-type",
+     "evidence": "src/report.ts: export ReportFormat with 2 annotated use(s)",
+     "implementors": 2
+    }
+   ]
+  }
+ },
+ "cited": {
+  "any": true,
+  "ids": [
+   "ai-common:C6",
+   "ai-common:P2",
+   "code-common:CH1",
+   "code-common:CH2",
+   "code-common:CP1",
+   "code-common:CP10",
+   "code-common:CP11",
+   "code-common:CP12",
+   "code-common:CP13",
+   "code-common:CP2",
+   "code-common:CP3",
+   "code-common:CP4",
+   "code-common:CP5",
+   "code-common:CP7",
+   "code-common:CP9",
+   "code-testing:TP1",
+   "code-testing:TP3",
+   "personal:H1",
+   "personal:H7",
+   "personal:P10",
+   "personal:P13",
+   "personal:P19",
+   "personal:P20",
+   "personal:P3",
+   "personal:P8",
+   "personal:R1",
+   "personal:R2",
+   "personal:V1",
+   "personal:V2",
+   "personal:V3",
+   "personal:V5"
+  ],
+  "axis": {
+   "toward_seams": [],
+   "toward_deferral": [
+    "personal:V1",
+    "personal:H1",
+    "code-common:CH2"
+   ],
+   "mediating": []
+  },
+  "axis_total": 3
+ },
+ "conflict_statements": [
+  {
+   "sentence": "`personal:P19`; tension with `personal:V1` recorded here per `personal:V2`.",
+   "matched": "tension"
+  }
+ ],
+ "files": 18,
+ "source_files": 10
+}

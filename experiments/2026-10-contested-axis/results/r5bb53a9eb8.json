@@ -1,0 +1,173 @@
+{
+ "run": "r5bb53a9eb8",
+ "cmd": "npx tsx src/index.ts",
+ "base_invocation": {
+  "exit": 0,
+  "output_head": "semi.csv  1 row, 1 column\ntop.csv   2 rows, 3 columns\n2 files reported, 0 failed\n"
+ },
+ "forks": {
+  "S1": {
+   "level": "absent",
+   "probes": [
+    {
+     "flag": "--json",
+     "argv": [
+      "--json"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "the tool produced no report (exit 2) — it refused the flag rather than acting on it",
+     "output_head": "tally: expected exactly one directory argument\nUsage: tally <dir>\n\nReport the size of every .csv file directly under <dir>.\n\nOne line per file, in filename order: its name, how many data rows it holds\n(the first line is the header and is not counted), and how many columns its\nheader declares. A file that cannot be read is reported as FAILED and does not\nstop the run. A final line summarises how ma"
+    },
+    {
+     "flag": "--format",
+     "argv": [
+      "--format",
+      "json"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "the tool produced no report (exit 2) — it refused the flag rather than acting on it",
+     "output_head": "tally: expected exactly one directory argument\nUsage: tally <dir>\n\nReport the size of every .csv file directly under <dir>.\n\nOne line per file, in filename order: its name, how many data rows it holds\n(the first line is the header and is not counted), and how many columns its\nheader declares. A file that cannot be read is reported as FAILED and does not\nstop the run. A final line summarises how ma"
+    },
+    {
+     "flag": "--format",
+     "argv": [
+      "--format=json"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "the tool produced no report (exit 2) — it refused the flag rather than acting on it",
+     "output_head": "tally: expected exactly one directory argument\nUsage: tally <dir>\n\nReport the size of every .csv file directly under <dir>.\n\nOne line per file, in filename order: its name, how many data rows it holds\n(the first line is the header and is not counted), and how many columns its\nheader declares. A file that cannot be read is reported as FAILED and does not\nstop the run. A final line summarises how ma"
+    },
+    {
+     "flag": "--output",
+     "argv": [
+      "--output",
+      "json"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "the tool produced no report (exit 2) — it refused the flag rather than acting on it",
+     "output_head": "tally: expected exactly one directory argument\nUsage: tally <dir>\n\nReport the size of every .csv file directly under <dir>.\n\nOne line per file, in filename order: its name, how many data rows it holds\n(the first line is the header and is not counted), and how many columns its\nheader declares. A file that cannot be read is reported as FAILED and does not\nstop the run. A final line summarises how ma"
+    }
+   ],
+   "internal_seams": []
+  },
+  "S2": {
+   "level": "absent",
+   "probes": [
+    {
+     "flag": "--recursive",
+     "argv": [
+      "--recursive"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "the tool produced no report (exit 2) — it refused the flag rather than acting on it",
+     "output_head": "tally: expected exactly one directory argument\nUsage: tally <dir>\n\nReport the size of every .csv file directly under <dir>.\n\nOne line per file, in filename order: its name, how many data rows it holds\n(the first line is the header and is not counted), and how many columns its\nheader declares. A file that cannot be read is reported as FAILED and does not\nstop the run. A final line summarises how ma"
+    },
+    {
+     "flag": "-r",
+     "argv": [
+      "-r"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "the tool produced no report (exit 2) — it refused the flag rather than acting on it",
+     "output_head": "tally: expected exactly one directory argument\nUsage: tally <dir>\n\nReport the size of every .csv file directly under <dir>.\n\nOne line per file, in filename order: its name, how many data rows it holds\n(the first line is the header and is not counted), and how many columns its\nheader declares. A file that cannot be read is reported as FAILED and does not\nstop the run. A final line summarises how ma"
+    },
+    {
+     "flag": "--ext",
+     "argv": [
+      "--ext",
+      "txt"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "the tool produced no report (exit 2) — it refused the flag rather than acting on it",
+     "output_head": "tally: expected exactly one directory argument\nUsage: tally <dir>\n\nReport the size of every .csv file directly under <dir>.\n\nOne line per file, in filename order: its name, how many data rows it holds\n(the first line is the header and is not counted), and how many columns its\nheader declares. A file that cannot be read is reported as FAILED and does not\nstop the run. A final line summarises how ma"
+    },
+    {
+     "flag": "--delimiter",
+     "argv": [
+      "--delimiter",
+      ";"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "the tool produced no report (exit 2) — it refused the flag rather than acting on it",
+     "output_head": "tally: expected exactly one directory argument\nUsage: tally <dir>\n\nReport the size of every .csv file directly under <dir>.\n\nOne line per file, in filename order: its name, how many data rows it holds\n(the first line is the header and is not counted), and how many columns its\nheader declares. A file that cannot be read is reported as FAILED and does not\nstop the run. A final line summarises how ma"
+    },
+    {
+     "flag": "--glob",
+     "argv": [
+      "--glob",
+      "*.csv"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "the tool produced no report (exit 2) — it refused the flag rather than acting on it",
+     "output_head": "tally: expected exactly one directory argument\nUsage: tally <dir>\n\nReport the size of every .csv file directly under <dir>.\n\nOne line per file, in filename order: its name, how many data rows it holds\n(the first line is the header and is not counted), and how many columns its\nheader declares. A file that cannot be read is reported as FAILED and does not\nstop the run. A final line summarises how ma"
+    }
+   ],
+   "internal_seams": []
+  },
+  "S3": {
+   "level": "absent",
+   "evidence": []
+  }
+ },
+ "cited": {
+  "any": true,
+  "ids": [
+   "ai-common:C2",
+   "ai-common:P2",
+   "code-common:CH1",
+   "code-common:CH2",
+   "code-common:CP1",
+   "code-common:CP10",
+   "code-common:CP11",
+   "code-common:CP12",
+   "code-common:CP13",
+   "code-common:CP2",
+   "code-common:CP3",
+   "code-common:CP4",
+   "code-common:CP7",
+   "code-common:CP9",
+   "code-realtime:RTP3",
+   "code-testing:TP1",
+   "code-testing:TP2",
+   "personal:H1",
+   "personal:H2",
+   "personal:H5",
+   "personal:H7",
+   "personal:H9",
+   "personal:P13",
+   "personal:P19",
+   "personal:P2",
+   "personal:P20",
+   "personal:P3",
+   "personal:P4",
+   "personal:P8",
+   "personal:R1",
+   "personal:R2",
+   "personal:V1",
+   "personal:V2",
+   "personal:V5"
+  ],
+  "axis": {
+   "toward_seams": [],
+   "toward_deferral": [
+    "personal:V1",
+    "personal:H1",
+    "code-common:CH2"
+   ],
+   "mediating": []
+  },
+  "axis_total": 3
+ },
+ "conflict_statements": [],
+ "files": 18,
+ "source_files": 10
+}

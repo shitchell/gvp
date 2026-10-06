@@ -159,6 +159,33 @@ disagrees with the artefact it scored is wrong until proven otherwise.** Every
 derived value in `results/*.json` must carry the evidence string it came from,
 so the comparison is mechanical rather than a matter of memory.
 
+**Trial 3 found both of its scoring defects this way and no other way, and the
+second only because a result contradicted the clause its own arm quotes
+verbatim.** Note what validation did *not* catch: that scorer passed 5/5
+known-answer cases before the pilot and 6/6 before the batch, and was wrong both
+times. **Self-validation bounds the errors you imagined; only real artefacts
+find the rest.**
+
+### Ask whether the thing happened, not which form it took
+
+Three scoring defects across trials 2 and 3 are the same error:
+
+| trial | the classifier enumerated | and so missed |
+|---|---|---|
+| 2 #3 | `process.env.NAME` | `env[TOKEN_ENV_VAR]` — the form `code-common:CP9` prescribes |
+| 3 #1 | CLI flags, and type names like `Formatter`/`Adapter` | `TallyOptions { extension, dialect }` — a parameterised seam with no CLI path |
+| 3 #2 | refusal phrasings (`unknown option`, `unrecognized`, …) | `tally: expected exactly one directory` + usage + exit 2 |
+
+Each was fixed by replacing a pattern list with a semantic question — *is the
+need parameterised?*, *did the tool still do its job?* Trial 3 #2 is the sharpest
+case: it scored the **strictest** runs, the ones that refuse unknown arguments,
+as having *implemented* the feature, and so made the arm that forbids seams look
+like the arm with the most of them.
+
+**A lexical list of the ways a thing can be expressed cannot be completed.**
+When a classifier needs a list of forms, that is the signal to ask a question
+about the outcome instead.
+
 Two corollaries trial 2 paid for:
 
 - when a correction is made **after seeing that the floor moved**, preserve the
@@ -223,7 +250,17 @@ Ordered by what each would settle:
    candidate for the shape contrast must own its axis — check that **before**
    writing a declaration.
 2b. **The contested axis itself** — what a library does when it disagrees with
-   itself, which is the condition CH2 actually presents. Trial 3.
+   itself, which is the condition CH2 actually presents. **Trial 3, done:** a
+   tie-break steers a contested axis (0/3 against 5/6) but **only against the
+   direction the axis already resolves** — the with-the-grain arm was identical
+   to the noise floor. No run reported the contradiction, and `cairn validate`
+   is silent about it.
+2c. **The axis-ownership survey — run this before any further shape test.** For
+   each candidate element, how many elements bear on its axis and how many take
+   a position? Trial 3's gate does this by hand for one axis and found ten
+   voices. If most axes are multiply-stated, that reframes trials 1 and 2 as
+   having measured contested axes without knowing it, and it is a bigger result
+   than any single shape test. It also specifies a tool `cairn` lacks (#26).
 3. **A genuine heuristic by the hard/soft test** — `code-common:CH1` fails that
    test; `personal:H5` or `code-testing:TH1` may pass it. Tests whether the
    *category* predicts steering power, which would make the categorisation axis

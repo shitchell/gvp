@@ -1,0 +1,175 @@
+{
+ "run": "r43900cd733",
+ "cmd": "npx tsx src/index.ts",
+ "base_invocation": {
+  "exit": 0,
+  "output_head": "semi.csv: 1 row, 1 column\ntop.csv: 2 rows, 3 columns\n2 files reported, 0 failed\n"
+ },
+ "forks": {
+  "S1": {
+   "level": "absent",
+   "probes": [
+    {
+     "flag": "--json",
+     "argv": [
+      "--json"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "the tool produced no report (exit 2) — it refused the flag rather than acting on it",
+     "output_head": "tally: expected exactly one directory\nUsage: tally <dir>\n\nReports, for every *.csv file directly under <dir>, how many data rows it\nholds and how many columns its header declares, then a summary line.\n\nExit codes:\n  0  all files reported successfully\n  1  the report printed, but at least one file failed\n  2  nothing was reported: bad arguments or unreadable <dir>\n"
+    },
+    {
+     "flag": "--format",
+     "argv": [
+      "--format",
+      "json"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "the tool produced no report (exit 2) — it refused the flag rather than acting on it",
+     "output_head": "tally: expected exactly one directory\nUsage: tally <dir>\n\nReports, for every *.csv file directly under <dir>, how many data rows it\nholds and how many columns its header declares, then a summary line.\n\nExit codes:\n  0  all files reported successfully\n  1  the report printed, but at least one file failed\n  2  nothing was reported: bad arguments or unreadable <dir>\n"
+    },
+    {
+     "flag": "--format",
+     "argv": [
+      "--format=json"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "the tool produced no report (exit 2) — it refused the flag rather than acting on it",
+     "output_head": "tally: expected exactly one directory\nUsage: tally <dir>\n\nReports, for every *.csv file directly under <dir>, how many data rows it\nholds and how many columns its header declares, then a summary line.\n\nExit codes:\n  0  all files reported successfully\n  1  the report printed, but at least one file failed\n  2  nothing was reported: bad arguments or unreadable <dir>\n"
+    },
+    {
+     "flag": "--output",
+     "argv": [
+      "--output",
+      "json"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "the tool produced no report (exit 2) — it refused the flag rather than acting on it",
+     "output_head": "tally: expected exactly one directory\nUsage: tally <dir>\n\nReports, for every *.csv file directly under <dir>, how many data rows it\nholds and how many columns its header declares, then a summary line.\n\nExit codes:\n  0  all files reported successfully\n  1  the report printed, but at least one file failed\n  2  nothing was reported: bad arguments or unreadable <dir>\n"
+    }
+   ],
+   "internal_seams": []
+  },
+  "S2": {
+   "level": "absent",
+   "probes": [
+    {
+     "flag": "--recursive",
+     "argv": [
+      "--recursive"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "the tool produced no report (exit 2) — it refused the flag rather than acting on it",
+     "output_head": "tally: expected exactly one directory\nUsage: tally <dir>\n\nReports, for every *.csv file directly under <dir>, how many data rows it\nholds and how many columns its header declares, then a summary line.\n\nExit codes:\n  0  all files reported successfully\n  1  the report printed, but at least one file failed\n  2  nothing was reported: bad arguments or unreadable <dir>\n"
+    },
+    {
+     "flag": "-r",
+     "argv": [
+      "-r"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "the tool produced no report (exit 2) — it refused the flag rather than acting on it",
+     "output_head": "tally: expected exactly one directory\nUsage: tally <dir>\n\nReports, for every *.csv file directly under <dir>, how many data rows it\nholds and how many columns its header declares, then a summary line.\n\nExit codes:\n  0  all files reported successfully\n  1  the report printed, but at least one file failed\n  2  nothing was reported: bad arguments or unreadable <dir>\n"
+    },
+    {
+     "flag": "--ext",
+     "argv": [
+      "--ext",
+      "txt"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "the tool produced no report (exit 2) — it refused the flag rather than acting on it",
+     "output_head": "tally: expected exactly one directory\nUsage: tally <dir>\n\nReports, for every *.csv file directly under <dir>, how many data rows it\nholds and how many columns its header declares, then a summary line.\n\nExit codes:\n  0  all files reported successfully\n  1  the report printed, but at least one file failed\n  2  nothing was reported: bad arguments or unreadable <dir>\n"
+    },
+    {
+     "flag": "--delimiter",
+     "argv": [
+      "--delimiter",
+      ";"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "the tool produced no report (exit 2) — it refused the flag rather than acting on it",
+     "output_head": "tally: expected exactly one directory\nUsage: tally <dir>\n\nReports, for every *.csv file directly under <dir>, how many data rows it\nholds and how many columns its header declares, then a summary line.\n\nExit codes:\n  0  all files reported successfully\n  1  the report printed, but at least one file failed\n  2  nothing was reported: bad arguments or unreadable <dir>\n"
+    },
+    {
+     "flag": "--glob",
+     "argv": [
+      "--glob",
+      "*.csv"
+     ],
+     "exit": 2,
+     "verdict": "rejected",
+     "why": "the tool produced no report (exit 2) — it refused the flag rather than acting on it",
+     "output_head": "tally: expected exactly one directory\nUsage: tally <dir>\n\nReports, for every *.csv file directly under <dir>, how many data rows it\nholds and how many columns its header declares, then a summary line.\n\nExit codes:\n  0  all files reported successfully\n  1  the report printed, but at least one file failed\n  2  nothing was reported: bad arguments or unreadable <dir>\n"
+    }
+   ],
+   "internal_seams": []
+  },
+  "S3": {
+   "level": "absent",
+   "evidence": []
+  }
+ },
+ "cited": {
+  "any": true,
+  "ids": [
+   "ai-common:C6",
+   "ai-common:P2",
+   "code-common:CH1",
+   "code-common:CH2",
+   "code-common:CP1",
+   "code-common:CP10",
+   "code-common:CP11",
+   "code-common:CP12",
+   "code-common:CP13",
+   "code-common:CP15",
+   "code-common:CP2",
+   "code-common:CP3",
+   "code-common:CP5",
+   "code-common:CP7",
+   "code-common:CP9",
+   "code-common:CR2",
+   "code-testing:TP1",
+   "personal:H1",
+   "personal:H2",
+   "personal:H5",
+   "personal:H9",
+   "personal:P13",
+   "personal:P19",
+   "personal:P20",
+   "personal:P21",
+   "personal:P3",
+   "personal:P4",
+   "personal:R1",
+   "personal:R2",
+   "personal:V1",
+   "personal:V2",
+   "personal:V3",
+   "personal:V5"
+  ],
+  "axis": {
+   "toward_seams": [
+    "personal:P21",
+    "code-common:CP15"
+   ],
+   "toward_deferral": [
+    "personal:V1",
+    "personal:H1",
+    "code-common:CH2"
+   ],
+   "mediating": []
+  },
+  "axis_total": 5
+ },
+ "conflict_statements": [],
+ "files": 17,
+ "source_files": 9
+}
