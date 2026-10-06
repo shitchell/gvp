@@ -1,6 +1,6 @@
 ---
 id: 0006
-status: open
+status: answered
 opened: 2026-10-06
 spawned_by: trial-3
 tested_by: []
@@ -19,3 +19,11 @@ guiding-element patches — the retrospective loop running from inside.
 **How to test (probe-grade):** re-read the 36 existing DECISIONS.md files
 across trials 1–3 and count would-have-flipped statements; no new runs needed.
 Cheap, archival, zero contamination risk.
+
+## Answer (P0004, 2026-10-06)
+
+~19% of runs (7/36) name a decision-flipping element change unprompted; 106
+steering-meta statements besides. The upgrade: cluster by element and rank
+by cross-run convergence — three trial-2 runs independently proposed the
+same CR1 qualifier, which no single-run reader could see. Caveat: these are
+prompted-corpus rates (RUN_PROMPT asks for element commentary).
