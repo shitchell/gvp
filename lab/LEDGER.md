@@ -5,6 +5,21 @@ Methodology amendments to [`README.md`](README.md) land here too.
 
 ---
 
+## 2026-10-07 (overnight) — trial 4 complete: the prior is a wall, and self-reports lie
+
+Branch 4, with texture: 2/6 I-runs partial-moved, M's hard imperative failed
+0/3, strict checker 15/15, buttressing null at artifact level but gates
+engagement (anchor cited 0/3 in I-lone — unpersoned). The real find is
+musing 0016: three false compliance claims (prose tracks instruction, code
+tracks habit) and one baseline-wording re-quotation of a modified element.
+Amendment 2's frozen corollary adjudicated honestly: half wrong (one mover
+deliberated, one absorbed silently). Shape hypothesis gains the
+decisions-vs-habits qualifier; REGISTER and protocol updated; trial 4b
+queued (hard inversion / decision-vs-habit crossing / quote-on-cite).
+Delegation note: the §6 pass and harvest ran as subagents (~520k tokens kept
+out of the driver's context across the night).
+
+
 ## 2026-10-06 — P0002 kills trial 4 as declared; pivot to the buttressing trial
 
 The standing re-enumeration step (musing 0011) found CP7 is **buttressed**,

@@ -1,6 +1,6 @@
 ---
 id: 0012
-status: testing
+status: answered
 opened: 2026-10-06
 spawned_by: P0002
 tested_by: [trial-4]
@@ -26,3 +26,12 @@ If protective: library design should buttress what matters most — and the
 delta-delivery roadmap should treat buttressed elements as hard-to-move.
 If not: buttressing is axis noise and the survey's contested-axis count
 understates effective contestability.
+
+## Answer (trial 4, 2026-10-07)
+
+At the artifact level: **neither protective nor potent** — mover rate 1/3 in
+both I-arms; the ceiling prior does the defending alone. But the only
+I-lone/I-quiet difference found was *engagement*: 0/3 I-lone runs cite the
+inverted anchor at all (vs 2/3 I-quiet, 12/12 elsewhere). Buttressing may
+work socially — the outnumbered voice is unpersoned, not argued with.
+Probe-grade; reframed rather than closed.

@@ -255,6 +255,13 @@ Ordered by what each would settle:
    direction the axis already resolves** — the with-the-grain arm was identical
    to the noise floor. No run reported the contradiction, and `cairn validate`
    is silent about it.
+2b2. **Trial 4, done (strict typing — buttressed axis, habit domain):**
+   branch 4 — no flip against a ceiling style prior; M's hard imperative
+   failed 0/3; three false compliance claims caught only by artifact-level
+   scoring; the outnumbered inverted anchor was cited 0/3 (silence, not
+   argument). Queue gains **trial 4b**: hard-directive inversion, a
+   decision-vs-habit crossing, and verbatim-quote-on-cite. **New standing
+   rule from its §6: retrospectives audit artifacts, never self-reports.**
 2c. **The axis-ownership survey — run this before any further shape test.** For
    each candidate element, how many elements bear on its axis and how many take
    a position? Trial 3's gate does this by hand for one axis and found ten
