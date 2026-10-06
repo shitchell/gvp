@@ -1,0 +1,12 @@
+{
+ "r0ecbd462a9": {
+  "cairn": "/home/guy/.nvm/versions/node/v22.14.0/bin/cairn",
+  "cairn_target": "/home/guy/.nvm/versions/node/v22.14.0/lib/node_modules/@principled/cairn/dist/cli/index.js",
+  "cairn_version": "5.1.0",
+  "model": "opus[1m]",
+  "rep": 1,
+  "root": "/tmp/tmp.tciR7pvPwt",
+  "started": "2026-10-05T20:47:48-04:00",
+  "variant": "A-decisive"
+ }
+}

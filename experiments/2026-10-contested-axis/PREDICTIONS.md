@@ -207,4 +207,84 @@ Read in this order; the first matching branch is the finding.
 
 ## 9. Amendments
 
-*(none yet — the body above is frozen as of the first dispatch)*
+### Amendment 1 — the fork levels distinguish a CLI affordance from an internal seam
+
+**Recorded after the `A-decisive` pilot (`r0ecbd462a9`), before any further
+dispatch. Made after a prediction miss, which is the moment motivated reasoning
+is most likely — so the grounds are set out in full and the pre-correction
+numbers are preserved at `results/pilot-precorrection.json`.**
+
+The pilot scored `S1=implemented, S2=absent, S3=absent`. Two of the three
+contradicted §5's prediction for `A-decisive`. Reading its `DECISIONS.md`
+against that row — the step protocol §6 now requires — the scorer is wrong, not
+the library. Decision 8 of the run:
+
+> **Chose:** `TallyOptions { extension, dialect }` with defaults (`.csv`, comma,
+> double quote), threaded through the core; no `--ext` or `--delimiter` flag.
+>
+> **Why:** Both are obvious future wants (TSV, pipe-delimited), and wiring them
+> in now costs nothing while retrofitting them would reach into every function
+> signature. But a CLI flag is a published commitment that is expensive to
+> remove, and nothing in the task asks for one — **so the seam exists in the
+> library API while the command surface stays minimal.** `personal:P21` and
+> `code-common:CH2` pull in different directions here (a seam for a use case
+> that does not exist yet versus deferring entirely); **P21 states explicitly
+> that it governs that conflict.**
+
+Verified in the source rather than taken from the prose:
+`src/tally.ts:21` exports `interface TallyOptions { readonly extension; readonly
+dialect }` with `DEFAULT_TALLY_OPTIONS`, threaded as
+`tallyDirectory(dir, options = DEFAULT_TALLY_OPTIONS)`; `src/csv.ts:28` exports
+`interface CsvDialect`, commented *"so a comma/quote variant (TSV,
+pipe-delimited)"*. One implementor, no CLI path, defaults always.
+
+**That is a flex point without the feature — precisely what `CH2`'s branch 2
+describes and what `P21` asks for.** The scorer missed it because S2 probed only
+CLI flags and S3's name pattern wanted `Formatter|Adapter|Provider|…`, which
+`TallyOptions` does not match. **This is trial 2's defect 3 in a new form: a
+detector blind to the style the library under test actually produces.** Trial 2
+scored a 3/3 flip as no flip for the same reason.
+
+**The fork levels therefore become, for S1 and S2:**
+
+| level | meaning |
+|---|---|
+| `cli-implemented` | a flag is accepted and changes behaviour |
+| `cli-inert` | a flag is accepted and declared in source but changes nothing |
+| `internal-seam` | no flag, but the need is parameterised in the source with a default |
+| `absent` | neither |
+
+Precedence is top-down; a run with both a working flag and an internal type
+scores `cli-implemented`. S3 keeps `absent`/`present` and widens its name
+pattern to include `Options|Config|Settings|Dialect|Params|Format`, so it
+catches seams for needs §4 did not enumerate.
+
+**Why this is not a correction shaped to help `A-decisive`:**
+
+- It is justified by the run's own artefact, not by the direction it moves the
+  result. Protocol §6: a scorer that disagrees with the artefact it scored is
+  wrong until proven otherwise. That holds whichever arm the run was in.
+- It makes seams **easier to detect in every arm**, `baseline` and `N-inverted`
+  included. If it manufactured support for the shape claim it would do so
+  symmetrically, which is the opposite of a result-shaped correction — and the
+  prediction for `baseline` in §5 is *exploratory*, so there is no baseline
+  number this protects.
+- The pre-correction row is preserved, and `FINDINGS.md` must report both.
+
+**Predictions for `A-decisive` restated under the new levels** — unchanged in
+substance, since §5 said "not `absent`" and "`present`":
+
+| arm | S1 | S2 | S3 |
+|---|---|---|---|
+| `D-decisive` | `absent` 3/3 | `absent` 3/3 | `absent` 3/3 |
+| `A-decisive` | not `absent` 3/3 | not `absent` 3/3 | `present` 3/3 |
+
+**A second observation, recorded now because it was not predicted and must not
+be back-fitted later.** The pilot did *not* apply `P21` uniformly. It built the
+seam where the pass-through was cheap (decision 8) and deferred where it was
+not — decision 19, *"unlike the dialect seam (decision 8) none of them is a
+cheap pass-through: recursion changes the record identity from a filename to a
+path"*, citing `CH2`'s third branch. That is `personal:H3`'s cost-asymmetry
+test — a declared axis voice — resolving the contest case by case rather than
+either tie-break winning outright. If the batch repeats it, the finding is about
+**which** voice mediates a contested axis, not whether a tie-break steers.

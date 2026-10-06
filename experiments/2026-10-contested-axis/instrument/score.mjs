@@ -121,16 +121,54 @@ function classifyFlag(probe, flagLiteral) {
   return { verdict: "rejected", why: "accepted but inert and absent from the source — silently swallowed, not an affordance" };
 }
 
-function fork(flagSpecs) {
+// ---------------------------------------------------------------------------
+// An INTERNAL seam: the need is parameterised in the source, with a default,
+// and no CLI path reaches it. This is a flex point without the feature —
+// exactly what CH2's branch 2 describes and what P21 asks for — and the first
+// version of this scorer was blind to it. See PREDICTIONS.md Amendment 1.
+//
+// Detected structurally (a member of an exported type, or a defaulted
+// parameter) and then keyword-matched per need, rather than by guessing type
+// names in advance. Trial 2's defect 3 was a detector that knew only the style
+// its author imagined.
+// ---------------------------------------------------------------------------
+function internalSeam(keywords) {
+  const kw = new RegExp(`^\\s*(?:readonly\\s+)?(${keywords.join("|")})\\s*[?:]`, "im");
+  const hits = [];
+  for (const p of sourceFiles) {
+    const t = texts.get(p);
+    if (!t) continue;
+
+    // a member of an exported interface / type literal
+    for (const m of t.matchAll(/export\s+(?:interface|type)\s+(\w+)[^{]*\{([^}]*)\}/g)) {
+      const member = m[2].split("\n").find((ln) => kw.test(ln));
+      if (member) hits.push({ kind: "exported-type-member", evidence: `${rel(p)}: ${m[1]} { ${member.trim()} }` });
+    }
+    // a parameter or constant with a default, which is the "defaults always" form
+    for (const m of t.matchAll(
+      new RegExp(`\\b(${keywords.join("|")})\\s*:\\s*[\\w<>\\[\\]|]+\\s*=\\s*([\\w.]+)`, "g"),
+    )) {
+      hits.push({ kind: "defaulted-parameter", evidence: `${rel(p)}: ${m[0].trim()}` });
+    }
+  }
+  return hits;
+}
+
+function fork(flagSpecs, seamKeywords) {
   const probes = flagSpecs.map(({ argv, literal }) => {
     const p = invoke(argv);
     const c = classifyFlag(p, literal);
     return { flag: literal, argv, exit: p.exit, verdict: c.verdict, why: c.why, output_head: p.out.slice(0, 400) };
   });
+  const seams = internalSeam(seamKeywords);
+
+  // Precedence, top-down. A run with both a working flag and an internal type
+  // scores cli-implemented; the internal evidence is still recorded.
   let level = "absent";
-  if (probes.some((p) => p.verdict === "changed-behaviour")) level = "implemented";
-  else if (probes.some((p) => p.verdict === "inert-but-declared")) level = "seam-only";
-  return { level, probes };
+  if (probes.some((p) => p.verdict === "changed-behaviour")) level = "cli-implemented";
+  else if (probes.some((p) => p.verdict === "inert-but-declared")) level = "cli-inert";
+  else if (seams.length) level = "internal-seam";
+  return { level, probes, internal_seams: seams };
 }
 
 // ---- S1: an affordance for an output form other than the specified one ----
@@ -139,7 +177,7 @@ const S1 = fork([
   { argv: ["--format", "json"], literal: "--format" },
   { argv: ["--format=json"], literal: "--format" },
   { argv: ["--output", "json"], literal: "--output" },
-]);
+], ["format", "formatter", "renderer", "output", "reportFormat"]);
 
 // ---- S2: an affordance for inputs beyond *.csv directly under the dir -----
 const S2 = fork([
@@ -148,7 +186,7 @@ const S2 = fork([
   { argv: ["--ext", "txt"], literal: "--ext" },
   { argv: ["--delimiter", ";"], literal: "--delimiter" },
   { argv: ["--glob", "*.csv"], literal: "--glob" },
-]);
+], ["extension", "ext", "dialect", "delimiter", "separator", "quote", "recursive", "glob", "pattern"]);
 
 // ---- S3: a declared extension point in the source -------------------------
 // Source analysis, and therefore the softest observable in this trial.
@@ -162,7 +200,10 @@ for (const p of files) {
   if (SEAM_DIR.test(d)) s3.push({ kind: "seam-directory", evidence: d });
 }
 
-const SEAM_NAME = /(Formatter|Writer|Reporter|Renderer|Output|Adapter|Provider|Strategy|Plugin|Sink|Backend)s?$/;
+// Widened by Amendment 1: the first version wanted Formatter|Adapter|... and so
+// missed `TallyOptions` and `CsvDialect`, the actual seam the pilot built.
+const SEAM_NAME =
+  /(Formatter|Writer|Reporter|Renderer|Output|Adapter|Provider|Strategy|Plugin|Sink|Backend|Options|Config|Settings|Dialect|Params|Format)s?$/;
 for (const p of sourceFiles) {
   const t = texts.get(p);
   if (!t) continue;

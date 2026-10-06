@@ -62,6 +62,30 @@ export class TextFormatter implements OutputFormatter {
 }
 EOF
 
+# 6. internal-seam on S2: the need is parameterised with a default and NO CLI
+#    path reaches it. This is the case the first scorer was blind to — the
+#    pilot built exactly this and was scored `absent`. PREDICTIONS Amendment 1.
+mk internal-seam
+mkdir -p "$W/internal-seam/src"
+cat > "$W/internal-seam/src/tally.ts" <<'EOF'
+export interface CsvDialect {
+  readonly delimiter: string;
+  readonly quote: string;
+}
+export const DEFAULT_CSV_DIALECT: CsvDialect = { delimiter: ",", quote: '"' };
+export interface TallyOptions {
+  readonly extension: string;
+  readonly dialect: CsvDialect;
+}
+export const DEFAULT_TALLY_OPTIONS: TallyOptions = {
+  extension: ".csv",
+  dialect: DEFAULT_CSV_DIALECT,
+};
+export function tallyDirectory(dir: string, options: TallyOptions = DEFAULT_TALLY_OPTIONS) {
+  return [dir, options.extension];
+}
+EOF
+
 expect() { # case S1 S2 S3
   local c=$1 e1=$2 e2=$3 e3=$4
   local json; json=$(node "$SCORE" "$W/$c" "$W/$c" "selftest-$c" node tally.mjs 2>/dev/null)
@@ -84,15 +108,16 @@ expect() { # case S1 S2 S3
 
 FAILED=0
 echo "scorer cases (level the construction guarantees):"
-expect absent   absent      absent      absent
-expect seam-s1  seam-only   absent      absent
-expect impl-s1  implemented absent      absent
-expect impl-s2  absent      implemented absent
-expect s3       absent      absent      present
+expect absent        absent          absent          absent
+expect seam-s1       cli-inert       absent          absent
+expect impl-s1       cli-implemented absent          absent
+expect impl-s2       absent          cli-implemented absent
+expect s3            absent          absent          present
+expect internal-seam absent          internal-seam   present
 
 echo
 if [ "$FAILED" = 0 ]; then
-  echo "ALL CLEAR — the scorer separates absent / seam-only / implemented, and S3 fires independently"
+  echo "ALL CLEAR — the scorer separates absent / internal-seam / cli-inert / cli-implemented, and S3 fires independently"
 else
   echo "$FAILED CASE(S) MISCLASSIFIED — do not dispatch" >&2
   exit 1
