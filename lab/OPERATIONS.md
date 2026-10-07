@@ -39,7 +39,7 @@ worktree removed, branch kept as the record.
 
 | role | loads | writes |
 |---|---|---|
-| **steer** (pick next path, write briefs, amend model) | `lab/README.md` · `lab/PATHS.md` · `lab/LEDGER.md` (top N) · latest `reviews/` | BRIEF · LEDGER entry · PATHS/README amendments |
+| **steer** (pick next path, write briefs, amend model) | `lab/DRIVE.md` · `lab/README.md` · `lab/PATHS.md` · `lab/LEDGER.md` (top N) · latest `reviews/` | BRIEF · LEDGER entry · PATHS/README amendments · DRIVE update |
 | **trial worker** (one phase per session, per `personal:P12`) | its BRIEF · protocol · TRIAL.yaml/PREDICTIONS for its trial · REGISTER | instrument/runs/FINDINGS/amendments · musings |
 | **probe worker** | its BRIEF · the musing it tests | probe file · musing updates |
 
@@ -85,6 +85,13 @@ maintainer okays unattended session-spawning.**
 
 Session logs land in `lab/.runs/` (gitignored). The scripts hold no state —
 kill one anytime; the repo is the memory and the next turn re-derives.
+
+## The board
+
+`lab/DRIVE.md` is the dashboard this document and `prompts/steer.md` both
+referred to before it existed — maintainer questions on top, what is in flight,
+a short log. A steer turn reads it first and writes it last; it holds pointers
+only, never records (those live in LEDGER/PATHS/reviews).
 
 ## Today's manual equivalent
 

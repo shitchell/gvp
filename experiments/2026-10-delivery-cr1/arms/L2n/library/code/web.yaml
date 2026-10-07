@@ -1,0 +1,76 @@
+meta:
+  name: code-web
+  scope: personal
+  inherits: code-common
+
+principles:
+  - id: WP1
+    name: Never trust client-provided data in the DOM
+    statement: >
+      User-provided or network-provided content must be sanitized before DOM
+      insertion. innerHTML with unsanitized input is a security violation.
+      Prefer textContent for user data. If HTML rendering is needed, sanitize
+      first (DOMPurify or equivalent). Validate color values, URLs, and any
+      attribute data against known-good patterns.
+    tags: [web, security, trust]
+    maps_to: [personal:V2, personal:R1]
+
+  - id: WP2
+    name: Validate all external input at trust boundaries
+    statement: >
+      All data crossing a trust boundary (network messages, user input, API
+      responses, localStorage reads) must be validated against a known schema
+      before processing. Unknown fields may be preserved (per V5) but must
+      not be executed or inserted into sensitive contexts.
+    tags: [web, security, trust]
+    maps_to: [personal:V2, personal:V5, personal:R1]
+
+  - id: WP3
+    name: Subresource integrity for external scripts
+    statement: >
+      When loading JavaScript from CDNs or external sources, use Subresource
+      Integrity (SRI) hashes where supported. For import maps (which lack SRI
+      support), consider vendoring dependencies locally or documenting the
+      supply chain risk.
+    tags: [web, security]
+    maps_to: [personal:V2, personal:R1]
+
+  - id: WP4
+    name: Content Security Policy on every page
+    statement: >
+      Every HTML page should declare a Content Security Policy restricting
+      script sources, style sources, and connection targets. CSP is a defense-
+      in-depth layer that limits the blast radius of XSS and injection attacks.
+    tags: [web, security]
+    maps_to: [personal:V2, personal:R1]
+
+  - id: WP5
+    name: Rate limiting and connection caps on peer-facing endpoints
+    statement: >
+      Any endpoint or interface that accepts connections or messages from
+      untrusted peers must enforce connection limits and per-peer rate
+      limiting. A single malicious peer should not be able to exhaust host
+      resources through connection flooding or message spam.
+    tags: [web, security, performance]
+    maps_to: [personal:V2, personal:R1]
+
+rules:
+  - id: WR1
+    name: No innerHTML with unsanitized input
+    statement: >
+      Never insert user-provided or network-received content into the DOM via
+      innerHTML, outerHTML, or document.write without sanitization. This is a
+      hard stop — XSS is directly exploitable with zero tooling beyond browser
+      DevTools.
+    tags: [web, security]
+    maps_to: [personal:V2, personal:R1, personal:R2]
+
+  - id: WR2
+    name: Validate network message schemas before processing
+    statement: >
+      Every message received from a network peer must be validated against a
+      known schema (type field exists and is a known string, required fields
+      present and correct type, numeric fields are finite numbers) before any
+      processing. Drop and log messages that fail validation.
+    tags: [web, security, trust]
+    maps_to: [personal:V2, personal:R1]

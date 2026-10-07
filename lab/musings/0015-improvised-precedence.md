@@ -22,3 +22,10 @@ the preamble/R3; (b) trial 3's A-decisive null has a possible mechanism
 shard: its rep 2 demoted CH2 below P20 by improvised precedence, exactly
 the move R3 forbids. Worth re-reading the A-decisive DECISIONS with
 precedence in mind before trial 5 design.
+
+**2026-10-07, trial 5 design:** the preamble arm was NOT folded into the delivery
+trial, and the reason is structural. This musing's observable needs a **contested**
+axis — precedence has nothing to resolve otherwise — while a delivery trial needs
+an element that **owns** its axis, so the manipulation is attributable. `CR1` is a
+sole owner. The two cannot be the same element, so PA-05 returned to `PATHS.md`
+as a trial of its own; trial 3's contested-axis instrument is the natural base.

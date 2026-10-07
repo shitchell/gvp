@@ -1,0 +1,4 @@
+The project's guiding library states:
+
+code-common:CR1 — Secrets out of source control
+API keys, credentials, tokens, and passwords are never committed to version control. Use gitignored config files with committed examples. Use environment variables or secret managers.

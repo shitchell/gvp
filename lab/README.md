@@ -82,6 +82,7 @@ muse ──► design ──► probe or trial ──► reflect ──► revie
 | path | what | one-liner |
 |---|---|---|
 | `README.md` | this file | the methodology; amended via review |
+| `DRIVE.md` | the live board | maintainer questions · in flight · log; a steer turn reads it first and writes it last |
 | `LEDGER.md` | the direction log | dated decisions-of-direction and model amendments, newest first; **read this + open musings to steer** |
 | `musings/NNNN-slug.md` | questions, hunches, findings | one thought per file; frontmatter carries status and lineage |
 | `probes/NNNN-slug.md` | small cheap tests | design, raw result, reflection — one file per probe |

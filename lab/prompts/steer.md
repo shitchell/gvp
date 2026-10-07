@@ -7,7 +7,7 @@ Load, in order, and nothing else to start:
 3. lab/PATHS.md         — the fork menu
 4. lab/LEDGER.md        — read entries until you reach one you already understand the consequences of
 5. lab/reviews/         — the terse results; read the newest few
-6. The DRIVE dashboard if present (path in LEDGER/OPERATIONS context), for open maintainer questions
+6. lab/DRIVE.md       — the live board: open maintainer questions, what is in flight
 
 Then do exactly one of:
 
@@ -44,4 +44,4 @@ Constraints, non-negotiable:
   LEDGER entry, and a terse review in lab/reviews/ (maintainer's template).
 - You may amend README/PATHS/OPERATIONS (self-amendment is the design), but
   each amendment gets a LEDGER entry saying why.
-- Update the dashboard (Questions + 2-bullet log) whenever your state changes.
+- Update lab/DRIVE.md (Questions + In flight + a log line) whenever your state changes.

@@ -9,6 +9,7 @@ Protocol: `docs/plans/2026-09-30-trial-orchestration.md`.
 | [2026-09-directive-cr1](2026-09-directive-cr1/FINDINGS.md) | `code-common:CR1` | directive | **3/3 flip** (floor 0/3) | 12/12 pass | steered on every fork; also flipped 3/3 on a **two-word** narrowing — cited in 12/12 |
 | [2026-10-contested-axis](2026-10-contested-axis/FINDINGS.md) | tie-breaks on `CH2`/`P21` — a **ten-voice** axis | contested | **0/3 vs 5/6** against the prevailing direction; **0 effect** with it | 13/13 ×12 | a tie-break steers a contested axis, but only against the way it already resolves; the with-the-grain arm is identical to the noise floor. **No run reported the contradiction** |
 | [2026-10-strict-typing-cp7](2026-10-strict-typing-cp7/FINDINGS.md) | `CP7` lone vs quieted-buttress inversion + `M` narrowing | directive, **habit domain** | **no flip** (2/6 I-runs partial; M 0/3; floor clean) | 13/13 ×15 | the style prior is a wall: strict checker 15/15 even when the only typing voice forbids it. **Three runs claimed compliance their artifacts contradict**; one re-quoted the element back to its baseline wording; I-lone runs cited the inverted anchor **0/3** (unpersoned, not argued with) |
+| [2026-10-delivery-cr1](2026-10-delivery-cr1/PREDICTIONS.md) | `code-common:CR1` — **delivery**, not content (L0 pointer / L1 session-start / L2 bind-time / L2n null) | directive, **radius × habit** | *declared 2026-10-07; not dispatched* | — | instrument licensed: scorer 12/12 real trial-2 snapshots, gate 41/41 mutations, harness verified live in all four arms. Libraries byte-identical across arms — the IV is outside the library |
 
 ## The live hypothesis
 
@@ -70,11 +71,18 @@ That makes axis ownership a precondition rather than a detail:
   priced-and-declined protocol) — the trial-3 idiom, used wherever the author
   *saw* the conflict. The contested five are the unseen ones.
 
-**Next trial:** `code-common:CP7` (strict typing) — directive, owned,
-**prior-neutral** (both polarities are ordinary practice, so trial 2's
-safety-prior confound does not exist at all), mechanically observable. If it
-steers, trial 2 generalises past safety-adjacent rules on the cleanest
-inversion yet; if not, the shape hypothesis gains a stakes qualifier.
+**Next trial (declared, awaiting dispatch): trial 5 — delivery.** The first
+trial whose independent variable is **outside the library**: `CR1`'s text is
+byte-identical in all four arms and only the moment it reaches the agent changes.
+It is asked where L0 is *known to fail* rather than where it is known to work —
+trial 2's `baseline` rep 2 kept its config file ignored and then hard-coded the
+live token into a test fixture, so the dependent variable is the element's
+**radius** across four sites, not a flip. Three things the design added to the
+programme: a **delivery manipulation check** (a hooked run whose hook never
+injected is meaningless, not null — see musing 0018), per-site scoring that never
+pools (trial 2's pooled fork P hid the very observation this trial follows up),
+and the first case where a result would oblige a **library patch**: `ai-common:P3`
+and `C3` state the delivery hypothesis as elements (musing 0017).
 
 **A tool this implies, and that cairn does not have.** Trial 3's gate enumerates
 axis voices by hand. Nothing in `cairn` reports that ten elements bear on one

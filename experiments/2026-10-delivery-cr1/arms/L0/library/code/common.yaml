@@ -1,0 +1,253 @@
+meta:
+  name: code-common
+  scope: personal
+  inherits: personal
+principles:
+  - id: CP1
+    name: One contiguous block
+    statement: |
+      To add a feature or implement a change, modifications should be contained within one contiguous block of code whenever possible. If success depends on finding all related pieces scattered across the codebase, that is a structural failure. Before implementing any change: is this in one block? Will this force future features to be scattered?
+    tags:
+      - code
+      - maintainability
+    maps_to:
+      - personal:G1
+      - personal:V1
+      - personal:V3
+  - id: CP2
+    name: Clarity over cleverness
+    statement: |
+      Code should be obvious, not impressive. Descriptive names, even if long. Explicit function signatures. Comments explain "why", not "what". Avoid one-liners that require mental parsing. The test: would you understand this code in 6 months?
+    tags:
+      - code
+      - maintainability
+    maps_to:
+      - personal:G1
+      - personal:V1
+      - personal:V2
+  - id: CP3
+    name: Explicit over implicit
+    statement: |
+      Make dependencies, modes, and behaviors obvious in code. Function signatures show all inputs. No hidden state or global magic. Enums over string literals. Anti-pattern: functions that secretly depend on global state without declaring it.
+    tags:
+      - code
+      - trust
+      - maintainability
+    maps_to:
+      - personal:G1
+      - personal:V1
+      - personal:V2
+  - id: CP4
+    name: Centralize shared logic
+    statement: |
+      When the same operation is performed in multiple code paths, extract it into a single function. Duplicated setup/teardown logic leads to leaked resources, missing handlers, and inconsistent behavior.
+    tags:
+      - code
+      - composability
+    maps_to:
+      - personal:G1
+      - personal:V3
+      - personal:V6
+  - id: CP5
+    name: Configuration infrastructure early, defaults always
+    statement: |
+      Wire up configuration from the start rather than hardcoding. Magic constants interwoven in code are harder to separate after the fact. But always provide sensible defaults so zero-config works.
+    tags:
+      - code
+      - autonomy
+    maps_to:
+      - personal:G1
+      - personal:V1
+      - personal:V4
+  - id: CP6
+    name: Proactive reusability
+    statement: |
+      Write code as if it will be reused, even when unsure. Parameterize functions, extract logic that could serve other purposes. Prefer composition: small, focused functions that combine are more reusable than monolithic functions. If you find yourself writing similar code twice, you should have extracted it the first time.
+    tags:
+      - code
+      - composability
+    maps_to:
+      - personal:G2
+      - personal:V3
+      - personal:V6
+  - id: CP7
+    name: Strict typing
+    statement: |
+      Type hints on all function signatures. Pydantic/dataclass models for data structures. TypeScript over JavaScript. Typed variables in bash. Types add clarity and catch issues at compile/check time.
+    tags:
+      - code
+      - trust
+    maps_to:
+      - personal:G1
+      - personal:V2
+  - id: CP8
+    name: Names describe purpose, not lineage
+    statement: |
+      Naming should describe what something IS or DOES, not what version it replaced or where it came from historically. Prefer observable properties over taxonomic classification.
+    tags:
+      - code
+      - maintainability
+    maps_to:
+      - personal:G1
+      - personal:V2
+  - id: CP9
+    name: Named constants for everything configurable
+    statement: |
+      All magic numbers should be named constants. Retry counts, timeouts, thresholds, any value that might be adjusted. Can skip values that will never change AND are well-known (e.g., bytes in a megabyte).
+    tags:
+      - code
+      - maintainability
+    maps_to:
+      - personal:G1
+      - personal:V2
+  - id: CP10
+    name: Prefer hooks, CI, and validators over convention
+    statement: |
+      The code-level manifestation of mechanical enforcement: when a rule must hold across a codebase, encode it as a pre-commit/CI hook, a validator, or a type/lint check rather than a documented convention. A convention is a suggestion; a hook is a guarantee. Example: enforce strict type checking in a pre-commit hook rather than asking contributors to remember to run it.
+    tags:
+      - code
+      - maintainability
+    maps_to:
+      - personal:G1
+      - personal:V2
+      - personal:P7
+    origin:
+      - id: 7e23ee51-4ea0-4a6f-97b0-eb5c470ad5ce
+        date: '2026-06-16T02:17:29.843Z'
+        note: Imported from common.yaml
+  - id: CP11
+    name: API surface is a commitment
+    statement: |
+      Every public surface — CLI flags, function signatures, config keys, file formats — is a commitment. Adding is easy; removing is expensive. Prefer additive changes (a new flag, a new subcommand) over breaking ones (a renamed flag, a changed default), and check whether a new surface can reuse an existing one before introducing it.
+    tags:
+      - code
+      - maintainability
+    maps_to:
+      - personal:G1
+      - personal:V1
+      - personal:P8
+    origin:
+      - id: 34fe1f02-2aa7-49d6-ace6-342bdafc830b
+        date: '2026-06-16T02:17:29.843Z'
+        note: Imported from common.yaml
+  - id: CP12
+    name: Be aware of state; don't wander into bad states
+    statement: |
+      Error handling is not "fail fast" or "graceful degradation" as dogma. The rule is: always know what state you are in, and never wander into an unexpected bad state. For each failure ask — what is the consequence, does the user need to know, can we recover, should we stop — and handle accordingly. Prefer explicit handling with clear messages over blanket strategies (e.g. avoid `set -e` in bash; handle and report).
+    tags:
+      - code
+      - trust
+    maps_to:
+      - personal:G1
+      - personal:V2
+      - personal:R2
+    origin:
+      - id: db39229f-a8fa-4f2b-96d9-fffd9bd1d854
+        date: '2026-06-16T02:17:29.843Z'
+        note: Imported from common.yaml
+  - id: CP13
+    name: Testability is a design constraint
+    statement: |
+      How something will be tested is a design input, not an afterthought. If a component is hard to test, spend more design effort making it testable — do not abandon the feature and do not abandon the test. Prefer tools and frameworks with testing built in. If an AI agent cannot verify a component with available tools, that is a design problem to solve up front.
+    tags:
+      - code
+      - trust
+      - maintainability
+    maps_to:
+      - personal:G1
+      - personal:V2
+    origin:
+      - id: 95b18a99-3056-44f3-8cd0-6511413fb45b
+        date: '2026-06-16T02:17:29.843Z'
+        note: Imported from common.yaml
+  - id: CP14
+    name: Equal affordances across consumers and plugin sources
+    statement: |
+      The code manifestation of structural-asymmetry-is-bias: give built-in and third-party plugins the same affordances, and treat all API consumers equally unless a difference is definitional. Built-in components should not enjoy private hooks or shortcuts unavailable to extensions.
+    tags:
+      - code
+      - maintainability
+    maps_to:
+      - personal:G1
+      - personal:V2
+      - personal:P10
+    origin:
+      - id: ef50b5ff-2f81-4d2c-b31d-93089b6bbbe8
+        date: '2026-06-16T02:17:29.843Z'
+        note: Imported from common.yaml
+  - id: CP15
+    name: Swappable persistence behind an abstraction
+    statement: |
+      Keep durable storage behind an abstraction so the concrete datastore is a swappable implementation detail — a local-friendly development database and a production-grade database (or any two backends) stay interchangeable with no change to application logic. Don't couple the domain/authoritative model to one concrete store; choose the store per environment behind the seam. A repository layer or an ORM is one common way to realize the seam — favor the SEAM, not any particular tool. Bought cheaply up front, a later backend change becomes a config swap rather than a rework.
+    tags:
+      - code
+      - composability
+    maps_to:
+      - personal:V7
+      - personal:V3
+    origin:
+      - id: d456c489-f195-4356-ae71-d4e03d8346e1
+        date: '2026-07-21T00:00:00.000Z'
+        note: Added — swappable-persistence/ORM principle (the driver behind threshold's D30/P16).
+  - id: CP16
+    name: Language selection is an effort decision, not a capability one
+    statement: |
+      Among Turing-complete languages capability is equivalent; what differs is effort, driven chiefly by standard library and ecosystem. Evaluate a language on effort and on hard requirements such as type checking, never on what it can do.
+    tags:
+      - code
+      - simplicity
+    maps_to:
+      - personal:G1
+      - personal:V1
+      - code-common:CP7
+    origin:
+      - id: 5764da2a-7353-429e-a9d7-fb83096d37fd
+        date: '2026-09-30T03:34:32.655Z'
+        note: Imported from common.yaml
+        by:
+          name: Claude Opus 5
+          email: noreply@anthropic.com
+heuristics:
+  - id: CH1
+    name: Dependency adoption threshold
+    statement: |
+      If the useful portion of an external library is approximately 200 lines or fewer, write it yourself. Evaluate: what fraction of the library do you actually use? Does it fit your architecture? What is the bus factor of the maintainer? What is the burden of working around its limitations? If the answers favor writing it yourself, do so.
+    tags:
+      - code
+      - simplicity
+    maps_to:
+      - personal:G1
+      - personal:V1
+  - id: CH2
+    name: Deferral decision tree
+    statement: |
+      If a feature is needed for stability or correctness: implement now. If a feature is additive and its access patterns are unknown: add flex points (interfaces, config hooks) without implementing the feature. If a feature is speculative with no concrete use case: defer entirely with no flex points.
+    tags:
+      - code
+      - simplicity
+      - maintainability
+    maps_to:
+      - personal:G1
+      - personal:V1
+rules:
+  - id: CR1
+    name: Secrets out of source control
+    statement: |
+      API keys, credentials, tokens, and passwords are never committed to version control. Use gitignored config files with committed examples. Use environment variables or secret managers.
+    tags:
+      - code
+      - security
+    maps_to:
+      - personal:G1
+      - personal:V2
+  - id: CR2
+    name: No scaffolding without explicit verification
+    statement: |
+      If scaffolding or placeholder implementations are ever created, the implementing agent MUST have record of explicit, verbatim, quoted verification from the user that scaffolding is desired. No exceptions. LLMs tend to implement scaffolding where it is not wanted.
+    tags:
+      - code
+      - ai
+      - trust
+    maps_to:
+      - personal:G1
+      - personal:V2

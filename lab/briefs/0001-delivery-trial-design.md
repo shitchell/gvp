@@ -1,9 +1,11 @@
 ---
 brief: 0001
 unit: delivery trial (PA-01 + PA-05) — design & instrument phase
-status: queued
+status: closed
 written: 2026-10-07
-started: null
+started: 2026-10-07
+closed: 2026-10-07
+review: lab/reviews/0008-trial-5-delivery-design.md
 ---
 
 # Brief 0001 — design the delivery trial, up to a licensed instrument
@@ -69,3 +71,28 @@ that unlock condition.
 - Instrument cannot be licensed (scorer fails known-answer validation after
   two honest attempts) → stop with the failure recorded; do not weaken the
   validation.
+
+
+---
+
+## Closed 2026-10-07
+
+Contract met: `TRIAL.yaml` + `PREDICTIONS.md` frozen; arms, harness, gate, floor,
+scorer and both audits built; **scorer licensed against trial 2's twelve real
+snapshots (12/12) before any run**, gate mutation-tested 41/41, harness verified
+live in all four arms. Stopped before the pilot, per `personal:P12` — dispatch is
+brief 0002. Review: `lab/reviews/0008`.
+
+**One deviation from this brief, deliberate and recorded.** It asked for the
+preamble arm (PA-05) to be folded in. It cannot be: PA-05's observable is
+improvised *category precedence*, which needs a contested axis, while a delivery
+trial needs an element that owns its axis so the manipulation is attributable —
+and `CR1` is a sole owner. The two cannot be the same element. PA-05 returned to
+`PATHS.md` as a trial of its own (trial 3's instrument is the natural base);
+reasoning in `PREDICTIONS.md` Amendment 2 and the LEDGER.
+
+**One design assumption in this brief turned out to be half true.** It wanted
+"an element KNOWN to steer at L0, so delivery differences are measurable in both
+directions". `CR1` steers at L0 *on the artifact it names* — 3/3, a ceiling with
+no headroom — and fails beyond it. So the trial measures **radius across four
+sites**, not flip, and the headroom is the site trial 2 found by accident.

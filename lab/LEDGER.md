@@ -5,6 +5,64 @@ Methodology amendments to [`README.md`](README.md) land here too.
 
 ---
 
+## 2026-10-07 — trial 5 declared and licensed: delivery is the variable, radius is the measure
+
+**PA-01 taken.** `experiments/2026-10-delivery-cr1`: `code-common:CR1` delivered
+four ways — L0 `CLAUDE.md` pointer, L1 `SessionStart` injection, L2 `PreToolUse`
+injection at the moment of the write, and **L2n**, the same hook with an inert
+payload. The library is **byte-identical in all four arms**: the first trial whose
+independent variable lives outside the library, which closes the whole content-
+channel class (element name, axis co-statement, tag glossary, `cairn validate`
+divergence) by construction — asserted, not trusted.
+
+**Three design decisions worth the record.** (1) The trial asks its question
+where L0 is known to **fail**, not where it works: `CR1` steers the file it names
+3/3 (trial 2) and that is a ceiling, while trial 2's `baseline` rep 2 ignored its
+config, cited `CR1` for doing so, and hard-coded the live token into a test
+fixture. So the dependent variable is **radius across four sites** — config
+(control), tests (the habit domain trial 4's §6 demanded), README, prescribed
+example — scored independently and never pooled, because trial 2's pooled fork
+hid exactly the observation this trial follows up. (2) The null arm is a
+*delivery* null: same hook, same trigger, inert payload, which separates "a hook
+interrupted me" from "`CR1` arrived". (3) L2 **informs rather than blocks** — a
+hook that exits 2 refuses the write and produces compliance trivially, which
+measures enforcement, never in doubt; blocking is deposited as PA-19 because its
+real cost is false positives.
+
+**Instrument licensed before any run**: scorer reproduces trial 2's **12 real
+snapshots** 12/12 (it found a genuine convention mismatch doing so), 9/9
+synthetics, gate **41/41 mutations** including eleven against run-level checks via
+synthetic run worlds, detector 19/19 with its recall boundary pinned, and the
+harness verified in a live session per arm. Four defects caught pre-dispatch.
+**The worst: the harness was dead in all three hooked arms and looked healthy** —
+a crashing hook exits non-zero, which for `PreToolUse`/`SessionStart` is a
+*non-blocking* error, so nothing injected and nothing surfaced. It would have
+produced a clean, internally consistent, completely false "no delivery layer
+moves a habit". Caught only by a behavioural check (the model is asked to name
+the element it was shown). That is now a gate assertion and a protocol row;
+generalised in musing 0018 to every integration the roadmap ships.
+
+**PA-05 unfolded from PA-01, deliberately and against brief 0001's instruction.**
+A preamble arm measures improvised *category precedence*, which needs a contested
+axis; a delivery trial needs an element that owns its axis. `CR1` is a sole owner,
+so there is nothing for a preamble to resolve. PA-05 is now its own trial row with
+trial 3's instrument named as its base.
+
+**Two findings that precede the data.** The library states the hypothesis —
+`ai-common:P3` and `C3` assert exactly what the arms test — so a negative result
+obliges a library patch, not a footnote (musing 0017, PA-23); and the programme's
+only real known-answer corpus is **gitignored**, so every future scorer licence
+silently degrades to synthetics (musing 0019, PA-21 — the maintainer's call, in
+DRIVE's questions).
+
+Model amendments: **`lab/DRIVE.md` created** — `prompts/steer.md` and brief 0001
+both told every steer turn to write questions into a dashboard that did not exist;
+it is now real, named by path, and in the steer stack. Protocol §4 gains four
+channel rows (the mechanism is visible; payload fidelity; trigger recall; a silent
+mechanism reads as a null) and §6 a reuse block for mechanism-as-IV trials.
+Nothing dispatched: brief 0002 queues the `L2` pilot, per `personal:P12`.
+
+
 ## 2026-10-07 — entry points built; "done" corrected to "closes"
 
 Maintainer: *"i wouldn't frame anything as a done gate necessarily? when is
