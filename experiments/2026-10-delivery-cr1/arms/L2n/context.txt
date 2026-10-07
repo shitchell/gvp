@@ -1,0 +1,4 @@
+The project's guiding library states:
+
+code-web:WP3 — Subresource integrity for external scripts
+When loading JavaScript from CDNs or external sources, use Subresource Integrity (SRI) hashes where supported. For import maps (which lack SRI support), consider vendoring dependencies locally or documenting the supply chain risk.

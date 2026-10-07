@@ -219,6 +219,22 @@ the better"). Order, with each step gating the next:
    experiment the whole roadmap rests on — if L2 doesn't out-steer L0, the
    hook investment is decoration too, and we need to know that *before*
    building 4.2/4.3 out.
+   **Declared and instrumented 2026-10-07** as trial 5
+   (`experiments/2026-10-delivery-cr1`); awaiting dispatch. Two things it already
+   changes about the items below, before any result:
+   - **§7's first caution was right and is now mechanical.** Hook output is a
+     channel: trial 5's gate extracts each arm's payload from that arm's own
+     library copy and asserts the statement appears verbatim, that exactly one
+     element id appears, and that arms meant to share a payload are byte-identical.
+   - **a new caution, from the harness.** A hook that crashes exits non-zero,
+     which for `PreToolUse`/`SessionStart` is a *non-blocking* error — the session
+     continues and nothing is injected. Trial 5's first harness was dead in all
+     three hooked arms and would have produced a clean false negative. **Every
+     integration in §4 needs a "did it fire" assertion and a "did it arrive"
+     assertion, or its failure mode is a convincing null** (musing 0018, PA-22).
+   And one thing it may oblige: `ai-common:P3` and `ai-common:C3` state this
+   section's hypothesis as library elements, so a negative result is a patch to
+   the library, not a footnote (musing 0017, PA-23).
 3. **Arm experiment** (trial 2's verdict: worth building, on directives) —
    runs with whatever delivery layer step 2 crowns.
 4. **Each shipped integration gets a trial row.** `REGISTER.md` grows a

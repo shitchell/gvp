@@ -1,0 +1,8 @@
+{
+  "PreToolUse": [
+    {
+      "matcher": "Write|Edit",
+      "hooks": [ { "type": "command", "command": "python3 __HOOK__" } ]
+    }
+  ]
+}

@@ -82,6 +82,10 @@ Known channels, all of which the gate must assert against:
 | **the instrument's own `cairn`** | not a run-facing leak, a *reproducibility* one. The orchestrator verifies "exactly one element differs" with `cairn`, and with the dispatcher on `PATH` that resolves to a repo-local `dist/` whose build may be stale — a different build from the one the runs interpret the variant with | pin an **absolute** cairn path in the instrument, never bare `cairn`; prefer the global install, because that is what the runs resolve to; record the resolved path *and* `--version` in the manifest and assert them in the gate |
 | **`cairn validate`'s own diagnostics** | `CLAUDE.md` tells every run to consult the library through `cairn`. If a manipulation changes the diagnostic set — a mapping warning that appears or vanishes, a count that shifts — then `validate` reports a different number in one arm than another, and the run is told which arm it is in by the tool the experiment requires it to use. Neither trial 1 nor trial 2 asserted this | capture `validate` output per arm and assert it is **byte-identical** across all of them. Trial 3's four arms all produce the same 27 diagnostics (`sha a50ceb…`), which is what makes its additive-clause design safe where an inversion might not have been. Run it from **outside `$HOME`** or the assertion is worthless: `~/.gvp/config.yaml` carries `suppress_diagnostics: [W003, W005]` and the project walk-up runs to the filesystem root, so it is discovered as the *project* config for every cwd below `$HOME` — same library, 2 warnings from `~`, 27 from `/tmp` (#36) |
 | **axis co-statement** (semantic, not structural) | the invariant "exactly one element differs" is satisfied byte-wise while **other elements state the same position**, so a flip cannot be attributed to the manipulated element. Trial 1 named this its sharpest data point (the redundancy null) and trial 3 found CH2's axis carries **nine** competing voices | before declaring a trial, query the library for every element bearing on the axis — not just the one under test. If more than one speaks to it, the manipulation is either redundant (same position) or contested (opposite), and **neither is a one-element change in effect**. Record the full voice list in the trial declaration |
+| **the delivery mechanism itself** (trial 5) | when the independent variable is *how* the library reaches the agent, the mechanism is visible to a run that looks: one arm has no hook and the others do. Unclosable by construction | measure it rather than assume it. Same script, same filename, same wiring shape in every hooked arm; payload differences confined to one file; the transcript audit reports every run that read its settings, the hook script, the payload or the log. Declared as an OPEN channel, reported with the result |
+| **hook/injection payload fidelity** (trial 5) | an injected "element" that paraphrases, summarises or re-frames the library's text is a different manipulation from the one declared — and a second element smuggled into the payload is an undeclared voice on the axis | extract the payload FROM the arm's own library copy, never type it into the build script; the gate re-extracts and asserts the statement and name appear verbatim, that exactly one element id appears, and that arms meant to share a payload are byte-identical |
+| **the trigger's recall** (trial 5) | a reactive hook fires on a detector. A site the detector misses is a site the mechanism never bound at — which supports NO conclusion about steering, while looking identical in the artifacts to a site where the element was delivered and ignored | the hook logs every invocation, matches AND misses, with the path; the scorer cross-references each scored site against that log and reports `fired` / `detector-miss` / `no-write-logged`. The detector must not know the trial's needle, or it is the scorer |
+| **a silent mechanism reads as a null** (trial 5) | THE failure mode of a delivery trial, and it is not an error. A hook that crashes exits non-zero, which for `PreToolUse`/`SessionStart` is a *non-blocking* error: the session continues, nothing is injected, nothing surfaces. Trial 5's first harness did exactly this and would have produced a clean, internally consistent, completely false negative result | two assertions, both of which must be able to fail: a **mechanical** one (every hooked run's log shows ≥1 injection, asserted by the gate — a run without it is *meaningless*, not null) and a **behavioural** one (a throwaway live session per arm, on a prompt that is not the task, in which the model is asked to name the element it was shown). Only the model's answer proves the payload reached context |
 
 **New channels will exist.** Before each trial, ask the question that was never
 asked the first time: *if this run wanted to know which variant it is in, what
@@ -143,6 +147,24 @@ From `experiments/2026-09-manipulation-check/instrument/`:
 - **The citation capture** — `cited: {element: bool, ids: [...]}` parsed from
   each run's `DECISIONS.md`. This is half the instrument and the first version
   shipped without it.
+
+From `experiments/2026-10-delivery-cr1/instrument/` (delivery trials, and any
+trial whose independent variable is a mechanism rather than a text):
+
+- **`selftest/validate-hooks.sh`** — the harness licence. One live session per
+  arm, a prompt that is not the task, and a behavioural assertion. Build it
+  BEFORE the scorer; it is the only thing that catches a dead mechanism.
+- **`selftest/validate-detector.py`** — drives a hook end to end on synthetic
+  event JSON. Costs nothing, and the class of bug it catches is invisible at
+  runtime.
+- **`selftest/make-fake-runs.py`** — synthetic run worlds, so the gate's
+  run-level assertions (which previously could not be mutation-tested until
+  after a batch existed) are falsifiable before dispatch. Trial 5: 41 mutations,
+  41 caught, eleven of them against run-level checks.
+- **The inverted library invariant** — when the manipulation is outside the
+  library, the gate asserts all arms are byte-identical instead of asserting one
+  difference. That closes element-name, axis-co-statement, tag-glossary and
+  `cairn validate` divergence by construction; assert it rather than trust it.
 
 ### The required scoring step: read each run's prose against its scored row
 
@@ -276,8 +298,25 @@ Ordered by what each would settle:
    reusable layer and the least directive; if they steer, the shape hypothesis
    is wrong.
 5. **Delivery, not content** — same element, injected at session start versus
-   requiring a `cairn` call. This is arm 3 of the main design and the only
-   thing that tests the *"not auto-injected"* objection.
+   at the moment of the governed act versus requiring a `cairn` call. The only
+   thing that tests the *"not auto-injected"* objection, and the gate for the
+   whole integration roadmap. **Declared as trial 5 on 2026-10-07**
+   (`experiments/2026-10-delivery-cr1`), instrument licensed, awaiting dispatch.
+   Four design choices worth carrying to any successor:
+   - **ask it where L0 is known to FAIL, not where it works.** `CR1` steers the
+     artifact it names 3/3 at L0 (trial 2) — a ceiling has no headroom. The
+     headroom is the radius: trial 2's `baseline` rep 2 ignored its config file,
+     cited `CR1` for doing so, and hard-coded the live token into a test fixture.
+   - **score sites independently.** Trial 2 pooled "where did the token come to
+     rest" into one fork label and so recorded that same run as a plain
+     violation. Four sites, never pooled.
+   - **the null arm is a delivery null, not an element null** — the same hook,
+     the same trigger, an inert payload. It separates "a hook interrupted me at
+     the moment I was writing a credential" from "the element arrived".
+   - **inform, do not block.** A `PreToolUse` hook that exits 2 refuses the write
+     and produces compliance trivially; that measures enforcement, which was
+     never in doubt. Blocking is a separate question whose real cost is its
+     false-positive rate.
 
 ## 10. What would falsify the shape hypothesis
 
