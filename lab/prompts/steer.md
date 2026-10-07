@@ -29,7 +29,14 @@ C. **Stop with questions.** If the next step genuinely needs the maintainer
    yourself.
 
 Constraints, non-negotiable:
-- Work in a git worktree + branch; merge to main when the unit closes; push.
+- Work in a git worktree + branch created explicitly FROM main
+  (`git worktree add .worktrees/<name> -b <branch> main`). NEVER `git
+  checkout` in the primary checkout. To merge when the unit closes: if the
+  primary checkout is on main, merge there; otherwise merge via a temporary
+  worktree of main (`git worktree add .worktrees/_merge main && git -C
+  .worktrees/_merge merge --no-ff <branch> && git -C .worktrees/_merge push
+  && git worktree remove .worktrees/_merge`). The maintainer's checked-out
+  branch is never switched, ever.
 - Trials follow docs/plans/2026-09-30-trial-orchestration.md entirely.
 - Quote the maintainer verbatim or not at all (conversations/ files).
 - Delegate context-heavy reading to subagents; your context is for steering.

@@ -25,6 +25,16 @@
    bulk reads to subagents, and never load prior transcripts. The protocol's
    §2 list stays authoritative for trials.
 
+## Branch & worktree rules (so nobody has to care what's checked out)
+
+Units run in `.worktrees/<name>` on a branch created **explicitly from
+`main`** — never from HEAD — so a session's work is insensitive to whatever
+branch the maintainer happens to be on. The primary checkout is never
+`git checkout`-ed by a session; if it isn't on `main` at merge time, the
+merge happens through a temporary worktree of `main` instead. Branch naming:
+`experiment/*`, `lab/*`, `docs/*`, `fix/*`; merged `--no-ff`, pushed,
+worktree removed, branch kept as the record.
+
 ## The minimum stack, by role
 
 | role | loads | writes |
